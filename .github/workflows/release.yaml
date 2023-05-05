@@ -61,22 +61,22 @@ jobs:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-22.04
             install: sudo apt install clang llvm pkg-config nettle-dev
-            features: vendored,crypto-openssl
+            args: --features vendored,crypto-openssl --no-default-features
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-22.04
             cross: "true"
-            features: vendored,crypto-openssl
+            args: --features vendored,crypto-openssl --no-default-features
           - target: x86_64-apple-darwin
             os: macos-12
-            features: vendored,crypto-openssl
+            args: --features vendored,crypto-openssl --no-default-features
           - target: aarch64-apple-darwin
             os: macos-12
             xcode: "true"
-            features: vendored,crypto-openssl
+            args: --features vendored,crypto-openssl --no-default-features
           - target: x86_64-pc-windows-gnu
             os: windows-2022
             exe: ".exe"
-            features: vendored,crypto-openssl
+            args: --features vendored,crypto-openssl --no-default-features
 
     runs-on: ${{ matrix.os }}
 
@@ -126,16 +126,14 @@ jobs:
             OPTS="$OPTS --target=${{ matrix.target }}"
           fi
           
-          if [[ -n "${{ matrix.features }}" ]]; then
-            OPTS="$OPTS --features=${{ matrix.features }}"
-          fi
+          OPTS="$OPTS ${{ matrix.args }}"
           
           CMD="cargo"
-
+          
           if [[ -n "${{ matrix.cross }}" ]]; then
             CMD="cross"
           fi
-
+          
           env NETTLE_STATIC=yes ${CMD} build -p csaf-cli ${OPTS}
 
       - name: List output
