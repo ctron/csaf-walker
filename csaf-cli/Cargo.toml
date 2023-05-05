@@ -8,7 +8,7 @@ license = "Apache-2.0"
 repository = "https://github.com/ctron/csaf-walker"
 categories = ["command-line-utilities", "data-structures"]
 keywords = ["csaf", "cli"]
-readme = "README.md"
+readme = "../README.md"
 rust-version = "1.63"
 
 [dependencies]
