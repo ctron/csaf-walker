@@ -138,7 +138,9 @@ jobs:
 
       - name: List output
         shell: bash
-        run: ls -l target/release/
+        run: |
+          ls -l target/
+          ls -l target/release/
 
       - name: Copy binary
         shell: bash
