@@ -52,26 +52,25 @@ jobs:
     strategy:
       matrix:
         target:
-          - linux-amd64
-          - linux-aarch64
-          - macos-amd64
-          - macos-aarch64
-          - windows-amd64
+          - aarch64-unknown-linux-gnu
+          - x86_64-unknown-linux-gnu
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
+          - x86_64-pc-windows-gnu
         include:
-          - target: linux-amd64
+          - target: x86_64-unknown-linux-gnu
             os: ubuntu-22.04
             install: sudo apt install clang llvm pkg-config nettle-dev
-          - target: linux-aarch64
+          - target: aarch64-unknown-linux-gnu
             os: ubuntu-22.04
             cross: "true"
-            crossTarget: "aarch64-unknown-linux-gnu"
-          - target: macos-amd64
+            crossTarget: "true"
+          - target: x86_64-apple-darwin
             os: macos-12
-          - target: macos-aarch64
+          - target: aarch64-apple-darwin
             os: macos-12
-            rustTarget: "aarch64-apple-darwin"
             xcode: "true"
-          - target: windows-amd64
+          - target: x86_64-pc-windows-gnu
             os: windows-2022
             exe: ".exe"
 
@@ -95,8 +94,8 @@ jobs:
             target/
           key: ${{ matrix.target }}-cargo-release-${{ hashFiles('**/Cargo.toml') }}
 
-      - run: rustup target add ${{ matrix.rustTarget }}
-        if: matrix.rustTarget != ''
+      - run: rustup target add ${{ matrix.target }}
+        if: matrix.target != ''
 
       - run: ${{ matrix.install }}
         if: matrix.install != ''
@@ -111,8 +110,8 @@ jobs:
           
           OPTS="--release"
           
-          if [[ -n "${{ matrix.rustTarget }}" ]]; then
-            OPTS="$OPTS --target=${{ matrix.rustTarget }}"
+          if [[ -n "${{ matrix.target }}" ]]; then
+            OPTS="$OPTS --target=${{ matrix.target }}"
           fi
           
           if [[ -n "${{ matrix.features }}" ]]; then
@@ -121,10 +120,9 @@ jobs:
           
           CMD="cargo"
           
-          if [[ -n "${{ matrix.crossTarget }}" ]]; then
+          if [[ -n "${{ matrix.cross }}" ]]; then
             cargo install cross
             CMD="cross"
-            OPTS="$OPTS --target=${{ matrix.crossTarget }}"
           fi
           
           env NETTLE_STATIC=yes ${CMD} build ${OPTS}
@@ -140,11 +138,8 @@ jobs:
           SRC="target/release/csaf{{ matrix.exe }}"
           
           # if we have an alternate target, there is a sub-directory
-          if [[ -n "${{ matrix.rustTarget }}" ]]; then
-            SRC="target/${{ matrix.rustTarget }}/release/csaf{{ matrix.exe }}"
-          fi
-          if [[ -n "${{ matrix.crossTarget }}" ]]; then
-            SRC="target/${{ matrix.crossTarget }}/release/csaf{{ matrix.exe }}"
+          if [[ -n "${{ matrix.target }}" ]]; then
+            SRC="target/${{ matrix.target }}/release/csaf{{ matrix.exe }}"
           fi
           
           # for upload
@@ -169,7 +164,7 @@ jobs:
 
       - name: Install convco
         run: |
-          curl -sLO https://github.com/convco/convco/releases/download/v0.3.15/convco-ubuntu.zip
+          curl -sLO https://github.com/convco/convco/releases/download/v0.4.0/convco-ubuntu.zip
           unzip convco-ubuntu.zip
           chmod a+x convco
           sudo mv convco /usr/local/bin
