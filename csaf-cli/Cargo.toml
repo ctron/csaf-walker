@@ -1,0 +1,25 @@
+[package]
+name = "csaf-cli"
+description = "A CLI to work with CSAF data"
+version = "0.0.1"
+edition = "2021"
+authors = ["Jens Reimann <ctron@dentrassi.de>"]
+license = "Apache-2.0"
+repository = "https://github.com/ctron/csaf-walker"
+categories = ["command-line-utilities", "data-structures"]
+keywords = ["csaf", "cli"]
+readme = "README.md"
+rust-version = "1.63"
+
+[dependencies]
+anyhow = "1"
+async-trait = "0.1"
+env_logger = "0.10.0"
+humantime = "2"
+log = "0.4.17"
+reqwest = { version = "0.11", features = ["json"] }
+thiserror = "1"
+time = "0.3.20"
+tokio = { version = "1", features = ["full"] }
+
+csaf-walker = { version = "0.0.2", path = ".." }

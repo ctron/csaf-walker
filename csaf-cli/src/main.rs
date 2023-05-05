@@ -1,8 +1,8 @@
-use csaf_walker::retrieve::RetrievingVisitor;
-use csaf_walker::validation::{
-    ValidatedAdvisory, ValidationError, ValidationOptions, ValidationVisitor,
+use csaf_walker::{
+    retrieve::RetrievingVisitor,
+    validation::{ValidatedAdvisory, ValidationError, ValidationOptions, ValidationVisitor},
+    walker::Walker,
 };
-use csaf_walker::walker::Walker;
 use reqwest::Url;
 use std::convert::Infallible;
 use std::time::SystemTime;

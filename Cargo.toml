@@ -1,13 +1,13 @@
 [package]
 name = "csaf-walker"
-description = "A library and CLI to work with CSAF data"
-version = "0.0.1"
+description = "A library to work with CSAF data"
+version = "0.0.2"
 edition = "2021"
 authors = ["Jens Reimann <ctron@dentrassi.de>"]
 license = "Apache-2.0"
 repository = "https://github.com/ctron/csaf-walker"
-categories = ["command-line-utilities", "data-structures"]
-keywords = ["csaf", "cli"]
+categories = ["data-structures"]
+keywords = ["csaf"]
 readme = "README.md"
 rust-version = "1.63"
 
@@ -15,20 +15,18 @@ rust-version = "1.63"
 anyhow = "1"
 async-trait = "0.1"
 bytes = "1"
-csaf = { version = "0.4.0", default-features = false }
 digest = "0.10.6"
-env_logger = "0.10.0"
-humantime = "2"
 log = "0.4.17"
 reqwest = { version = "0.11", features = ["json"] }
 sequoia-openpgp = { version = "1" }
 serde = { version = "1", features = ["derive"] }
-serde_json = { version = "1", features = [] }
 sha2 = "0.10.6"
 thiserror = "1"
 time = "0.3.20"
-tokio = { version = "1", features = ["full"] }
-url = "2.3.1"
+tokio = { version = "1", features = ["macros"] }
+url = { version = "2.3.1", features = ["serde"] }
 
-[[bin]]
-name = "csaf"
+[workspace]
+members = [
+    "csaf-cli"
+]

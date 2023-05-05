@@ -1,0 +1,202 @@
+name: release
+
+on:
+  push:
+    # Releases are tags named 'v<version>', and must have the "major.minor.micro", for example: "0.1.0".
+    # Release candidates are tagged as `v<version>-rc<num>`, for example: "0.1.0-rc1".
+    tags:
+      - "v*"
+
+
+permissions:
+  contents: write # for creating a release
+
+jobs:
+
+  init:
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{steps.version.outputs.version}}
+      prerelease: ${{steps.state.outputs.prerelease}}
+    steps:
+      - name: Evaluate state
+        id: state
+        env:
+          HEAD_REF: ${{github.head_ref}}
+        run: |
+          test -z "${HEAD_REF}" && (echo 'do-publish=true' >> $GITHUB_OUTPUT)
+          if [[ "${{ github.event.ref }}" =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo release=true >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event.ref }}" =~ ^refs/tags/v.*$ ]]; then
+              echo prerelease=true >> $GITHUB_OUTPUT
+          fi
+      - name: Set version
+        id: version
+        run: |
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+          [ "$VERSION" == "main" ] && VERSION=latest
+          echo "Version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+
+  # check that our CI would pass
+  ci:
+    uses: ./.github/workflows/ci.yaml
+
+
+  # now do the actual (release) builds
+  build:
+    needs: [ init, ci ]
+
+    strategy:
+      matrix:
+        target:
+          - linux-amd64
+          - linux-aarch64
+          - macos-amd64
+          - macos-aarch64
+          - windows-amd64
+        include:
+          - target: linux-amd64
+            os: ubuntu-22.04
+          - target: linux-aarch64
+            os: ubuntu-22.04
+            cross: "true"
+            crossTarget: "aarch64-unknown-linux-gnu"
+          - target: macos-amd64
+            os: macos-12
+          - target: macos-aarch64
+            os: macos-12
+            rustTarget: "aarch64-apple-darwin"
+            xcode: "true"
+          - target: windows-amd64
+            os: windows-2022
+            exe: ".exe"
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - run: rustup target add ${{ matrix.rustTarget }}
+        if: matrix.rustTarget != ''
+
+      - name: Build
+        shell: bash
+        run: |
+          if [[ "${{ matrix.xcode }}" == "true" ]]; then
+            export SDKROOT=$(xcrun -sdk macosx --show-sdk-path)
+            export MACOSX_DEPLOYMENT_TARGET=$(xcrun -sdk macosx --show-sdk-platform-version)
+          fi
+          
+          OPTS="--release"
+          
+          if [[ -n "${{ matrix.rustTarget }}" ]]; then
+            OPTS="$OPTS --target=${{ matrix.rustTarget }}"
+          fi
+          
+          if [[ -n "${{ matrix.features }}" ]]; then
+            OPTS="$OPTS --features=${{ matrix.features }}"
+          fi
+          
+          CMD="cargo"
+          
+          if [[ -n "${{ matrix.crossTarget }}" ]]; then
+            cargo install cross
+            CMD="cross"
+            OPTS="$OPTS --target=${{ matrix.crossTarget }}"
+          fi
+          
+          ${CMD} build ${OPTS}
+
+      - name: List output
+        shell: bash
+        run: ls -l target/release/
+
+      - name: Copy binary
+        shell: bash
+        run: |
+          mkdir -p upload
+          SRC="target/release/csaf{{ matrix.exe }}"
+          
+          # if we have an alternate target, there is a sub-directory
+          if [[ -n "${{ matrix.rustTarget }}" ]]; then
+            SRC="target/${{ matrix.rustTarget }}/release/csaf{{ matrix.exe }}"
+          fi
+          if [[ -n "${{ matrix.crossTarget }}" ]]; then
+            SRC="target/${{ matrix.crossTarget }}/release/csaf{{ matrix.exe }}"
+          fi
+          
+          # for upload
+          cp -pv "${SRC}" upload/csaf-${{ matrix.target }}${{ matrix.exe }}
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: csaf-${{ matrix.target }}
+          path: upload/csaf-${{ matrix.target }}${{ matrix.exe }}
+          if-no-files-found: error
+
+  publish:
+    needs: [ init, build ]
+    runs-on: ubuntu-22.04
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install convco
+        run: |
+          curl -sLO https://github.com/convco/convco/releases/download/v0.3.15/convco-ubuntu.zip
+          unzip convco-ubuntu.zip
+          chmod a+x convco
+          sudo mv convco /usr/local/bin
+
+      - name: Generate changelog
+        run: |
+          convco changelog -s --max-majors=1 --max-minors=1 --max-patches=1 > /tmp/changelog.md
+
+      - uses: actions/download-artifact@v3
+        with:
+          path: ~/download
+
+      - name: Display downloaded content
+        run: ls -R ~/download
+
+      - name: Stage release
+        run: |
+          mkdir -p staging
+          cp -pv ~/download/*/csaf-* staging/
+
+      - name: Display staging area
+        run: ls -R staging
+
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: v${{ needs.init.outputs.version }}
+        run: |
+          OPTS=""
+          if [[ "${{ needs.init.outputs.prerelease }}" == "true" ]]; then
+            OPTS="${OPTS} -p"
+          fi
+          gh release create ${OPTS} --title "${{ needs.init.outputs.version }}" -F /tmp/changelog.md ${TAG} \
+            $(find staging -type f)
