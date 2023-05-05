@@ -30,5 +30,13 @@ csaf-walker = { version = "0.1.0", path = ".." }
 # just there for the feature
 openssl = { version = "*", optional = true }
 
+[target."cfg(not(windows))".dependencies.sequoia-openpgp]
+version = "1"
+
+[target."cfg(windows)".dependencies.sequoia-openpgp]
+version = "1"
+default-features = false
+features = ["crypto-cng"]
+
 [features]
 vendored = ["openssl/vendored"]
