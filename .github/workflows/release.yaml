@@ -120,7 +120,10 @@ jobs:
           CMD="cargo"
           
           if [[ -n "${{ matrix.cross }}" ]]; then
-            cargo install cross
+            curl -sSL https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz -o binstall.tar.gz
+            tar xzf binstall.tar.gz
+            mv binstall $HOME/.cargo/bin/
+            cargo binstall cross
             CMD="cross"
           fi
           
