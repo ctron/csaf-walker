@@ -140,8 +140,7 @@ jobs:
       - name: List output
         shell: bash
         run: |
-          sudo apt install tree -y
-          tree target/
+          ls -l target/
 
       - name: Copy binary
         shell: bash
