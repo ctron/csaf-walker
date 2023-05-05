@@ -39,3 +39,7 @@ crypto-botan = ["csaf-walker/crypto-botan"]
 crypto-rust = ["csaf-walker/crypto-rust"]
 
 vendored = ["openssl/vendored"]
+
+[[bin]]
+name = "csaf"
+path = "src/main.rs"
