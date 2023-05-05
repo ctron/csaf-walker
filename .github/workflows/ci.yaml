@@ -36,6 +36,10 @@ jobs:
           - windows-latest
           - macos-latest
 
+        include:
+          - os: ubuntu-latest
+            install: sudo apt install clang llvm pkg-config nettle-dev
+
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -57,6 +61,9 @@ jobs:
       - name: Install Rust ${{ matrix.rust }}
         run: |
           rustup install ${{ matrix.rust }}
+
+      - name: Install dependencies
+        run: ${{ matrix.install }}
 
       - name: Check
         run: cargo +${{ matrix.rust }} check
