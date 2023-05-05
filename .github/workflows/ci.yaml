@@ -56,7 +56,7 @@ jobs:
             ~/.cargo/git/db/
             target/
             frontend/target/
-          key: ${{ runner.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.toml') }}
 
       - name: Install Rust ${{ matrix.rust }}
         run: |
