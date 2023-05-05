@@ -123,7 +123,7 @@ jobs:
             OPTS="$OPTS --target=${{ matrix.crossTarget }}"
           fi
           
-          ${CMD} build ${OPTS}
+          env NETTLE_STATIC=yes ${CMD} build ${OPTS}
 
       - name: List output
         shell: bash
