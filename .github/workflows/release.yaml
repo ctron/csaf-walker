@@ -134,7 +134,7 @@ jobs:
             CMD="cross"
           fi
           
-          env NETTLE_STATIC=yes ${CMD} build --release -p csaf-cli ${OPTS}
+          env NETTLE_STATIC=yes ${CMD} build -p csaf-cli ${OPTS}
 
       - name: List output
         shell: bash
