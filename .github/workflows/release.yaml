@@ -105,7 +105,7 @@ jobs:
           curl -sSL https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz -o binstall.tar.gz
           tar xzf binstall.tar.gz
           mv cargo-binstall $HOME/.cargo/bin/
-          cargo binstall cross
+          cargo binstall cross -y
 
       - name: Build
         shell: bash
