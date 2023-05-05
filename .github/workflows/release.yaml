@@ -69,6 +69,7 @@ jobs:
           - target: aarch64-apple-darwin
             os: macos-12
             xcode: "true"
+            features: vendored
           - target: x86_64-pc-windows-gnu
             os: windows-2022
             exe: ".exe"
@@ -131,7 +132,7 @@ jobs:
             CMD="cross"
           fi
 
-          env NETTLE_STATIC=yes ${CMD} build ${OPTS}
+          env NETTLE_STATIC=yes ${CMD} build -p csaf-cli ${OPTS}
 
       - name: List output
         shell: bash

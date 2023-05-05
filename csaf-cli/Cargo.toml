@@ -27,3 +27,8 @@ tokio = { version = "1", features = ["full"] }
 
 csaf-walker = { version = "0.1.0", path = ".." }
 
+# just there for the feature
+openssl = { version = "*", optional = true }
+
+[features]
+vendored = ["openssl/vendored"]
