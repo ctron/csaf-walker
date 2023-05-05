@@ -144,11 +144,15 @@ jobs:
         shell: bash
         run: |
           mkdir -p upload
-          SRC="target/release/csaf{{ matrix.exe }}"
           
           # if we have an alternate target, there is a sub-directory
-          if [[ -n "${{ matrix.target }}" ]]; then
+          if [[ -f "target/release/csaf{{ matrix.exe }}" ]]; then
+            SRC="target/release/csaf{{ matrix.exe }}"
+          elif [[ -f "target/${{ matrix.target }}/release/csaf{{ matrix.exe }}" ]]; then
             SRC="target/${{ matrix.target }}/release/csaf{{ matrix.exe }}"
+          else
+            echo "Unable to find output"
+            false # stop build
           fi
           
           # for upload
