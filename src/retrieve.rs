@@ -29,6 +29,20 @@ pub struct RetrievedAdvisory {
     pub sha512: Option<RetrievedDigest<Sha512>>,
 }
 
+impl Deref for RetrievedAdvisory {
+    type Target = DiscoveredAdvisory;
+
+    fn deref(&self) -> &Self::Target {
+        &self.discovered
+    }
+}
+
+impl DerefMut for RetrievedAdvisory {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.discovered
+    }
+}
+
 #[derive(Clone, PartialEq, Eq)]
 pub struct RetrievedDigest<D: Digest> {
     /// The expected digest, as read from the remote source
@@ -103,7 +117,7 @@ pub enum RetrievalError {
 
 #[async_trait(?Send)]
 pub trait RetrievedVisitor {
-    type Error: std::error::Error + Debug;
+    type Error: std::fmt::Display + Debug;
     type Context;
 
     async fn visit_context(
@@ -123,7 +137,7 @@ impl<F, E, Fut> RetrievedVisitor for F
 where
     F: Fn(Result<RetrievedAdvisory, RetrievalError>) -> Fut,
     Fut: Future<Output = Result<(), E>>,
-    E: std::error::Error,
+    E: std::fmt::Display + Debug,
 {
     type Error = E;
     type Context = ();
@@ -161,7 +175,7 @@ where
 #[derive(Debug, thiserror::Error)]
 pub enum Error<VE>
 where
-    VE: std::error::Error + Debug,
+    VE: std::fmt::Display + Debug,
 {
     #[error("Request error: {0}")]
     Request(#[from] reqwest::Error),

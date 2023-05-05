@@ -14,7 +14,7 @@ pub struct DiscoveredAdvisory {
 /// Visiting discovered advisories
 #[async_trait(?Send)]
 pub trait DiscoveredVisitor {
-    type Error: std::error::Error + Debug;
+    type Error: std::fmt::Display + Debug;
     type Context;
 
     async fn visit_context(
@@ -34,7 +34,7 @@ impl<F, E, Fut> DiscoveredVisitor for F
 where
     F: Fn(DiscoveredAdvisory) -> Fut,
     Fut: Future<Output = Result<(), E>>,
-    E: std::error::Error,
+    E: std::fmt::Display + Debug,
 {
     type Error = E;
     type Context = ();

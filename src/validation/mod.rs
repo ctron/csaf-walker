@@ -9,12 +9,27 @@ use async_trait::async_trait;
 use digest::Digest;
 use std::fmt::Debug;
 use std::future::Future;
+use std::ops::{Deref, DerefMut};
 use std::time::SystemTime;
 
 #[derive(Clone, Debug)]
 pub struct ValidatedAdvisory {
     /// The discovered advisory
     pub retrieved: RetrievedAdvisory,
+}
+
+impl Deref for ValidatedAdvisory {
+    type Target = RetrievedAdvisory;
+
+    fn deref(&self) -> &Self::Target {
+        &self.retrieved
+    }
+}
+
+impl DerefMut for ValidatedAdvisory {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.retrieved
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -29,7 +44,7 @@ pub enum ValidationError {
 
 #[async_trait(?Send)]
 pub trait ValidatedVisitor {
-    type Error: std::error::Error + Debug;
+    type Error: std::fmt::Display + Debug;
     type Context;
 
     async fn visit_context(
@@ -49,7 +64,7 @@ impl<F, E, Fut> ValidatedVisitor for F
 where
     F: Fn(Result<ValidatedAdvisory, ValidationError>) -> Fut,
     Fut: Future<Output = Result<(), E>>,
-    E: std::error::Error,
+    E: std::fmt::Display + Debug,
 {
     type Error = E;
     type Context = ();
@@ -96,7 +111,7 @@ enum ValidationProcessError {
 #[derive(Debug, thiserror::Error)]
 pub enum Error<VE>
 where
-    VE: std::error::Error + Debug,
+    VE: std::fmt::Display + Debug,
 {
     #[error("Retrieval error: {0}")]
     Visitor(VE),

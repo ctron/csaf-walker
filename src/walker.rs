@@ -9,7 +9,7 @@ use url::ParseError;
 #[derive(Debug, thiserror::Error)]
 pub enum Error<VE>
 where
-    VE: std::error::Error + Debug,
+    VE: std::fmt::Display + Debug,
 {
     #[error("Request error: {0}")]
     Request(#[from] reqwest::Error),
