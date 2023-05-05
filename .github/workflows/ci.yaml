@@ -39,6 +39,8 @@ jobs:
         include:
           - os: ubuntu-latest
             install: sudo apt install clang llvm pkg-config nettle-dev
+          - os: windows-latest
+            args: --features crypto-cng --no-default-features
 
     runs-on: ${{ matrix.os }}
 
@@ -66,7 +68,7 @@ jobs:
         run: ${{ matrix.install }}
 
       - name: Check
-        run: cargo +${{ matrix.rust }} check --all
+        run: cargo +${{ matrix.rust }} check --all ${{ matrix.args }}
 
       - name: Test
-        run: cargo +${{ matrix.rust }} test --all -- --nocapture
+        run: cargo +${{ matrix.rust }} test --all ${{ matrix.args }} -- --nocapture
