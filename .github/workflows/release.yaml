@@ -60,6 +60,7 @@ jobs:
         include:
           - target: linux-amd64
             os: ubuntu-22.04
+            install: sudo apt install clang llvm pkg-config nettle-dev
           - target: linux-aarch64
             os: ubuntu-22.04
             cross: "true"
@@ -96,6 +97,9 @@ jobs:
 
       - run: rustup target add ${{ matrix.rustTarget }}
         if: matrix.rustTarget != ''
+
+      - run: ${{ matrix.install }}
+        if: matrix.install != ''
 
       - name: Build
         shell: bash
