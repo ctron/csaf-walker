@@ -139,8 +139,8 @@ jobs:
       - name: List output
         shell: bash
         run: |
-          ls -l target/
-          ls -l target/release/
+          sudo apt install tree -y
+          tree target/
 
       - name: Copy binary
         shell: bash
