@@ -1,2 +1,5 @@
 [target.aarch64-unknown-linux-gnu]
-pre-build = ["dpkg --add-architecture arm64 && apt-get update && apt-get install --assume-yes nettle-dev:arm64 pkg-config:arm64 libssl-dev:arm64"]
+pre-build = [
+    "dpkg --add-architecture $CROSS_DEB_ARCH",
+    "apt-get update && apt-get install --assume-yes libssl-dev:$CROSS_DEB_ARCH nettle-dev:$CROSS_DEB_ARCH pkg-config:$CROSS_DEB_ARCH libssl-dev:$CROSS_DEB_ARCH"
+]
