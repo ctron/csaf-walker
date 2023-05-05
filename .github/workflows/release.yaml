@@ -99,6 +99,14 @@ jobs:
       - run: ${{ matrix.install }}
         if: matrix.install != ''
 
+      - name: Prepare cross
+        if: matrix.cross == 'true'
+        run: |
+          curl -sSL https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz -o binstall.tar.gz
+          tar xzf binstall.tar.gz
+          mv binstall $HOME/.cargo/bin/
+          cargo binstall cross
+
       - name: Build
         shell: bash
         run: |
@@ -118,15 +126,11 @@ jobs:
           fi
           
           CMD="cargo"
-          
+
           if [[ -n "${{ matrix.cross }}" ]]; then
-            curl -sSL https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz -o binstall.tar.gz
-            tar xzf binstall.tar.gz
-            mv binstall $HOME/.cargo/bin/
-            cargo binstall cross
             CMD="cross"
           fi
-          
+
           env NETTLE_STATIC=yes ${CMD} build ${OPTS}
 
       - name: List output
