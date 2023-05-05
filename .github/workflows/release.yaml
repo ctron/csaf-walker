@@ -61,18 +61,22 @@ jobs:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-22.04
             install: sudo apt install clang llvm pkg-config nettle-dev
+            features: vendored,crypto-openssl
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-22.04
             cross: "true"
+            features: vendored,crypto-openssl
           - target: x86_64-apple-darwin
             os: macos-12
+            features: vendored,crypto-openssl
           - target: aarch64-apple-darwin
             os: macos-12
             xcode: "true"
-            features: vendored
+            features: vendored,crypto-openssl
           - target: x86_64-pc-windows-gnu
             os: windows-2022
             exe: ".exe"
+            features: vendored,crypto-openssl
 
     runs-on: ${{ matrix.os }}
 

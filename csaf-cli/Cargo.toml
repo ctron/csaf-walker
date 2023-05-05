@@ -25,18 +25,17 @@ thiserror = "1"
 time = "0.3.20"
 tokio = { version = "1", features = ["full"] }
 
-csaf-walker = { version = "0.1.0", path = ".." }
+csaf-walker = { version = "0.1.0", path = "..", default-features = false }
 
 # just there for the feature
 openssl = { version = "*", optional = true }
 
-[target."cfg(not(windows))".dependencies.sequoia-openpgp]
-version = "1"
-
-[target."cfg(windows)".dependencies.sequoia-openpgp]
-version = "1"
-default-features = false
-features = ["crypto-cng"]
-
 [features]
+default = ["crypto-nettle"]
+crypto-cng = ["csaf-walker/crypto-cng"]
+crypto-nettle = ["csaf-walker/crypto-nettle"]
+crypto-openssl = ["csaf-walker/crypto-openssl"]
+crypto-botan = ["csaf-walker/crypto-botan"]
+crypto-rust = ["csaf-walker/crypto-rust"]
+
 vendored = ["openssl/vendored"]
