@@ -101,7 +101,8 @@ jobs:
       - run: rustup target add ${{ matrix.target }}
         if: matrix.target != ''
 
-      - run: ${{ matrix.install }}
+      - name: Install dependencies
+        run: ${{ matrix.install }}
         if: matrix.install != ''
 
       - name: Prepare cross
