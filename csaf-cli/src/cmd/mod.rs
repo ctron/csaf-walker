@@ -6,6 +6,7 @@ use time::{Date, Month, UtcOffset};
 pub mod discover;
 pub mod download;
 pub mod scan;
+pub mod sync;
 
 #[derive(Debug, clap::Parser)]
 pub struct ClientArguments {

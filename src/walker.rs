@@ -3,7 +3,7 @@
 use crate::discover::{DiscoveredAdvisory, DiscoveredVisitor};
 use crate::fetcher::{self, Fetcher, Json, Text};
 use crate::model::metadata::{Distribution, ProviderMetadata};
-use futures::{stream, FutureExt, Stream, StreamExt, TryFutureExt, TryStream, TryStreamExt};
+use futures::{stream, Stream, StreamExt, TryFutureExt, TryStream, TryStreamExt};
 use reqwest::Url;
 use std::fmt::Debug;
 use std::sync::Arc;

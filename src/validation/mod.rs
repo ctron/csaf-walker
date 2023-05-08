@@ -8,7 +8,7 @@ use crate::retrieve::{RetrievalError, RetrievedAdvisory, RetrievedDigest, Retrie
 use crate::utils::openpgp::PublicKey;
 use async_trait::async_trait;
 use digest::Digest;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display, Formatter};
 use std::future::Future;
 use std::ops::{Deref, DerefMut};
 use std::time::SystemTime;
@@ -35,17 +35,41 @@ impl DerefMut for ValidatedAdvisory {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ValidationError {
-    #[error("Retrieval error: {0}")]
     Retrieval(RetrievalError),
-    #[error("Digest mismatch - expected: {expected}, actual: {actual}")]
-    DigestMismatch { expected: String, actual: String },
-    #[error("Invalid signature: {0}")]
-    Signature(anyhow::Error),
+    DigestMismatch {
+        expected: String,
+        actual: String,
+        retrieved: RetrievedAdvisory,
+    },
+    Signature {
+        error: anyhow::Error,
+        retrieved: RetrievedAdvisory,
+    },
+}
+
+impl Display for ValidationError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Retrieval(err) => write!(f, "Retrieval error: {err}"),
+            Self::DigestMismatch {
+                expected,
+                actual,
+                retrieved,
+            } => write!(
+                f,
+                "Digest mismatch - expected: {expected}, actual: {actual} ({})",
+                retrieved.url
+            ),
+            Self::Signature { error, retrieved } => {
+                write!(f, "Invalid signature: {error} ({})", retrieved.url)
+            }
+        }
+    }
 }
 
 #[async_trait(?Send)]
 pub trait ValidatedVisitor {
-    type Error: std::fmt::Display + Debug;
+    type Error: Display + Debug;
     type Context;
 
     async fn visit_context(
@@ -65,7 +89,7 @@ impl<F, E, Fut> ValidatedVisitor for F
 where
     F: Fn(Result<ValidatedAdvisory, ValidationError>) -> Fut,
     Fut: Future<Output = Result<(), E>>,
-    E: std::fmt::Display + Debug,
+    E: Display + Debug,
 {
     type Error = E;
     type Context = ();
@@ -112,9 +136,9 @@ enum ValidationProcessError {
 #[derive(Debug, thiserror::Error)]
 pub enum Error<VE>
 where
-    VE: std::fmt::Display + Debug,
+    VE: Display + Debug,
 {
-    #[error("Retrieval error: {0}")]
+    #[error("{0}")]
     Visitor(VE),
     #[error("Severe validation error: {0}")]
     Validation(anyhow::Error),
@@ -147,28 +171,43 @@ where
         context: &ValidationContext<V::Context>,
         retrieved: RetrievedAdvisory,
     ) -> Result<ValidatedAdvisory, ValidationProcessError> {
-        Self::validate_digest(&retrieved.sha256)?;
-        Self::validate_digest(&retrieved.sha512)?;
-
-        if let Some(signature) = &retrieved.signature {
-            openpgp::validate_signature(&self.options, context, &signature, &retrieved)
-                .map_err(|err| ValidationProcessError::Proceed(ValidationError::Signature(err)))?;
+        if let Err((expected, actual)) = Self::validate_digest(&retrieved.sha256) {
+            return Err(ValidationProcessError::Proceed(
+                ValidationError::DigestMismatch {
+                    expected,
+                    actual,
+                    retrieved,
+                },
+            ));
+        }
+        if let Err((expected, actual)) = Self::validate_digest(&retrieved.sha512) {
+            return Err(ValidationProcessError::Proceed(
+                ValidationError::DigestMismatch {
+                    expected,
+                    actual,
+                    retrieved,
+                },
+            ));
         }
 
-        Ok(ValidatedAdvisory { retrieved })
+        if let Some(signature) = &retrieved.signature {
+            match openpgp::validate_signature(&self.options, context, signature, &retrieved) {
+                Ok(()) => Ok(ValidatedAdvisory { retrieved }),
+                Err(error) => Err(ValidationProcessError::Proceed(
+                    ValidationError::Signature { error, retrieved },
+                )),
+            }
+        } else {
+            Ok(ValidatedAdvisory { retrieved })
+        }
     }
 
     /// ensure that the digest matches if we have one
     fn validate_digest<D: Digest>(
         digest: &Option<RetrievedDigest<D>>,
-    ) -> Result<(), ValidationProcessError> {
+    ) -> Result<(), (String, String)> {
         if let Some(digest) = &digest {
-            digest.validate().map_err(|(expected, actual)| {
-                ValidationProcessError::Proceed(ValidationError::DigestMismatch {
-                    expected: expected.to_string(),
-                    actual,
-                })
-            })?;
+            digest.validate().map_err(|(s1, s2)| (s1.to_string(), s2))?;
         }
         Ok(())
     }

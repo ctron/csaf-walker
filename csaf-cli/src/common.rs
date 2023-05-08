@@ -1,4 +1,5 @@
 use crate::cmd::{ClientArguments, DiscoverArguments, ValidationArguments};
+use csaf_walker::discover::DiscoveredVisitor;
 use csaf_walker::{
     fetcher::{Fetcher, FetcherOptions},
     retrieve::RetrievingVisitor,
@@ -30,12 +31,10 @@ where
     F: Fn(Result<ValidatedAdvisory, ValidationError>) -> Fut,
     Fut: Future<Output = anyhow::Result<()>>,
 {
-    let fetcher = new_fetcher(client).await?;
-
     let options: ValidationOptions = validation.into();
 
-    let visitor =
-        RetrievingVisitor::new(
+    walk_visitor(client, discover, move |fetcher| async move {
+        Ok(RetrievingVisitor::new(
             fetcher.clone(),
             ValidationVisitor::new(
                 fetcher.clone(),
@@ -44,7 +43,24 @@ where
                 },
             )
             .with_options(options),
-        );
+        ))
+    })
+    .await
+}
+
+pub async fn walk_visitor<F, Fut, V>(
+    client: ClientArguments,
+    discover: DiscoverArguments,
+    f: F,
+) -> anyhow::Result<()>
+where
+    F: FnOnce(Fetcher) -> Fut,
+    Fut: Future<Output = anyhow::Result<V>>,
+    V: DiscoveredVisitor,
+    V::Error: Send + Sync + 'static,
+{
+    let fetcher = new_fetcher(client).await?;
+    let visitor = f(fetcher.clone()).await?;
 
     let walker = Walker::new(discover.source, fetcher);
 

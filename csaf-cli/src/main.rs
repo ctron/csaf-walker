@@ -3,7 +3,7 @@ mod common;
 mod utils;
 
 use clap::Parser;
-use cmd::{discover::Discover, download::Download, scan::Scan};
+use cmd::{discover::Discover, download::Download, scan::Scan, sync::Sync};
 use log::LevelFilter;
 use std::io::Write;
 use std::process::ExitCode;
@@ -29,6 +29,7 @@ enum Command {
     Download(Download),
     Scan(Scan),
     Discover(Discover),
+    Sync(Sync),
 }
 
 impl Command {
@@ -37,6 +38,7 @@ impl Command {
             Command::Download(download) => download.run().await,
             Command::Scan(scan) => scan.run().await,
             Command::Discover(discover) => discover.run().await,
+            Command::Sync(sync) => sync.run().await,
         }
     }
 }
