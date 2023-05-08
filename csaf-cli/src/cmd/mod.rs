@@ -9,8 +9,11 @@ pub mod scan;
 #[derive(Debug, clap::Parser)]
 pub struct ClientArguments {
     /// Per-request HTTP timeout, in humantime duration format.
-    #[arg(short, long, default_value = "30s")]
+    #[arg(short, long, default_value = "5s")]
     pub timeout: humantime::Duration,
+    /// Per-request retries count
+    #[arg(short, long, default_value = "50")]
+    pub retries: usize,
 }
 
 #[derive(Debug, clap::Parser)]

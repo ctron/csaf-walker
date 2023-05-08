@@ -1,4 +1,7 @@
+use crate::fetcher;
+use crate::fetcher::Fetcher;
 use crate::model::metadata;
+use bytes::Bytes;
 use sequoia_openpgp::cert::CertParser;
 use sequoia_openpgp::parse::Parse;
 use sequoia_openpgp::Cert;
@@ -7,7 +10,7 @@ use std::ops::Deref;
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("Key transport error: {0}")]
-    Transport(#[from] reqwest::Error),
+    Transport(#[from] fetcher::Error),
     #[error("OpenPGP key error: {0}")]
     OpenPgp(#[from] anyhow::Error),
     #[error("Expected public key, found: {0}")]
@@ -30,15 +33,10 @@ impl Deref for PublicKey {
 }
 
 pub async fn fetch_key(
-    client: &reqwest::Client,
+    fetcher: &Fetcher,
     key_source: &metadata::Key,
 ) -> Result<Vec<PublicKey>, Error> {
-    let bytes = client
-        .get(key_source.url.clone())
-        .send()
-        .await?
-        .bytes()
-        .await?;
+    let bytes = fetcher.fetch::<Bytes>(key_source.url.clone()).await?;
 
     let certs = CertParser::from_bytes(&bytes)?.collect::<Result<Vec<_>, _>>()?;
 

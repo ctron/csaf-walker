@@ -2,6 +2,7 @@
 
 mod openpgp;
 
+use crate::fetcher::Fetcher;
 use crate::model::metadata::ProviderMetadata;
 use crate::retrieve::{RetrievalError, RetrievedAdvisory, RetrievedDigest, RetrievedVisitor};
 use crate::utils::openpgp::PublicKey;
@@ -96,7 +97,7 @@ where
     V: ValidatedVisitor,
 {
     visitor: V,
-    client: reqwest::Client,
+    fetcher: Fetcher,
     options: ValidationOptions,
 }
 
@@ -125,10 +126,10 @@ impl<V> ValidationVisitor<V>
 where
     V: ValidatedVisitor,
 {
-    pub fn new(client: reqwest::Client, visitor: V) -> Self {
+    pub fn new(fetcher: Fetcher, visitor: V) -> Self {
         Self {
             visitor,
-            client,
+            fetcher,
             options: Default::default(),
         }
     }
@@ -199,7 +200,7 @@ where
         let mut keys = Vec::with_capacity(metadata.public_openpgp_keys.len());
 
         for key in &metadata.public_openpgp_keys {
-            keys.extend(crate::utils::openpgp::fetch_key(&self.client, &key).await?);
+            keys.extend(crate::utils::openpgp::fetch_key(&self.fetcher, &key).await?);
         }
 
         log::info!("Loaded {} public keys", keys.len());

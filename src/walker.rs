@@ -1,6 +1,8 @@
 //! The actual walker
 
 use crate::discover::{DiscoveredAdvisory, DiscoveredVisitor};
+use crate::fetcher;
+use crate::fetcher::{Fetcher, Json, Text};
 use crate::model::metadata::{Distribution, ProviderMetadata};
 use reqwest::Url;
 use std::fmt::Debug;
@@ -11,8 +13,8 @@ pub enum Error<VE>
 where
     VE: std::fmt::Display + Debug,
 {
-    #[error("Request error: {0}")]
-    Request(#[from] reqwest::Error),
+    #[error("Fetch error: {0}")]
+    Fetch(#[from] fetcher::Error),
     #[error("URL error: {0}")]
     Url(#[from] ParseError),
     #[error("Visitor error: {0}")]
@@ -21,26 +23,23 @@ where
 
 pub struct Walker {
     url: Url,
-    client: reqwest::Client,
+    fetcher: Fetcher,
 }
 
 impl Walker {
-    pub fn new(url: Url, client: reqwest::Client) -> Self {
-        Self { url, client }
+    pub fn new(url: Url, fetcher: Fetcher) -> Self {
+        Self { url, fetcher }
     }
 
     pub async fn walk<V>(self, visitor: V) -> Result<(), Error<V::Error>>
     where
         V: DiscoveredVisitor,
     {
-        let metadata: ProviderMetadata = self
-            .client
-            .get(self.url.clone())
-            .send()
+        let metadata = self
+            .fetcher
+            .fetch::<Json<ProviderMetadata>>(self.url.clone())
             .await?
-            .error_for_status()?
-            .json()
-            .await?;
+            .into_inner();
 
         let context = visitor
             .visit_context(&metadata)
@@ -66,12 +65,10 @@ impl Walker {
         V: DiscoveredVisitor,
     {
         Ok(self
-            .client
-            .get(dist.directory_url.join("index.txt")?)
-            .send()
+            .fetcher
+            .fetch::<Text>(dist.directory_url.join("index.txt")?)
             .await?
-            .text()
-            .await?
+            .into_inner()
             .lines()
             .into_iter()
             .map(|s| Url::parse(&format!("{}{s}", dist.directory_url)))

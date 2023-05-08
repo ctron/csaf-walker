@@ -1,5 +1,6 @@
 use crate::cmd::{ClientArguments, DiscoverArguments, ValidationArguments};
 use csaf_walker::{
+    fetcher::{Fetcher, FetcherOptions},
     retrieve::RetrievingVisitor,
     validation::{ValidatedAdvisory, ValidationError, ValidationOptions, ValidationVisitor},
     walker::Walker,
@@ -29,17 +30,19 @@ where
     F: Fn(Result<ValidatedAdvisory, ValidationError>) -> Fut,
     Fut: Future<Output = anyhow::Result<()>>,
 {
-    let client = reqwest::ClientBuilder::new()
-        .timeout(client.timeout.into())
-        .build()?;
+    let fetcher = Fetcher::new(FetcherOptions {
+        timeout: client.timeout.into(),
+        retries: client.retries,
+    })
+    .await?;
 
     let options: ValidationOptions = validation.into();
 
-    Walker::new(discover.source, client.clone())
+    Walker::new(discover.source, fetcher.clone())
         .walk(RetrievingVisitor::new(
-            client.clone(),
+            fetcher.clone(),
             ValidationVisitor::new(
-                client,
+                fetcher,
                 move |advisory: Result<ValidatedAdvisory, ValidationError>| async move {
                     f(advisory).await
                 },
