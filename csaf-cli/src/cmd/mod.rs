@@ -3,6 +3,7 @@ use reqwest::Url;
 use std::time::SystemTime;
 use time::{Date, Month, UtcOffset};
 
+pub mod discover;
 pub mod download;
 pub mod scan;
 

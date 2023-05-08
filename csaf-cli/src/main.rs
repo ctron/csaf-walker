@@ -1,12 +1,13 @@
 mod cmd;
 mod common;
+mod utils;
 
 use clap::Parser;
-use cmd::{download::Download, scan::Scan};
+use cmd::{discover::Discover, download::Download, scan::Scan};
 use log::LevelFilter;
 use std::io::Write;
 use std::process::ExitCode;
-use std::time::{Duration, SystemTime};
+use utils::MeasureTime;
 
 #[derive(Debug, Parser)]
 #[command(version, about = "CSAF Tool", author, long_about = None)]
@@ -23,27 +24,22 @@ struct Cli {
     verbose: u8,
 }
 
-struct MeasureTime(SystemTime);
-
-impl MeasureTime {
-    pub fn new() -> Self {
-        Self(SystemTime::now())
-    }
+#[derive(clap::Subcommand, Debug)]
+enum Command {
+    Download(Download),
+    Scan(Scan),
+    Discover(Discover),
 }
 
-impl Drop for MeasureTime {
-    fn drop(&mut self) {
-        match self.0.elapsed() {
-            Ok(duration) => {
-                // truncate to seconds, good enough
-                let duration = Duration::from_secs(duration.as_secs());
-                log::info!("Processing took {}", humantime::format_duration(duration))
-            }
-            Err(err) => log::info!("Unable to measure processing time: {err}"),
+impl Command {
+    pub async fn run(self) -> anyhow::Result<()> {
+        match self {
+            Command::Download(download) => download.run().await,
+            Command::Scan(scan) => scan.run().await,
+            Command::Discover(discover) => discover.run().await,
         }
     }
 }
-
 impl Cli {
     pub async fn run(self) -> anyhow::Result<()> {
         // init logging
@@ -69,22 +65,11 @@ impl Cli {
         builder.init();
 
         let time = MeasureTime::new();
-
-        let result = match self.command {
-            Command::Download(download) => download.run().await,
-            Command::Scan(scan) => scan.run().await,
-        };
-
+        self.command.run().await?;
         drop(time);
 
-        result
+        Ok(())
     }
-}
-
-#[derive(clap::Subcommand, Debug)]
-enum Command {
-    Download(Download),
-    Scan(Scan),
 }
 
 #[tokio::main]

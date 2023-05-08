@@ -30,11 +30,7 @@ where
     F: Fn(Result<ValidatedAdvisory, ValidationError>) -> Fut,
     Fut: Future<Output = anyhow::Result<()>>,
 {
-    let fetcher = Fetcher::new(FetcherOptions {
-        timeout: client.timeout.into(),
-        retries: client.retries,
-    })
-    .await?;
+    let fetcher = new_fetcher(client).await?;
 
     let options: ValidationOptions = validation.into();
 
@@ -52,4 +48,12 @@ where
         .await?;
 
     Ok(())
+}
+
+pub async fn new_fetcher(client: ClientArguments) -> Result<Fetcher, anyhow::Error> {
+    Fetcher::new(FetcherOptions {
+        timeout: client.timeout.into(),
+        retries: client.retries,
+    })
+    .await
 }
