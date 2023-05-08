@@ -239,7 +239,7 @@ where
         let mut keys = Vec::with_capacity(metadata.public_openpgp_keys.len());
 
         for key in &metadata.public_openpgp_keys {
-            keys.extend(crate::utils::openpgp::fetch_key(&self.fetcher, &key).await?);
+            keys.extend(crate::utils::openpgp::fetch_key(&self.fetcher, key).await?);
         }
 
         log::info!("Loaded {} public keys", keys.len());

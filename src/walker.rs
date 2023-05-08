@@ -44,7 +44,6 @@ impl Walker {
             .await?
             .into_inner()
             .lines()
-            .into_iter()
             .map(|s| Url::parse(&format!("{}{s}", dist.directory_url)))
             .collect::<Result<_, _>>()?)
     }
@@ -138,6 +137,6 @@ fn collect_urls<V: DiscoveredVisitor>(
     distributions: Vec<Distribution>,
 ) -> impl TryStream<Ok = Url, Error = Error<V::Error>> {
     collect_sources::<V>(fetcher, distributions)
-        .map_ok(|s| s.map(|url| Ok(url)))
+        .map_ok(|s| s.map(Ok))
         .try_flatten()
 }
