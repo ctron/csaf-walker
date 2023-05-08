@@ -9,7 +9,8 @@ repository = "https://github.com/ctron/csaf-walker"
 categories = ["data-structures"]
 keywords = ["csaf"]
 readme = "README.md"
-rust-version = "1.64"
+# based on time-core 0.1.1
+rust-version = "1.65"
 
 [dependencies]
 anyhow = "1"
