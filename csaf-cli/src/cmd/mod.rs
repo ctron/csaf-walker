@@ -7,6 +7,13 @@ pub mod download;
 pub mod scan;
 
 #[derive(Debug, clap::Parser)]
+pub struct ClientArguments {
+    /// Per-request HTTP timeout, in humantime duration format.
+    #[arg(short, long, default_value = "30s")]
+    pub timeout: humantime::Duration,
+}
+
+#[derive(Debug, clap::Parser)]
 pub struct DiscoverArguments {
     /// source to scan from, must be a URL pointing to the 'provider-metadata.json' file.
     pub source: Url,

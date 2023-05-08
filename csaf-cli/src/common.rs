@@ -1,12 +1,13 @@
-use crate::cmd::{DiscoverArguments, ValidationArguments};
-use csaf_walker::retrieve::RetrievingVisitor;
-use csaf_walker::validation::{
-    ValidatedAdvisory, ValidationError, ValidationOptions, ValidationVisitor,
+use crate::cmd::{ClientArguments, DiscoverArguments, ValidationArguments};
+use csaf_walker::{
+    retrieve::RetrievingVisitor,
+    validation::{ValidatedAdvisory, ValidationError, ValidationOptions, ValidationVisitor},
+    walker::Walker,
 };
-use csaf_walker::walker::Walker;
 use std::future::Future;
 
 pub async fn walk_standard<F, Fut>(
+    client: ClientArguments,
     discover: DiscoverArguments,
     validation: ValidationArguments,
     f: F,
@@ -15,10 +16,11 @@ where
     F: Fn(Result<ValidatedAdvisory, ValidationError>) -> Fut,
     Fut: Future<Output = anyhow::Result<()>>,
 {
-    walk_standard_ref(discover, validation, &f).await
+    walk_standard_ref(client, discover, validation, &f).await
 }
 
 async fn walk_standard_ref<F, Fut>(
+    client: ClientArguments,
     discover: DiscoverArguments,
     validation: ValidationArguments,
     f: &F,
@@ -27,7 +29,9 @@ where
     F: Fn(Result<ValidatedAdvisory, ValidationError>) -> Fut,
     Fut: Future<Output = anyhow::Result<()>>,
 {
-    let client = reqwest::Client::new();
+    let client = reqwest::ClientBuilder::new()
+        .timeout(client.timeout.into())
+        .build()?;
 
     let options: ValidationOptions = validation.into();
 

@@ -1,4 +1,4 @@
-use crate::cmd::{DiscoverArguments, ValidationArguments};
+use crate::cmd::{ClientArguments, DiscoverArguments, ValidationArguments};
 use crate::common::walk_standard;
 use anyhow::{anyhow, Context};
 use std::path::PathBuf;
@@ -6,6 +6,9 @@ use std::path::PathBuf;
 /// Download
 #[derive(clap::Args, Debug)]
 pub struct Download {
+    #[command(flatten)]
+    client: ClientArguments,
+
     #[command(flatten)]
     discover: DiscoverArguments,
 
@@ -24,25 +27,30 @@ impl Download {
             None => std::env::current_dir().context("Get current working directory")?,
         };
 
-        walk_standard(self.discover, self.validation, move |advisory| {
-            let base = base.clone();
-            async move {
-                // if we fail, we fail!
-                let advisory = advisory?;
+        walk_standard(
+            self.client,
+            self.discover,
+            self.validation,
+            move |advisory| {
+                let base = base.clone();
+                async move {
+                    // if we fail, we fail!
+                    let advisory = advisory?;
 
-                log::info!("Downloading: {}", advisory.url);
+                    log::info!("Downloading: {}", advisory.url);
 
-                let file = PathBuf::from(advisory.url.path())
-                    .file_name()
-                    .map(|file| base.join(file))
-                    .ok_or_else(|| anyhow!("Unable to detect file name"))?;
+                    let file = PathBuf::from(advisory.url.path())
+                        .file_name()
+                        .map(|file| base.join(file))
+                        .ok_or_else(|| anyhow!("Unable to detect file name"))?;
 
-                log::debug!("Writing {}", file.display());
-                std::fs::write(file, &advisory.data).context("Write advisory")?;
+                    log::debug!("Writing {}", file.display());
+                    std::fs::write(file, &advisory.data).context("Write advisory")?;
 
-                Ok(())
-            }
-        })
+                    Ok(())
+                }
+            },
+        )
         .await?;
 
         Ok(())

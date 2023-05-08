@@ -6,6 +6,7 @@ use cmd::{download::Download, scan::Scan};
 use log::LevelFilter;
 use std::io::Write;
 use std::process::ExitCode;
+use std::time::{Duration, SystemTime};
 
 #[derive(Debug, Parser)]
 #[command(version, about = "CSAF Tool", author, long_about = None)]
@@ -20,6 +21,27 @@ struct Cli {
     /// Be more verbose. May be repeated multiple times to increase verbosity.
     #[arg(short, long, action = clap::ArgAction::Count, global = true)]
     verbose: u8,
+}
+
+struct MeasureTime(SystemTime);
+
+impl MeasureTime {
+    pub fn new() -> Self {
+        Self(SystemTime::now())
+    }
+}
+
+impl Drop for MeasureTime {
+    fn drop(&mut self) {
+        match self.0.elapsed() {
+            Ok(duration) => {
+                // truncate to seconds, good enough
+                let duration = Duration::from_secs(duration.as_secs());
+                log::info!("Processing took {}", humantime::format_duration(duration))
+            }
+            Err(err) => log::info!("Unable to measure processing time: {err}"),
+        }
+    }
 }
 
 impl Cli {
@@ -46,10 +68,16 @@ impl Cli {
 
         builder.init();
 
-        match self.command {
+        let time = MeasureTime::new();
+
+        let result = match self.command {
             Command::Download(download) => download.run().await,
             Command::Scan(scan) => scan.run().await,
-        }
+        };
+
+        drop(time);
+
+        result
     }
 }
 
