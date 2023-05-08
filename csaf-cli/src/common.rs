@@ -34,18 +34,28 @@ where
 
     let options: ValidationOptions = validation.into();
 
-    Walker::new(discover.source, fetcher.clone())
-        .walk(RetrievingVisitor::new(
+    let visitor =
+        RetrievingVisitor::new(
             fetcher.clone(),
             ValidationVisitor::new(
-                fetcher,
+                fetcher.clone(),
                 move |advisory: Result<ValidatedAdvisory, ValidationError>| async move {
                     f(advisory).await
                 },
             )
             .with_options(options),
-        ))
-        .await?;
+        );
+
+    let walker = Walker::new(discover.source, fetcher);
+
+    match discover.workers {
+        1 => {
+            walker.walk(visitor).await?;
+        }
+        n => {
+            walker.walk_parallel(n, visitor).await?;
+        }
+    }
 
     Ok(())
 }

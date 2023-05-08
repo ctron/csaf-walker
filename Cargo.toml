@@ -16,6 +16,7 @@ anyhow = "1"
 async-trait = "0.1"
 bytes = "1"
 digest = "0.10.6"
+futures = "0.3"
 log = "0.4.17"
 reqwest = { version = "0.11", features = ["json"] }
 serde = { version = "1", features = ["derive"] }
@@ -39,3 +40,6 @@ crypto-rust = ["sequoia-openpgp/crypto-rust"]
 members = [
     "csaf-cli"
 ]
+
+[patch.crates-io]
+csaf = { path = "../csaf-rs" }

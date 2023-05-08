@@ -12,6 +12,7 @@ pub struct ClientArguments {
     /// Per-request HTTP timeout, in humantime duration format.
     #[arg(short, long, default_value = "5s")]
     pub timeout: humantime::Duration,
+
     /// Per-request retries count
     #[arg(short, long, default_value = "50")]
     pub retries: usize,
@@ -19,8 +20,11 @@ pub struct ClientArguments {
 
 #[derive(Debug, clap::Parser)]
 pub struct DiscoverArguments {
-    /// source to scan from, must be a URL pointing to the 'provider-metadata.json' file.
+    /// Source to scan from, must be a URL pointing to the 'provider-metadata.json' file.
     pub source: Url,
+    /// Number of workers, too many parallel requests might make you violate request rates. NOTE: A number of zero will spawn an unlimited amount of workers.
+    #[arg(short, long, default_value = "1")]
+    pub workers: usize,
 }
 
 #[derive(Debug, clap::Parser)]
