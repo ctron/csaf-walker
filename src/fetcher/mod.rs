@@ -13,7 +13,7 @@ use url::Url;
 
 /// Fetch data using HTTP.
 ///
-/// This is some functionality sitting on top an HTTP client, allowing for additional options likes
+/// This is some functionality sitting on top an HTTP client, allowing for additional options like
 /// retries.
 #[derive(Clone, Debug)]
 pub struct Fetcher {
