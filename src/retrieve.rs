@@ -335,17 +335,3 @@ impl DataProcessor for FetchingRetrievedAdvisory {
         })
     }
 }
-
-#[cfg(test)]
-mod test {
-    use time::format_description::well_known::Rfc2822;
-    use time::OffsetDateTime;
-
-    #[test]
-    fn test_parse_date() {
-        assert_eq!(
-            OffsetDateTime::parse("Thu, 09 Mar 2023 19:46:10 GMT", &Rfc2822).ok(),
-            OffsetDateTime::from_unix_timestamp(23).ok()
-        );
-    }
-}
