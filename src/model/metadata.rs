@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use url::Url;
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
@@ -28,7 +29,7 @@ pub struct ProviderMetadata {
     #[serde(default)]
     pub distributions: Vec<Distribution>,
 
-    pub last_updated: String,
+    pub last_updated: DateTime<Utc>,
 
     #[serde(rename = "list_on_CSAF_aggregators")]
     #[serde(default)]
