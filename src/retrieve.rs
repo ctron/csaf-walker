@@ -13,6 +13,7 @@ use sha2::{Sha256, Sha512};
 use std::fmt::{Debug, Formatter};
 use std::future::Future;
 use std::ops::{Deref, DerefMut};
+use time::{format_description::well_known::Rfc2822, OffsetDateTime};
 use tokio::try_join;
 
 #[derive(Clone, Debug)]
@@ -29,6 +30,17 @@ pub struct RetrievedAdvisory {
     pub sha256: Option<RetrievedDigest<Sha256>>,
     /// SHA-512 digest
     pub sha512: Option<RetrievedDigest<Sha512>>,
+
+    /// Metadata from the retrieval process
+    pub metadata: RetrievalMetadata,
+}
+
+#[derive(Clone, Debug)]
+pub struct RetrievalMetadata {
+    /// Last known modification time
+    pub last_modification: Option<OffsetDateTime>,
+    /// ETag
+    pub etag: Option<String>,
 }
 
 impl Deref for RetrievedAdvisory {
@@ -254,6 +266,7 @@ pub struct FetchedRetrievedAdvisory {
     data: Bytes,
     sha256: Option<RetrievedDigest<Sha256>>,
     sha512: Option<RetrievedDigest<Sha512>>,
+    metadata: RetrievalMetadata,
 }
 
 impl FetchedRetrievedAdvisory {
@@ -268,6 +281,7 @@ impl FetchedRetrievedAdvisory {
             signature,
             sha256: self.sha256,
             sha512: self.sha512,
+            metadata: self.metadata,
         }
     }
 }
@@ -298,10 +312,40 @@ impl DataProcessor for FetchingRetrievedAdvisory {
             data.put(chunk);
         }
 
+        let etag = response
+            .headers()
+            .get(reqwest::header::ETAG)
+            .and_then(|s| s.to_str().ok())
+            .map(ToString::to_string);
+
+        let last_modification = response
+            .headers()
+            .get(reqwest::header::LAST_MODIFIED)
+            .and_then(|s| s.to_str().ok())
+            .and_then(|s| OffsetDateTime::parse(s, &Rfc2822).ok());
+
         Ok(FetchedRetrievedAdvisory {
             data: data.freeze(),
             sha256: sha256.map(|d| d.into()),
             sha512: sha512.map(|d| d.into()),
+            metadata: RetrievalMetadata {
+                last_modification,
+                etag,
+            },
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use time::format_description::well_known::Rfc2822;
+    use time::OffsetDateTime;
+
+    #[test]
+    fn test_parse_date() {
+        assert_eq!(
+            OffsetDateTime::parse("Thu, 09 Mar 2023 19:46:10 GMT", &Rfc2822).ok(),
+            OffsetDateTime::from_unix_timestamp(23).ok()
+        );
     }
 }

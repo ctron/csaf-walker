@@ -5,6 +5,7 @@ use time::{Date, Month, UtcOffset};
 
 pub mod discover;
 pub mod download;
+pub mod report;
 pub mod scan;
 pub mod sync;
 
@@ -56,4 +57,11 @@ impl From<ValidationArguments> for ValidationOptions {
 
         Self { validation_date }
     }
+}
+
+#[derive(Debug, clap::Parser)]
+pub struct StoreArguments {
+    /// Disable the use of extended attributes, e.g. for etag information.
+    #[arg(long)]
+    pub no_xattrs: bool,
 }

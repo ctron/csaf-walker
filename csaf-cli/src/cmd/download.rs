@@ -1,6 +1,7 @@
-use crate::cmd::{ClientArguments, DiscoverArguments, ValidationArguments};
+use crate::cmd::{ClientArguments, DiscoverArguments, StoreArguments, ValidationArguments};
 use crate::common::walk_standard;
-use anyhow::{anyhow, Context};
+use crate::store::store_advisory;
+use anyhow::Context;
 use std::path::PathBuf;
 
 /// Download
@@ -15,6 +16,9 @@ pub struct Download {
     #[command(flatten)]
     validation: ValidationArguments,
 
+    #[command(flatten)]
+    store: StoreArguments,
+
     /// Output path, defaults to the local directory.
     #[arg(short, long)]
     output: Option<PathBuf>,
@@ -27,6 +31,8 @@ impl Download {
             None => std::env::current_dir().context("Get current working directory")?,
         };
 
+        let skip_attr = self.store.no_xattrs;
+
         walk_standard(
             self.client,
             self.discover,
@@ -37,15 +43,7 @@ impl Download {
                     // if we fail, we fail!
                     let advisory = advisory?;
 
-                    log::info!("Downloading: {}", advisory.url);
-
-                    let file = PathBuf::from(advisory.url.path())
-                        .file_name()
-                        .map(|file| base.join(file))
-                        .ok_or_else(|| anyhow!("Unable to detect file name"))?;
-
-                    log::debug!("Writing {}", file.display());
-                    std::fs::write(file, &advisory.data).context("Write advisory")?;
+                    store_advisory(&base, advisory, skip_attr).await?;
 
                     Ok(())
                 }

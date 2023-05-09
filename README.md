@@ -1,6 +1,6 @@
 # CSAF Walker
 
-"Walk" CSAF data from a remote server, allowing on to work with the data.
+"Walk" CSAF data from a remote server, allowing one to work with the data.
 
 ## From the command line
 

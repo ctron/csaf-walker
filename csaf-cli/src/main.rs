@@ -1,9 +1,10 @@
 mod cmd;
 mod common;
+mod store;
 mod utils;
 
 use clap::Parser;
-use cmd::{discover::Discover, download::Download, scan::Scan, sync::Sync};
+use cmd::{discover::Discover, download::Download, report::Report, scan::Scan, sync::Sync};
 use log::LevelFilter;
 use std::io::Write;
 use std::process::ExitCode;
@@ -30,15 +31,17 @@ enum Command {
     Scan(Scan),
     Discover(Discover),
     Sync(Sync),
+    Report(Report),
 }
 
 impl Command {
     pub async fn run(self) -> anyhow::Result<()> {
         match self {
-            Command::Download(download) => download.run().await,
-            Command::Scan(scan) => scan.run().await,
-            Command::Discover(discover) => discover.run().await,
-            Command::Sync(sync) => sync.run().await,
+            Command::Download(cmd) => cmd.run().await,
+            Command::Scan(cmd) => cmd.run().await,
+            Command::Discover(cmd) => cmd.run().await,
+            Command::Sync(cmd) => cmd.run().await,
+            Command::Report(cmd) => cmd.run().await,
         }
     }
 }

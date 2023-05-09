@@ -1,13 +1,13 @@
-use crate::cmd::{ClientArguments, DiscoverArguments, ValidationArguments};
+use crate::cmd::{ClientArguments, DiscoverArguments, StoreArguments, ValidationArguments};
 use crate::common::walk_visitor;
-use anyhow::{anyhow, Context};
+use crate::store::store_advisory;
+use anyhow::Context;
 use csaf_walker::retrieve::RetrievingVisitor;
 use csaf_walker::validation::{
     ValidatedAdvisory, ValidationError, ValidationOptions, ValidationVisitor,
 };
 use csaf_walker::visitors::skip::SkipExistingVisitor;
 use std::path::PathBuf;
-use tokio::fs;
 
 /// Sync only what changed
 #[derive(clap::Args, Debug)]
@@ -20,6 +20,9 @@ pub struct Sync {
 
     #[command(flatten)]
     validation: ValidationArguments,
+
+    #[command(flatten)]
+    store: StoreArguments,
 
     /// Output path, defaults to the local directory.
     #[arg(short, long)]
@@ -34,6 +37,7 @@ impl Sync {
         };
 
         let options: ValidationOptions = self.validation.into();
+        let skip_attrs = self.store.no_xattrs;
 
         walk_visitor(self.client, self.discover, move |fetcher| async move {
             let visitor = {
@@ -48,17 +52,7 @@ impl Sync {
                             async move {
                                 match advisory {
                                     Ok(advisory) => {
-                                        log::info!("Downloading: {}", advisory.url);
-
-                                        let file = PathBuf::from(advisory.url.path())
-                                            .file_name()
-                                            .map(|file| base.join(file))
-                                            .ok_or_else(|| anyhow!("Unable to detect file name"))?;
-
-                                        log::debug!("Writing {}", file.display());
-                                        fs::write(file, &advisory.data)
-                                            .await
-                                            .context("Write advisory")?;
+                                        store_advisory(&base, advisory, skip_attrs).await?;
                                     }
                                     Err(err) => {
                                         log::warn!("Skipping erroneous advisory: {err}");
