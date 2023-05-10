@@ -6,6 +6,7 @@ use anyhow::anyhow;
 use async_trait::async_trait;
 use csaf::Csaf;
 use csaf_walker::discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor};
+use csaf_walker::progress::Progress;
 use csaf_walker::retrieve::RetrievingVisitor;
 use csaf_walker::validation::{
     ValidatedAdvisory, ValidationError, ValidationOptions, ValidationVisitor,
@@ -65,7 +66,7 @@ pub struct Duplicates {
 }
 
 impl Report {
-    pub async fn run(self) -> anyhow::Result<()> {
+    pub async fn run(self, progress: Progress) -> anyhow::Result<()> {
         let options: ValidationOptions = self.validation.into();
 
         let duplicates: Arc<Mutex<Duplicates>> = Default::default();
@@ -75,6 +76,7 @@ impl Report {
             let duplicates = duplicates.clone();
             let errors = errors.clone();
             walk_visitor(
+                progress,
                 self.client,
                 self.discover,
                 self.runner,

@@ -1,6 +1,7 @@
 use crate::cmd::{ClientArguments, DiscoverArguments, RunnerArguments, ValidationArguments};
 use crate::common::walk_standard;
 use csaf::Csaf;
+use csaf_walker::progress::Progress;
 use csaf_walker::validation::{ValidatedAdvisory, ValidationError};
 
 /// Scan advisories
@@ -20,8 +21,9 @@ pub struct Scan {
 }
 
 impl Scan {
-    pub async fn run(self) -> anyhow::Result<()> {
+    pub async fn run(self, progress: Progress) -> anyhow::Result<()> {
         walk_standard(
+            progress,
             self.client,
             self.runner,
             self.discover,

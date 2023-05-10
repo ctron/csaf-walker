@@ -1,9 +1,12 @@
 mod cmd;
 mod common;
+mod progress;
 mod utils;
 
+use crate::progress::Indicatif;
 use clap::Parser;
 use cmd::{discover::Discover, download::Download, report::Report, scan::Scan, sync::Sync};
+use csaf_walker::progress::{NoProgress, Progress};
 use log::LevelFilter;
 use std::io::Write;
 use std::process::ExitCode;
@@ -22,6 +25,10 @@ struct Cli {
     /// Be more verbose. May be repeated multiple times to increase verbosity.
     #[arg(short, long, action = clap::ArgAction::Count, global = true)]
     verbose: u8,
+
+    /// Disable progress bar
+    #[arg(long, global = true)]
+    no_progress: bool,
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -34,13 +41,13 @@ enum Command {
 }
 
 impl Command {
-    pub async fn run(self) -> anyhow::Result<()> {
+    pub async fn run(self, progress: Progress) -> anyhow::Result<()> {
         match self {
-            Command::Download(cmd) => cmd.run().await,
-            Command::Scan(cmd) => cmd.run().await,
-            Command::Discover(cmd) => cmd.run().await,
-            Command::Sync(cmd) => cmd.run().await,
-            Command::Report(cmd) => cmd.run().await,
+            Command::Download(cmd) => cmd.run(progress).await,
+            Command::Scan(cmd) => cmd.run(progress).await,
+            Command::Discover(cmd) => cmd.run(progress).await,
+            Command::Sync(cmd) => cmd.run(progress).await,
+            Command::Report(cmd) => cmd.run(progress).await,
         }
     }
 }
@@ -64,12 +71,17 @@ impl Cli {
             (_, _) => builder.filter_level(LevelFilter::Trace),
         };
 
+        let progress = match (self.quiet | self.no_progress, self.verbose) {
+            (false, 0) => Progress::new(Indicatif),
+            _ => Progress::new(NoProgress),
+        };
+
         // not init the logger
 
         builder.init();
 
-        let time = MeasureTime::new();
-        self.command.run().await?;
+        let time = MeasureTime::new(self.quiet);
+        self.command.run(progress).await?;
         drop(time);
 
         Ok(())

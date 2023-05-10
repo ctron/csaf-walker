@@ -2,6 +2,7 @@ use crate::cmd::{
     ClientArguments, DiscoverArguments, RunnerArguments, StoreArguments, ValidationArguments,
 };
 use crate::common::walk_visitor;
+use csaf_walker::progress::Progress;
 use csaf_walker::retrieve::RetrievingVisitor;
 use csaf_walker::visitors::skip::SkipExistingVisitor;
 use csaf_walker::visitors::store::StoreVisitor;
@@ -26,11 +27,12 @@ pub struct Download {
 }
 
 impl Download {
-    pub async fn run(self) -> anyhow::Result<()> {
+    pub async fn run(self, progress: Progress) -> anyhow::Result<()> {
         let store: StoreVisitor = self.store.try_into()?;
         let base = store.base.clone();
 
         walk_visitor(
+            progress,
             self.client,
             self.discover,
             self.runner,

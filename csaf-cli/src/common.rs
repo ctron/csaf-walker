@@ -1,5 +1,6 @@
 use crate::cmd::{ClientArguments, DiscoverArguments, RunnerArguments, ValidationArguments};
 use csaf_walker::discover::DiscoveredVisitor;
+use csaf_walker::progress::Progress;
 use csaf_walker::source::{DispatchSource, FileSource, HttpSource};
 use csaf_walker::validation::ValidatedVisitor;
 use csaf_walker::{
@@ -12,6 +13,7 @@ use reqwest::Url;
 use std::future::Future;
 
 pub async fn walk_standard<V>(
+    progress: Progress,
     client: ClientArguments,
     runner: RunnerArguments,
     discover: DiscoverArguments,
@@ -24,12 +26,18 @@ where
 {
     let options: ValidationOptions = validation.into();
 
-    walk_visitor(client, discover, runner, move |source| async move {
-        Ok(RetrievingVisitor::new(
-            source.clone(),
-            ValidationVisitor::new(visitor).with_options(options),
-        ))
-    })
+    walk_visitor(
+        progress,
+        client,
+        discover,
+        runner,
+        move |source| async move {
+            Ok(RetrievingVisitor::new(
+                source.clone(),
+                ValidationVisitor::new(visitor).with_options(options),
+            ))
+        },
+    )
     .await
 }
 
@@ -50,6 +58,7 @@ pub async fn new_source(
 }
 
 pub async fn walk_visitor<F, Fut, V>(
+    progress: Progress,
     client: ClientArguments,
     discover: DiscoverArguments,
     runner: RunnerArguments,
@@ -63,10 +72,11 @@ where
 {
     let source = new_source(discover, client).await?;
 
-    walk_source(source.into(), runner, f).await
+    walk_source(progress, source, runner, f).await
 }
 
 pub async fn walk_source<F, Fut, V>(
+    progress: Progress,
     source: DispatchSource,
     runner: RunnerArguments,
     f: F,
@@ -78,7 +88,7 @@ where
     V::Error: Send + Sync + 'static,
 {
     let visitor = f(source.clone()).await?;
-    let walker = Walker::new(source);
+    let walker = Walker::new(source).with_progress(progress);
 
     match runner.workers {
         1 => {

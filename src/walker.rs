@@ -2,6 +2,7 @@
 
 use crate::discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor};
 use crate::model::metadata::Distribution;
+use crate::progress::Progress;
 use crate::source::Source;
 use futures::{stream, Stream, StreamExt, TryFutureExt, TryStream, TryStreamExt};
 use reqwest::Url;
@@ -25,11 +26,20 @@ where
 
 pub struct Walker<S: Source> {
     source: S,
+    progress: Progress,
 }
 
 impl<S: Source> Walker<S> {
     pub fn new(source: S) -> Self {
-        Self { source }
+        Self {
+            source,
+            progress: Progress::default(),
+        }
+    }
+
+    pub fn with_progress(mut self, progress: Progress) -> Self {
+        self.progress = progress;
+        self
     }
 
     pub async fn walk<V>(self, visitor: V) -> Result<(), Error<V::Error, S::Error>>
@@ -47,17 +57,29 @@ impl<S: Source> Walker<S> {
 
         for distribution in metadata.distributions {
             log::debug!("Walking: {}", distribution.directory_url);
-            for url in self
+            let index = self
                 .source
                 .load_index(&distribution)
                 .await
-                .map_err(Error::Source)?
-            {
+                .map_err(Error::Source)?;
+
+            let progress = self.progress.start(index.len());
+
+            for url in index {
                 log::debug!("  Discovered advisory: {url}");
+                progress.set_message(
+                    url.path()
+                        .rsplit_once('/')
+                        .map(|(_, s)| s)
+                        .unwrap_or(url.as_str())
+                        .to_string()
+                        .into(),
+                );
                 visitor
                     .visit_advisory(&context, DiscoveredAdvisory { url })
                     .await
                     .map_err(Error::Visitor)?;
+                progress.tick();
             }
         }
 
