@@ -1,3 +1,4 @@
+use crate::model::metadata::ProviderMetadata;
 use crate::retrieve::{RetrievalContext, RetrievalError, RetrievedAdvisory, RetrievedVisitor};
 use crate::utils::openpgp::PublicKey;
 use crate::validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, ValidationError};
@@ -87,6 +88,7 @@ impl ValidatedVisitor for StoreVisitor {
         &self,
         context: &ValidationContext,
     ) -> Result<Self::Context, Self::Error> {
+        self.store_provider_metadata(&context.metadata).await?;
         self.store_keys(&context.retrieval.keys).await?;
         Ok(())
     }
@@ -102,6 +104,22 @@ impl ValidatedVisitor for StoreVisitor {
 }
 
 impl StoreVisitor {
+    async fn store_provider_metadata(&self, metadata: &ProviderMetadata) -> Result<(), StoreError> {
+        let file = self.base.join("provider-metadata.json");
+        let mut out = std::fs::File::create(&file)
+            .with_context(|| {
+                format!(
+                    "Unable to open provider metadata file for writing: {}",
+                    file.display()
+                )
+            })
+            .map_err(StoreError::Io)?;
+        serde_json::to_writer_pretty(&mut out, metadata)
+            .context("Failed serializing provider metadata")
+            .map_err(StoreError::Io)?;
+        Ok(())
+    }
+
     async fn store_keys(&self, keys: &Vec<PublicKey>) -> Result<(), StoreError> {
         let metadata = self.base.join("metadata");
         std::fs::create_dir(&metadata)

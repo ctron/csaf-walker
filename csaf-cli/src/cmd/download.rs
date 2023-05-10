@@ -1,4 +1,6 @@
-use crate::cmd::{ClientArguments, DiscoverArguments, StoreArguments, ValidationArguments};
+use crate::cmd::{
+    ClientArguments, DiscoverArguments, RunnerArguments, StoreArguments, ValidationArguments,
+};
 use crate::common::walk_visitor;
 use csaf_walker::retrieve::RetrievingVisitor;
 use csaf_walker::visitors::skip::SkipExistingVisitor;
@@ -14,6 +16,9 @@ pub struct Download {
     discover: DiscoverArguments,
 
     #[command(flatten)]
+    runner: RunnerArguments,
+
+    #[command(flatten)]
     validation: ValidationArguments,
 
     #[command(flatten)]
@@ -25,15 +30,20 @@ impl Download {
         let store: StoreVisitor = self.store.try_into()?;
         let base = store.base.clone();
 
-        walk_visitor(self.client, self.discover, move |source| async move {
-            let base = base.clone();
-            let visitor = { RetrievingVisitor::new(source.clone(), store) };
+        walk_visitor(
+            self.client,
+            self.discover,
+            self.runner,
+            move |source| async move {
+                let base = base.clone();
+                let visitor = { RetrievingVisitor::new(source.clone(), store) };
 
-            Ok(SkipExistingVisitor {
-                visitor,
-                output: base,
-            })
-        })
+                Ok(SkipExistingVisitor {
+                    visitor,
+                    output: base,
+                })
+            },
+        )
         .await?;
 
         Ok(())

@@ -1,6 +1,6 @@
-use crate::cmd::{ClientArguments, DiscoverArguments, ValidationArguments};
+use crate::cmd::{ClientArguments, DiscoverArguments, RunnerArguments, ValidationArguments};
 use csaf_walker::discover::DiscoveredVisitor;
-use csaf_walker::source::HttpSource;
+use csaf_walker::source::{DispatchSource, FileSource, HttpSource};
 use csaf_walker::validation::ValidatedVisitor;
 use csaf_walker::{
     fetcher::{Fetcher, FetcherOptions},
@@ -8,10 +8,12 @@ use csaf_walker::{
     validation::{ValidationOptions, ValidationVisitor},
     walker::Walker,
 };
+use reqwest::Url;
 use std::future::Future;
 
 pub async fn walk_standard<V>(
     client: ClientArguments,
+    runner: RunnerArguments,
     discover: DiscoverArguments,
     validation: ValidationArguments,
     visitor: V,
@@ -22,7 +24,7 @@ where
 {
     let options: ValidationOptions = validation.into();
 
-    walk_visitor(client, discover, move |source| async move {
+    walk_visitor(client, discover, runner, move |source| async move {
         Ok(RetrievingVisitor::new(
             source.clone(),
             ValidationVisitor::new(visitor).with_options(options),
@@ -31,29 +33,54 @@ where
     .await
 }
 
+pub async fn new_source(
+    discover: DiscoverArguments,
+    client: ClientArguments,
+) -> anyhow::Result<DispatchSource> {
+    match Url::parse(&discover.source) {
+        Ok(url) => {
+            let fetcher = new_fetcher(client).await?;
+            Ok(HttpSource { url, fetcher }.into())
+        }
+        Err(_) => {
+            // use as path
+            Ok(FileSource::new(&discover.source)?.into())
+        }
+    }
+}
+
 pub async fn walk_visitor<F, Fut, V>(
     client: ClientArguments,
     discover: DiscoverArguments,
+    runner: RunnerArguments,
     f: F,
 ) -> anyhow::Result<()>
 where
-    F: FnOnce(HttpSource) -> Fut,
+    F: FnOnce(DispatchSource) -> Fut,
     Fut: Future<Output = anyhow::Result<V>>,
     V: DiscoveredVisitor,
     V::Error: Send + Sync + 'static,
 {
-    let fetcher = new_fetcher(client).await?;
+    let source = new_source(discover, client).await?;
 
-    let source = HttpSource {
-        url: discover.source,
-        fetcher,
-    };
+    walk_source(source.into(), runner, f).await
+}
 
+pub async fn walk_source<F, Fut, V>(
+    source: DispatchSource,
+    runner: RunnerArguments,
+    f: F,
+) -> anyhow::Result<()>
+where
+    F: FnOnce(DispatchSource) -> Fut,
+    Fut: Future<Output = anyhow::Result<V>>,
+    V: DiscoveredVisitor,
+    V::Error: Send + Sync + 'static,
+{
     let visitor = f(source.clone()).await?;
-
     let walker = Walker::new(source);
 
-    match discover.workers {
+    match runner.workers {
         1 => {
             walker.walk(visitor).await?;
         }

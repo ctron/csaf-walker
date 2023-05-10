@@ -1,6 +1,6 @@
 mod render;
 
-use crate::cmd::{ClientArguments, DiscoverArguments, ValidationArguments};
+use crate::cmd::{ClientArguments, DiscoverArguments, RunnerArguments, ValidationArguments};
 use crate::common::walk_visitor;
 use anyhow::anyhow;
 use async_trait::async_trait;
@@ -21,6 +21,9 @@ use std::{
 pub struct Report {
     #[command(flatten)]
     client: ClientArguments,
+
+    #[command(flatten)]
+    runner: RunnerArguments,
 
     #[command(flatten)]
     discover: DiscoverArguments,
@@ -71,35 +74,40 @@ impl Report {
         {
             let duplicates = duplicates.clone();
             let errors = errors.clone();
-            walk_visitor(self.client, self.discover, move |source| async move {
-                let visitor = {
-                    RetrievingVisitor::new(
-                        source.clone(),
-                        ValidationVisitor::new(
-                            move |advisory: Result<ValidatedAdvisory, ValidationError>| {
-                                let errors = errors.clone();
-                                async move {
-                                    let name = match &advisory {
-                                        Ok(adv) => adv.url.to_string(),
-                                        Err(adv) => adv.url().to_string(),
-                                    };
-                                    if let Err(err) = Self::inspect(advisory) {
-                                        errors.lock().unwrap().insert(name, err.to_string());
+            walk_visitor(
+                self.client,
+                self.discover,
+                self.runner,
+                move |source| async move {
+                    let visitor = {
+                        RetrievingVisitor::new(
+                            source.clone(),
+                            ValidationVisitor::new(
+                                move |advisory: Result<ValidatedAdvisory, ValidationError>| {
+                                    let errors = errors.clone();
+                                    async move {
+                                        let name = match &advisory {
+                                            Ok(adv) => adv.url.to_string(),
+                                            Err(adv) => adv.url().to_string(),
+                                        };
+                                        if let Err(err) = Self::inspect(advisory) {
+                                            errors.lock().unwrap().insert(name, err.to_string());
+                                        }
+
+                                        Ok::<_, anyhow::Error>(())
                                     }
-
-                                    Ok::<_, anyhow::Error>(())
-                                }
-                            },
+                                },
+                            )
+                            .with_options(options),
                         )
-                        .with_options(options),
-                    )
-                };
+                    };
 
-                Ok(DetectDuplicatesVisitor {
-                    duplicates,
-                    visitor,
-                })
-            })
+                    Ok(DetectDuplicatesVisitor {
+                        duplicates,
+                        visitor,
+                    })
+                },
+            )
             .await?;
         }
 

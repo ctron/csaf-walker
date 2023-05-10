@@ -1,7 +1,6 @@
 use crate::cmd::{ClientArguments, DiscoverArguments};
-use crate::common::new_fetcher;
+use crate::common::new_source;
 use csaf_walker::discover::DiscoveredAdvisory;
-use csaf_walker::source::HttpSource;
 use csaf_walker::walker::Walker;
 use std::convert::Infallible;
 
@@ -17,18 +16,13 @@ pub struct Discover {
 
 impl Discover {
     pub async fn run(self) -> anyhow::Result<()> {
-        let fetcher = new_fetcher(self.client).await?;
+        Walker::new(new_source(self.discover, self.client).await?)
+            .walk(|discovered: DiscoveredAdvisory| async move {
+                println!("{}", discovered.url);
 
-        Walker::new(HttpSource {
-            url: self.discover.source,
-            fetcher,
-        })
-        .walk(|discovered: DiscoveredAdvisory| async move {
-            println!("{}", discovered.url);
-
-            Ok::<_, Infallible>(())
-        })
-        .await?;
+                Ok::<_, Infallible>(())
+            })
+            .await?;
 
         Ok(())
     }

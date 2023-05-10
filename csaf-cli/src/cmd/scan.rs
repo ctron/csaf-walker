@@ -1,4 +1,4 @@
-use crate::cmd::{ClientArguments, DiscoverArguments, ValidationArguments};
+use crate::cmd::{ClientArguments, DiscoverArguments, RunnerArguments, ValidationArguments};
 use crate::common::walk_standard;
 use csaf::Csaf;
 use csaf_walker::validation::{ValidatedAdvisory, ValidationError};
@@ -8,6 +8,9 @@ use csaf_walker::validation::{ValidatedAdvisory, ValidationError};
 pub struct Scan {
     #[command(flatten)]
     client: ClientArguments,
+
+    #[command(flatten)]
+    runner: RunnerArguments,
 
     #[command(flatten)]
     discover: DiscoverArguments,
@@ -20,6 +23,7 @@ impl Scan {
     pub async fn run(self) -> anyhow::Result<()> {
         walk_standard(
             self.client,
+            self.runner,
             self.discover,
             self.validation,
             |advisory: Result<ValidatedAdvisory, ValidationError>| async move {

@@ -82,6 +82,14 @@ pub struct ValidationContext<'c> {
     pub retrieval: &'c RetrievalContext<'c>,
 }
 
+impl<'c> Deref for ValidationContext<'c> {
+    type Target = RetrievalContext<'c>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.retrieval
+    }
+}
+
 #[async_trait(?Send)]
 pub trait ValidatedVisitor {
     type Error: Display + Debug;

@@ -148,6 +148,14 @@ pub struct RetrievalContext<'c> {
     pub keys: &'c Vec<PublicKey>,
 }
 
+impl<'c> Deref for RetrievalContext<'c> {
+    type Target = DiscoveredContext<'c>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.discovered
+    }
+}
+
 #[async_trait(?Send)]
 pub trait RetrievedVisitor {
     type Error: std::fmt::Display + Debug;

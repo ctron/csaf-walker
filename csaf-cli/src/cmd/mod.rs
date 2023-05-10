@@ -1,7 +1,6 @@
 use anyhow::Context;
 use csaf_walker::validation::ValidationOptions;
 use csaf_walker::visitors::store::StoreVisitor;
-use reqwest::Url;
 use std::path::PathBuf;
 use std::time::SystemTime;
 use time::{Date, Month, UtcOffset};
@@ -25,8 +24,12 @@ pub struct ClientArguments {
 
 #[derive(Debug, clap::Parser)]
 pub struct DiscoverArguments {
-    /// Source to scan from, must be a URL pointing to the 'provider-metadata.json' file.
-    pub source: Url,
+    /// Source to scan from, must be a URL pointing to the 'provider-metadata.json' file or path to a stored set of files.
+    pub source: String,
+}
+
+#[derive(Debug, clap::Parser)]
+pub struct RunnerArguments {
     /// Number of workers, too many parallel requests might make you violate request rates. NOTE: A number of zero will spawn an unlimited amount of workers.
     #[arg(short, long, default_value = "1")]
     pub workers: usize,

@@ -1,4 +1,6 @@
-use crate::cmd::{ClientArguments, DiscoverArguments, StoreArguments, ValidationArguments};
+use crate::cmd::{
+    ClientArguments, DiscoverArguments, RunnerArguments, StoreArguments, ValidationArguments,
+};
 use crate::common::walk_visitor;
 use csaf_walker::retrieve::RetrievingVisitor;
 use csaf_walker::validation::{ValidationOptions, ValidationVisitor};
@@ -10,6 +12,9 @@ use csaf_walker::visitors::store::StoreVisitor;
 pub struct Sync {
     #[command(flatten)]
     client: ClientArguments,
+
+    #[command(flatten)]
+    runner: RunnerArguments,
 
     #[command(flatten)]
     discover: DiscoverArguments,
@@ -27,20 +32,25 @@ impl Sync {
         let store: StoreVisitor = self.store.try_into()?;
         let base = store.base.clone();
 
-        walk_visitor(self.client, self.discover, move |source| async move {
-            let base = base.clone();
-            let visitor = {
-                RetrievingVisitor::new(
-                    source.clone(),
-                    ValidationVisitor::new(store).with_options(options),
-                )
-            };
+        walk_visitor(
+            self.client,
+            self.discover,
+            self.runner,
+            move |source| async move {
+                let base = base.clone();
+                let visitor = {
+                    RetrievingVisitor::new(
+                        source.clone(),
+                        ValidationVisitor::new(store).with_options(options),
+                    )
+                };
 
-            Ok(SkipExistingVisitor {
-                visitor,
-                output: base,
-            })
-        })
+                Ok(SkipExistingVisitor {
+                    visitor,
+                    output: base,
+                })
+            },
+        )
         .await?;
 
         Ok(())
