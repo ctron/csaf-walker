@@ -4,7 +4,7 @@ use crate::retrieve::{RetrievalMetadata, RetrievedAdvisory, RetrievedDigest};
 use crate::source::{KeySource, KeySourceError, Source};
 use crate::utils;
 use crate::utils::openpgp::PublicKey;
-use crate::visitors::store::ATTR_ETAG;
+use crate::visitors::store::{ATTR_ETAG, DIR_METADATA};
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use bytes::Bytes;
@@ -32,7 +32,7 @@ impl FileSource {
     }
 
     async fn scan_keys(&self) -> Result<Vec<Key>, anyhow::Error> {
-        let dir = self.base.join("metadata").join("keys");
+        let dir = self.base.join(DIR_METADATA).join("keys");
 
         let mut result = Vec::new();
 
@@ -76,7 +76,7 @@ impl Source for FileSource {
     type Error = anyhow::Error;
 
     async fn load_metadata(&self) -> Result<ProviderMetadata, Self::Error> {
-        let metadata = self.base.join("provider-metadata.json");
+        let metadata = self.base.join(DIR_METADATA).join("provider-metadata.json");
         let file = fs::File::open(&metadata)
             .with_context(|| format!("Failed to open file: {}", metadata.display()))?;
 

@@ -17,6 +17,8 @@ pub const ATTR_ETAG: &str = "etag";
 #[cfg(target_os = "linux")]
 pub const ATTR_ETAG: &str = "user.etag";
 
+pub const DIR_METADATA: &str = "metadata";
+
 /// Stores all data so that it can be used as a [`crate::source::Source`] later.
 pub struct StoreVisitor {
     /// the output base
@@ -105,7 +107,7 @@ impl ValidatedVisitor for StoreVisitor {
 
 impl StoreVisitor {
     async fn store_provider_metadata(&self, metadata: &ProviderMetadata) -> Result<(), StoreError> {
-        let file = self.base.join("provider-metadata.json");
+        let file = self.base.join(DIR_METADATA).join("provider-metadata.json");
         let mut out = std::fs::File::create(&file)
             .with_context(|| {
                 format!(
@@ -121,7 +123,7 @@ impl StoreVisitor {
     }
 
     async fn store_keys(&self, keys: &Vec<PublicKey>) -> Result<(), StoreError> {
-        let metadata = self.base.join("metadata");
+        let metadata = self.base.join(DIR_METADATA);
         std::fs::create_dir(&metadata)
             // ignore if the directory already exists
             .or_else(|err| match err.kind() {

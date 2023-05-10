@@ -38,19 +38,9 @@ pub struct Report {
 
 #[derive(clap::Args, Debug)]
 pub struct RenderOptions {
-    /// Path of the markdown output file
-    #[arg(long, default_value = "report.md")]
-    output_markdown: PathBuf,
-
     /// Path of the HTML output file
     #[arg(long, default_value = "report.html")]
-    output_html: PathBuf,
-
-    #[arg(long)]
-    skip_markdown: bool,
-
-    #[arg(long)]
-    skip_html: bool,
+    output: PathBuf,
 }
 
 #[derive(Clone, Debug, serde::Serialize)]
@@ -125,17 +115,8 @@ impl Report {
     }
 
     fn render(render: RenderOptions, report: ReportResult) -> anyhow::Result<()> {
-        let mut md = String::with_capacity(256 * 1024);
-        render::render_report(&mut md, &report)?;
-
-        if !render.skip_markdown {
-            std::fs::write(render.output_markdown, &md)?;
-        }
-
-        if !render.skip_html {
-            let mut out = std::fs::File::create(&render.output_html)?;
-            render::render_to_html(&md, &mut out)?;
-        }
+        let mut out = std::fs::File::create(&render.output)?;
+        render::render_to_html(&mut out, &report)?;
 
         Ok(())
     }
