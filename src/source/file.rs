@@ -4,6 +4,7 @@ use crate::retrieve::{RetrievalMetadata, RetrievedAdvisory, RetrievedDigest};
 use crate::source::{KeySource, KeySourceError, Source};
 use crate::utils;
 use crate::utils::openpgp::PublicKey;
+use crate::visitors::store::ATTR_ETAG;
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use bytes::Bytes;
@@ -173,6 +174,12 @@ impl Source for FileSource {
             .and_then(|md| md.modified().ok())
             .map(|mtime| OffsetDateTime::from(mtime));
 
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
+        let etag = xattr::get(&path, ATTR_ETAG)
+            .transpose()
+            .and_then(|r| r.ok())
+            .and_then(|s| String::from_utf8(s).ok());
+
         Ok(RetrievedAdvisory {
             discovered,
             data,
@@ -181,7 +188,7 @@ impl Source for FileSource {
             sha512,
             metadata: RetrievalMetadata {
                 last_modification,
-                etag: None,
+                etag,
             },
         })
     }

@@ -13,9 +13,9 @@ use std::time::SystemTime;
 use tokio::fs;
 
 #[cfg(target_os = "macos")]
-const ATTR_ETAG: &str = "etag";
+pub const ATTR_ETAG: &str = "etag";
 #[cfg(target_os = "linux")]
-const ATTR_ETAG: &str = "user.etag";
+pub const ATTR_ETAG: &str = "user.etag";
 
 /// Stores all data so that it can be used as a [`crate::source::Source`] later.
 pub struct StoreVisitor {
