@@ -12,22 +12,50 @@ pub fn render_report<W: Write>(mut w: W, report: &ReportResult) -> anyhow::Resul
 
     if report.duplicates.duplicates.is_empty() {
         writeln!(w, "No duplicates detected")?;
+        writeln!(w,)?;
     } else {
+        let num = report.duplicates.duplicates.len();
+        let total: usize = report.duplicates.duplicates.values().sum();
         writeln!(
             w,
-            "{} duplicates URLs found, totalling {} redundant entries",
-            report.duplicates.duplicates.len(),
-            report
-                .duplicates
-                .duplicates
-                .iter()
-                .map(|(_, v)| *v)
-                .sum::<usize>(),
+            "{num} duplicates URLs found, totalling {total} redundant entries",
         )?;
         writeln!(w,)?;
 
         writeln!(w, "The following URLs have duplicate entries:")?;
         writeln!(w)?;
+
+        writeln!(w, "| File | # Duplicates | ")?;
+        writeln!(w, "| ---- | -----------: | ")?;
+
+        for (k, v) in &report.duplicates.duplicates {
+            writeln!(w, "| `{k}` | {v} | ")?;
+        }
+        writeln!(w,)?;
+    }
+
+    writeln!(w, "## Errors")?;
+
+    if report.errors.is_empty() {
+        writeln!(w, "No error detected")?;
+        writeln!(w,)?;
+    } else {
+        let num = report.errors.len();
+        let s = match num {
+            1 => "",
+            _ => "s",
+        };
+        writeln!(w, "{num} error{s} detected")?;
+        writeln!(w,)?;
+
+        writeln!(w, "| File | Error | ")?;
+        writeln!(w, "| ---- | -----------: | ")?;
+
+        for (k, v) in report.errors {
+            writeln!(w, "| `{k}` | {v} | ")?;
+        }
+
+        writeln!(w,)?;
     }
 
     Ok(())

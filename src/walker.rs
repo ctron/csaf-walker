@@ -1,8 +1,8 @@
 //! The actual walker
 
-use crate::discover::{DiscoveredAdvisory, DiscoveredVisitor};
-use crate::fetcher::{self, Fetcher, Json, Text};
-use crate::model::metadata::{Distribution, ProviderMetadata};
+use crate::discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor};
+use crate::model::metadata::Distribution;
+use crate::source::Source;
 use futures::{stream, Stream, StreamExt, TryFutureExt, TryStream, TryStreamExt};
 use reqwest::Url;
 use std::fmt::Debug;
@@ -10,62 +10,49 @@ use std::sync::Arc;
 use url::ParseError;
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error<VE>
+pub enum Error<VE, SE>
 where
     VE: std::fmt::Display + Debug,
+    SE: std::fmt::Display + Debug,
 {
-    #[error("Fetch error: {0}")]
-    Fetch(#[from] fetcher::Error),
+    #[error("Source error: {0}")]
+    Source(SE),
     #[error("URL error: {0}")]
     Url(#[from] ParseError),
     #[error("Visitor error: {0}")]
     Visitor(VE),
 }
 
-pub struct Walker {
-    url: Url,
-    fetcher: Fetcher,
+pub struct Walker<S: Source> {
+    source: S,
 }
 
-impl Walker {
-    pub fn new(url: Url, fetcher: Fetcher) -> Self {
-        Self { url, fetcher }
+impl<S: Source> Walker<S> {
+    pub fn new(source: S) -> Self {
+        Self { source }
     }
 
-    async fn load_index<V>(
-        fetcher: &Fetcher,
-        dist: &Distribution,
-    ) -> Result<Vec<Url>, Error<V::Error>>
+    pub async fn walk<V>(self, visitor: V) -> Result<(), Error<V::Error, S::Error>>
     where
         V: DiscoveredVisitor,
     {
-        Ok(fetcher
-            .fetch::<Text>(dist.directory_url.join("index.txt")?)
-            .await?
-            .into_inner()
-            .lines()
-            .map(|s| Url::parse(&format!("{}{s}", dist.directory_url)))
-            .collect::<Result<_, _>>()?)
-    }
-
-    pub async fn walk<V>(self, visitor: V) -> Result<(), Error<V::Error>>
-    where
-        V: DiscoveredVisitor,
-    {
-        let metadata = self
-            .fetcher
-            .fetch::<Json<ProviderMetadata>>(self.url.clone())
-            .await?
-            .into_inner();
+        let metadata = self.source.load_metadata().await.map_err(Error::Source)?;
 
         let context = visitor
-            .visit_context(&metadata)
+            .visit_context(&DiscoveredContext {
+                metadata: &metadata,
+            })
             .await
             .map_err(Error::Visitor)?;
 
-        for source in metadata.distributions {
-            log::debug!("Walking: {}", source.directory_url);
-            for url in Self::load_index::<V>(&self.fetcher, &source).await? {
+        for distribution in metadata.distributions {
+            log::debug!("Walking: {}", distribution.directory_url);
+            for url in self
+                .source
+                .load_index(&distribution)
+                .await
+                .map_err(Error::Source)?
+            {
                 log::debug!("  Discovered advisory: {url}");
                 visitor
                     .visit_advisory(&context, DiscoveredAdvisory { url })
@@ -77,27 +64,27 @@ impl Walker {
         Ok(())
     }
 
-    pub async fn walk_parallel<V>(self, limit: usize, visitor: V) -> Result<(), Error<V::Error>>
+    pub async fn walk_parallel<V>(
+        self,
+        limit: usize,
+        visitor: V,
+    ) -> Result<(), Error<V::Error, S::Error>>
     where
         V: DiscoveredVisitor,
     {
-        let metadata = self
-            .fetcher
-            .fetch::<Json<ProviderMetadata>>(self.url.clone())
-            .await?
-            .into_inner();
+        let metadata = self.source.load_metadata().await.map_err(Error::Source)?;
 
         let context = visitor
-            .visit_context(&metadata)
+            .visit_context(&DiscoveredContext {
+                metadata: &metadata,
+            })
             .await
             .map_err(Error::Visitor)?;
 
         let context = Arc::new(context);
         let visitor = Arc::new(visitor);
 
-        let fetcher = self.fetcher;
-
-        collect_urls::<V>(&fetcher, metadata.distributions)
+        collect_urls::<V, S>(&self.source, metadata.distributions)
             .try_for_each_concurrent(limit, |url| {
                 log::debug!("Discovered advisory: {url}");
                 let context = context.clone();
@@ -116,27 +103,26 @@ impl Walker {
     }
 }
 
-fn collect_sources<V: DiscoveredVisitor>(
-    fetcher: &Fetcher,
+fn collect_sources<'s, V: DiscoveredVisitor, S: Source>(
+    source: &'s S,
     distributions: Vec<Distribution>,
-) -> impl TryStream<Ok = impl Stream<Item = Url>, Error = Error<V::Error>> {
-    let fetcher = fetcher.clone();
-    stream::iter(distributions).then(move |source| {
-        let fetcher = fetcher.clone();
-        async move {
-            log::debug!("Walking: {}", source.directory_url);
-            Ok(stream::iter(
-                Walker::load_index::<V>(&fetcher, &source).await?,
-            ))
-        }
+) -> impl TryStream<Ok = impl Stream<Item = Url>, Error = Error<V::Error, S::Error>> + 's {
+    stream::iter(distributions).then(move |distribution| async move {
+        log::debug!("Walking: {}", distribution.directory_url);
+        Ok(stream::iter(
+            source
+                .load_index(&distribution)
+                .await
+                .map_err(Error::Source)?,
+        ))
     })
 }
 
-fn collect_urls<V: DiscoveredVisitor>(
-    fetcher: &Fetcher,
+fn collect_urls<'s, V: DiscoveredVisitor, S: Source>(
+    source: &'s S,
     distributions: Vec<Distribution>,
-) -> impl TryStream<Ok = Url, Error = Error<V::Error>> {
-    collect_sources::<V>(fetcher, distributions)
+) -> impl TryStream<Ok = Url, Error = Error<V::Error, S::Error>> + 's {
+    collect_sources::<V, S>(source, distributions)
         .map_ok(|s| s.map(Ok))
         .try_flatten()
 }

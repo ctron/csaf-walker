@@ -1,21 +1,21 @@
 //! Retrieval
 
-use crate::discover::{DiscoveredAdvisory, DiscoveredVisitor};
-use crate::fetcher;
-use crate::fetcher::{DataProcessor, Fetcher};
-use crate::model::metadata::ProviderMetadata;
+use crate::discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor};
+use crate::source::{KeySource, KeySourceError, Source};
 use crate::utils::hex::Hex;
+use crate::utils::openpgp::PublicKey;
 use async_trait::async_trait;
-use bytes::{BufMut, Bytes, BytesMut};
+use bytes::Bytes;
 use digest::{Digest, Output};
-use reqwest::{Response, StatusCode};
+use reqwest::StatusCode;
 use sha2::{Sha256, Sha512};
 use std::fmt::{Debug, Formatter};
 use std::future::Future;
 use std::ops::{Deref, DerefMut};
-use time::{format_description::well_known::Rfc2822, OffsetDateTime};
-use tokio::try_join;
+use time::OffsetDateTime;
+use url::Url;
 
+/// A retrieved (but unverified) advisory
 #[derive(Clone, Debug)]
 pub struct RetrievedAdvisory {
     /// The discovered advisory
@@ -35,6 +35,7 @@ pub struct RetrievedAdvisory {
     pub metadata: RetrievalMetadata,
 }
 
+/// Metadata of the retrieval process.
 #[derive(Clone, Debug)]
 pub struct RetrievalMetadata {
     /// Last known modification time
@@ -57,6 +58,7 @@ impl DerefMut for RetrievedAdvisory {
     }
 }
 
+/// The retrieved digest
 #[derive(Clone, PartialEq, Eq)]
 pub struct RetrievedDigest<D: Digest> {
     /// The expected digest, as read from the remote source
@@ -87,7 +89,7 @@ impl<D: Digest> Debug for RetrievedDigest<D> {
 
 /// Building a digest while retrieving.
 #[derive(Clone)]
-struct RetrievingDigest<D: Digest> {
+pub struct RetrievingDigest<D: Digest> {
     pub expected: String,
     pub current: D,
 }
@@ -126,8 +128,24 @@ where
 
 #[derive(Clone, Debug, thiserror::Error)]
 pub enum RetrievalError {
-    #[error("Invalid response retrieving: {0}")]
-    InvalidResponse(StatusCode),
+    #[error("Invalid response retrieving: {code}")]
+    InvalidResponse {
+        code: StatusCode,
+        discovered: DiscoveredAdvisory,
+    },
+}
+
+impl RetrievalError {
+    pub fn url(&self) -> &Url {
+        match self {
+            Self::InvalidResponse { discovered, .. } => &discovered.url,
+        }
+    }
+}
+
+pub struct RetrievalContext<'c> {
+    pub discovered: &'c DiscoveredContext<'c>,
+    pub keys: &'c Vec<PublicKey>,
 }
 
 #[async_trait(?Send)]
@@ -135,15 +153,13 @@ pub trait RetrievedVisitor {
     type Error: std::fmt::Display + Debug;
     type Context;
 
-    async fn visit_context(
-        &self,
-        metadata: &ProviderMetadata,
-    ) -> Result<Self::Context, Self::Error>;
+    async fn visit_context(&self, context: &RetrievalContext)
+        -> Result<Self::Context, Self::Error>;
 
     async fn visit_advisory(
         &self,
         context: &Self::Context,
-        outcome: Result<RetrievedAdvisory, RetrievalError>,
+        result: Result<RetrievedAdvisory, RetrievalError>,
     ) -> Result<(), Self::Error>;
 }
 
@@ -159,7 +175,7 @@ where
 
     async fn visit_context(
         &self,
-        _metadata: &ProviderMetadata,
+        _context: &RetrievalContext,
     ) -> Result<Self::Context, Self::Error> {
         Ok(())
     }
@@ -173,45 +189,75 @@ where
     }
 }
 
-pub struct RetrievingVisitor<V: RetrievedVisitor> {
+pub struct RetrievingVisitor<V: RetrievedVisitor, S: Source + KeySource> {
     visitor: V,
-    fetcher: Fetcher,
+    source: S,
 }
 
-impl<V> RetrievingVisitor<V>
+impl<V, S> RetrievingVisitor<V, S>
 where
     V: RetrievedVisitor,
+    S: Source + KeySource,
 {
-    pub fn new(fetcher: Fetcher, visitor: V) -> Self {
-        Self { visitor, fetcher }
+    pub fn new(source: S, visitor: V) -> Self {
+        Self { visitor, source }
     }
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error<VE>
+pub enum Error<VE, SE, KSE>
 where
     VE: std::fmt::Display + Debug,
+    SE: std::fmt::Display + Debug,
+    KSE: std::fmt::Display + Debug,
 {
-    #[error("Fetch error: {0}")]
-    Fetch(#[from] fetcher::Error),
-    #[error("Visitor error: {0}")]
+    #[error("Source error: {0}")]
+    Source(SE),
+    #[error("Key source error: {0}")]
+    KeySource(KeySourceError<KSE>),
+    #[error(transparent)]
     Visitor(VE),
 }
 
 #[async_trait(?Send)]
-impl<V> DiscoveredVisitor for RetrievingVisitor<V>
+impl<V, S> DiscoveredVisitor for RetrievingVisitor<V, S>
 where
     V: RetrievedVisitor,
+    S: Source + KeySource,
 {
-    type Error = Error<V::Error>;
+    type Error = Error<V::Error, <S as Source>::Error, <S as KeySource>::Error>;
     type Context = V::Context;
 
     async fn visit_context(
         &self,
-        metadata: &ProviderMetadata,
+        context: &DiscoveredContext,
     ) -> Result<Self::Context, Self::Error> {
+        let mut keys = Vec::with_capacity(context.metadata.public_openpgp_keys.len());
+
+        for key in &context.metadata.public_openpgp_keys {
+            keys.push(
+                self.source
+                    .load_public_key(key)
+                    .await
+                    .map_err(Error::KeySource)?,
+            );
+        }
+
+        log::info!("Loaded {} public keys", keys.len());
+        if log::log_enabled!(log::Level::Debug) {
+            for key in keys.iter().flat_map(|k| &k.certs) {
+                log::debug!("   {}", key.key_handle());
+                for id in key.userids() {
+                    log::debug!("     {}", String::from_utf8_lossy(id.value()));
+                }
+            }
+        }
+
         self.visitor
-            .visit_context(metadata)
+            .visit_context(&RetrievalContext {
+                discovered: &context,
+                keys: &keys,
+            })
             .await
             .map_err(Error::Visitor)
     }
@@ -221,117 +267,17 @@ where
         context: &Self::Context,
         discovered: DiscoveredAdvisory,
     ) -> Result<(), Self::Error> {
-        let (signature, sha256, sha512) = try_join!(
-            self.fetcher
-                .fetch::<Option<String>>(format!("{url}.asc", url = discovered.url)),
-            self.fetcher
-                .fetch::<Option<String>>(format!("{url}.sha256", url = discovered.url)),
-            self.fetcher
-                .fetch::<Option<String>>(format!("{url}.sha512", url = discovered.url)),
-        )?;
-
-        let sha256 = sha256
-            // take the first "word" from the line
-            .and_then(|expected| expected.split(' ').next().map(ToString::to_string))
-            .map(|expected| RetrievingDigest {
-                expected,
-                current: Sha256::new(),
-            });
-        let sha512 = sha512
-            // take the first "word" from the line
-            .and_then(|expected| expected.split(' ').next().map(ToString::to_string))
-            .map(|expected| RetrievingDigest {
-                expected,
-                current: Sha512::new(),
-            });
-
         let advisory = self
-            .fetcher
-            .fetch_processed(
-                discovered.url.clone(),
-                FetchingRetrievedAdvisory { sha256, sha512 },
-            )
-            .await?;
+            .source
+            .load_advisory(discovered)
+            .await
+            .map_err(Error::Source)?;
 
         self.visitor
-            .visit_advisory(context, Ok(advisory.into_retrieved(discovered, signature)))
+            .visit_advisory(context, Ok(advisory))
             .await
             .map_err(Error::Visitor)?;
 
         Ok(())
-    }
-}
-
-pub struct FetchedRetrievedAdvisory {
-    data: Bytes,
-    sha256: Option<RetrievedDigest<Sha256>>,
-    sha512: Option<RetrievedDigest<Sha512>>,
-    metadata: RetrievalMetadata,
-}
-
-impl FetchedRetrievedAdvisory {
-    fn into_retrieved(
-        self,
-        discovered: DiscoveredAdvisory,
-        signature: Option<String>,
-    ) -> RetrievedAdvisory {
-        RetrievedAdvisory {
-            discovered,
-            data: self.data,
-            signature,
-            sha256: self.sha256,
-            sha512: self.sha512,
-            metadata: self.metadata,
-        }
-    }
-}
-
-pub struct FetchingRetrievedAdvisory {
-    sha256: Option<RetrievingDigest<Sha256>>,
-    sha512: Option<RetrievingDigest<Sha512>>,
-}
-
-#[async_trait(?Send)]
-impl DataProcessor for FetchingRetrievedAdvisory {
-    type Type = FetchedRetrievedAdvisory;
-
-    async fn process(&self, response: Response) -> Result<Self::Type, reqwest::Error> {
-        let mut response = response.error_for_status()?;
-
-        let mut data = BytesMut::new();
-        let mut sha256 = self.sha256.clone();
-        let mut sha512 = self.sha512.clone();
-
-        while let Some(chunk) = response.chunk().await? {
-            if let Some(d) = &mut sha256 {
-                d.update(&chunk);
-            }
-            if let Some(d) = &mut sha512 {
-                d.update(&chunk);
-            }
-            data.put(chunk);
-        }
-
-        let etag = response
-            .headers()
-            .get(reqwest::header::ETAG)
-            .and_then(|s| s.to_str().ok())
-            .map(ToString::to_string);
-
-        let last_modification = response
-            .headers()
-            .get(reqwest::header::LAST_MODIFIED)
-            .and_then(|s| s.to_str().ok())
-            .and_then(|s| OffsetDateTime::parse(s, &Rfc2822).ok());
-
-        Ok(FetchedRetrievedAdvisory {
-            data: data.freeze(),
-            sha256: sha256.map(|d| d.into()),
-            sha512: sha512.map(|d| d.into()),
-            metadata: RetrievalMetadata {
-                last_modification,
-                etag,
-            },
-        })
     }
 }

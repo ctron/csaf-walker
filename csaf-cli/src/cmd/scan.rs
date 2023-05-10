@@ -1,6 +1,7 @@
 use crate::cmd::{ClientArguments, DiscoverArguments, ValidationArguments};
 use crate::common::walk_standard;
 use csaf::Csaf;
+use csaf_walker::validation::{ValidatedAdvisory, ValidationError};
 
 /// Scan advisories
 #[derive(clap::Args, Debug)]
@@ -21,7 +22,7 @@ impl Scan {
             self.client,
             self.discover,
             self.validation,
-            |advisory| async {
+            |advisory: Result<ValidatedAdvisory, ValidationError>| async move {
                 match advisory {
                     Ok(adv) => {
                         println!("Advisory: {}", adv.url);
@@ -47,7 +48,7 @@ impl Scan {
                     }
                 }
 
-                Ok(())
+                Ok::<_, anyhow::Error>(())
             },
         )
         .await?;

@@ -1,5 +1,5 @@
 use crate::retrieve::RetrievedAdvisory;
-use crate::validation::{ValidationContext, ValidationOptions};
+use crate::validation::{InnerValidationContext, ValidationOptions};
 use anyhow::bail;
 use sequoia_openpgp::{
     cert::prelude::ValidErasedKeyAmalgamation,
@@ -15,12 +15,17 @@ use sequoia_openpgp::{
 use std::fmt::Debug;
 
 struct Helper<'a, C> {
-    context: &'a ValidationContext<C>,
+    context: &'a InnerValidationContext<C>,
 }
 
 impl<'a, C> VerificationHelper for Helper<'a, C> {
     fn get_certs(&mut self, _ids: &[KeyHandle]) -> sequoia_openpgp::Result<Vec<Cert>> {
-        Ok(self.context.keys.iter().map(|k| k.cert.clone()).collect())
+        Ok(self
+            .context
+            .keys
+            .iter()
+            .flat_map(|k| k.certs.clone())
+            .collect())
     }
 
     fn check(&mut self, structure: MessageStructure) -> sequoia_openpgp::Result<()> {
@@ -87,7 +92,7 @@ impl<'a> Policy for WrappingPolicy<'a> {
 
 pub fn validate_signature<C>(
     options: &ValidationOptions,
-    context: &ValidationContext<C>,
+    context: &InnerValidationContext<C>,
     signature: &str,
     retrieved: &RetrievedAdvisory,
 ) -> Result<(), anyhow::Error> {

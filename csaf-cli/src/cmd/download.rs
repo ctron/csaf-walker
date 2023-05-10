@@ -1,10 +1,10 @@
 use crate::cmd::{ClientArguments, DiscoverArguments, StoreArguments, ValidationArguments};
-use crate::common::walk_standard;
-use crate::store::store_advisory;
-use anyhow::Context;
-use std::path::PathBuf;
+use crate::common::walk_visitor;
+use csaf_walker::retrieve::RetrievingVisitor;
+use csaf_walker::visitors::skip::SkipExistingVisitor;
+use csaf_walker::visitors::store::StoreVisitor;
 
-/// Download
+/// Like sync, but doesn't validate.
 #[derive(clap::Args, Debug)]
 pub struct Download {
     #[command(flatten)]
@@ -18,37 +18,22 @@ pub struct Download {
 
     #[command(flatten)]
     store: StoreArguments,
-
-    /// Output path, defaults to the local directory.
-    #[arg(short, long)]
-    output: Option<PathBuf>,
 }
 
 impl Download {
     pub async fn run(self) -> anyhow::Result<()> {
-        let base = match self.output {
-            Some(base) => base,
-            None => std::env::current_dir().context("Get current working directory")?,
-        };
+        let store: StoreVisitor = self.store.try_into()?;
+        let base = store.base.clone();
 
-        let skip_attr = self.store.no_xattrs;
+        walk_visitor(self.client, self.discover, move |source| async move {
+            let base = base.clone();
+            let visitor = { RetrievingVisitor::new(source.clone(), store) };
 
-        walk_standard(
-            self.client,
-            self.discover,
-            self.validation,
-            move |advisory| {
-                let base = base.clone();
-                async move {
-                    // if we fail, we fail!
-                    let advisory = advisory?;
-
-                    store_advisory(&base, advisory, skip_attr).await?;
-
-                    Ok(())
-                }
-            },
-        )
+            Ok(SkipExistingVisitor {
+                visitor,
+                output: base,
+            })
+        })
         .await?;
 
         Ok(())

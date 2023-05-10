@@ -1,5 +1,8 @@
+use anyhow::Context;
 use csaf_walker::validation::ValidationOptions;
+use csaf_walker::visitors::store::StoreVisitor;
 use reqwest::Url;
+use std::path::PathBuf;
 use std::time::SystemTime;
 use time::{Date, Month, UtcOffset};
 
@@ -62,6 +65,32 @@ impl From<ValidationArguments> for ValidationOptions {
 #[derive(Debug, clap::Parser)]
 pub struct StoreArguments {
     /// Disable the use of extended attributes, e.g. for etag information.
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     #[arg(long)]
     pub no_xattrs: bool,
+
+    #[arg(long)]
+    pub no_timestamps: bool,
+
+    /// Output path, defaults to the local directory.
+    #[arg(short, long)]
+    pub data: Option<PathBuf>,
+}
+
+impl TryFrom<StoreArguments> for StoreVisitor {
+    type Error = anyhow::Error;
+
+    fn try_from(value: StoreArguments) -> Result<Self, Self::Error> {
+        let base = match value.data {
+            Some(base) => base,
+            None => std::env::current_dir().context("Get current working directory")?,
+        };
+
+        Ok(Self {
+            #[cfg(any(target_os = "linux", target_os = "macos"))]
+            no_xattrs: value.no_xattrs,
+            no_timestamps: value.no_timestamps,
+            base,
+        })
+    }
 }

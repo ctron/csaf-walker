@@ -11,6 +11,11 @@ pub struct DiscoveredAdvisory {
     pub url: Url,
 }
 
+#[derive(Debug)]
+pub struct DiscoveredContext<'c> {
+    pub metadata: &'c ProviderMetadata,
+}
+
 /// Visiting discovered advisories
 #[async_trait(?Send)]
 pub trait DiscoveredVisitor {
@@ -19,7 +24,7 @@ pub trait DiscoveredVisitor {
 
     async fn visit_context(
         &self,
-        metadata: &ProviderMetadata,
+        context: &DiscoveredContext,
     ) -> Result<Self::Context, Self::Error>;
 
     async fn visit_advisory(
@@ -41,7 +46,7 @@ where
 
     async fn visit_context(
         &self,
-        _metadata: &ProviderMetadata,
+        _context: &DiscoveredContext,
     ) -> Result<Self::Context, Self::Error> {
         Ok(())
     }

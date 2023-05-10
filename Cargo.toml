@@ -16,7 +16,9 @@ rust-version = "1.65"
 anyhow = "1"
 async-trait = "0.1"
 bytes = "1"
+chrono = { version = "0.4.24", default-features = false, features = ["serde"] }
 digest = "0.10.6"
+filetime = "0.2"
 futures = "0.3"
 log = "0.4.17"
 reqwest = { version = "0.11", features = ["json"] }
@@ -45,3 +47,7 @@ members = [
 [patch.crates-io]
 # csaf = { path = "../csaf-rs" }
 #csaf = { git = "https://github.com/ctron/csaf-rs", rev = "0bbc262c76c50f7ec918e65d1cf9bf4c5dd564d7" }
+
+# workaround until xattr fixes its win32 compilation issues.
+[target.'cfg(any(unix, macos))'.dependencies]
+xattr = { version = "1" }

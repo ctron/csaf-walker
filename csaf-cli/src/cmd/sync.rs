@@ -1,15 +1,11 @@
 use crate::cmd::{ClientArguments, DiscoverArguments, StoreArguments, ValidationArguments};
 use crate::common::walk_visitor;
-use crate::store::store_advisory;
-use anyhow::Context;
 use csaf_walker::retrieve::RetrievingVisitor;
-use csaf_walker::validation::{
-    ValidatedAdvisory, ValidationError, ValidationOptions, ValidationVisitor,
-};
+use csaf_walker::validation::{ValidationOptions, ValidationVisitor};
 use csaf_walker::visitors::skip::SkipExistingVisitor;
-use std::path::PathBuf;
+use csaf_walker::visitors::store::StoreVisitor;
 
-/// Sync only what changed
+/// Sync only what changed, and don't validate.
 #[derive(clap::Args, Debug)]
 pub struct Sync {
     #[command(flatten)]
@@ -23,47 +19,20 @@ pub struct Sync {
 
     #[command(flatten)]
     store: StoreArguments,
-
-    /// Output path, defaults to the local directory.
-    #[arg(short, long)]
-    output: Option<PathBuf>,
 }
 
 impl Sync {
     pub async fn run(self) -> anyhow::Result<()> {
-        let base = match self.output {
-            Some(base) => base,
-            None => std::env::current_dir().context("Get current working directory")?,
-        };
-
         let options: ValidationOptions = self.validation.into();
-        let skip_attrs = self.store.no_xattrs;
+        let store: StoreVisitor = self.store.try_into()?;
+        let base = store.base.clone();
 
-        walk_visitor(self.client, self.discover, move |fetcher| async move {
+        walk_visitor(self.client, self.discover, move |source| async move {
+            let base = base.clone();
             let visitor = {
-                let base = base.clone();
-
                 RetrievingVisitor::new(
-                    fetcher.clone(),
-                    ValidationVisitor::new(
-                        fetcher.clone(),
-                        move |advisory: Result<ValidatedAdvisory, ValidationError>| {
-                            let base = base.clone();
-                            async move {
-                                match advisory {
-                                    Ok(advisory) => {
-                                        store_advisory(&base, advisory, skip_attrs).await?;
-                                    }
-                                    Err(err) => {
-                                        log::warn!("Skipping erroneous advisory: {err}");
-                                    }
-                                }
-
-                                Ok::<_, anyhow::Error>(())
-                            }
-                        },
-                    )
-                    .with_options(options),
+                    source.clone(),
+                    ValidationVisitor::new(store).with_options(options),
                 )
             };
 

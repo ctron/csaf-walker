@@ -2,9 +2,9 @@
 
 mod openpgp;
 
-use crate::fetcher::Fetcher;
-use crate::model::metadata::ProviderMetadata;
-use crate::retrieve::{RetrievalError, RetrievedAdvisory, RetrievedDigest, RetrievedVisitor};
+use crate::retrieve::{
+    RetrievalContext, RetrievalError, RetrievedAdvisory, RetrievedDigest, RetrievedVisitor,
+};
 use crate::utils::openpgp::PublicKey;
 use async_trait::async_trait;
 use digest::Digest;
@@ -12,6 +12,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::future::Future;
 use std::ops::{Deref, DerefMut};
 use std::time::SystemTime;
+use url::Url;
 
 #[derive(Clone, Debug)]
 pub struct ValidatedAdvisory {
@@ -47,6 +48,16 @@ pub enum ValidationError {
     },
 }
 
+impl ValidationError {
+    pub fn url(&self) -> &Url {
+        match self {
+            Self::Retrieval(err) => err.url(),
+            Self::DigestMismatch { retrieved, .. } => &retrieved.url,
+            Self::Signature { retrieved, .. } => &retrieved.url,
+        }
+    }
+}
+
 impl Display for ValidationError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -67,6 +78,10 @@ impl Display for ValidationError {
     }
 }
 
+pub struct ValidationContext<'c> {
+    pub retrieval: &'c RetrievalContext<'c>,
+}
+
 #[async_trait(?Send)]
 pub trait ValidatedVisitor {
     type Error: Display + Debug;
@@ -74,7 +89,7 @@ pub trait ValidatedVisitor {
 
     async fn visit_context(
         &self,
-        metadata: &ProviderMetadata,
+        context: &ValidationContext,
     ) -> Result<Self::Context, Self::Error>;
 
     async fn visit_advisory(
@@ -96,7 +111,7 @@ where
 
     async fn visit_context(
         &self,
-        _metadata: &ProviderMetadata,
+        _context: &ValidationContext,
     ) -> Result<Self::Context, Self::Error> {
         Ok(())
     }
@@ -121,7 +136,6 @@ where
     V: ValidatedVisitor,
 {
     visitor: V,
-    fetcher: Fetcher,
     options: ValidationOptions,
 }
 
@@ -142,18 +156,16 @@ where
     Visitor(VE),
     #[error("Severe validation error: {0}")]
     Validation(anyhow::Error),
-    #[error("Key retrieval error: {0}")]
-    KeyRetrieval(#[from] crate::utils::openpgp::Error),
 }
 
 impl<V> ValidationVisitor<V>
 where
     V: ValidatedVisitor,
 {
-    pub fn new(fetcher: Fetcher, visitor: V) -> Self {
+    pub fn new(visitor: V) -> Self {
         Self {
             visitor,
-            fetcher,
+
             options: Default::default(),
         }
     }
@@ -168,7 +180,7 @@ where
     /// Returning either a processing error, or a result which will will be forwarded to the visitor.
     async fn validate(
         &self,
-        context: &ValidationContext<V::Context>,
+        context: &InnerValidationContext<V::Context>,
         retrieved: RetrievedAdvisory,
     ) -> Result<ValidatedAdvisory, ValidationProcessError> {
         if let Err((expected, actual)) = Self::validate_digest(&retrieved.sha256) {
@@ -213,7 +225,7 @@ where
     }
 }
 
-pub struct ValidationContext<VC> {
+pub struct InnerValidationContext<VC> {
     context: VC,
     keys: Vec<PublicKey>,
 }
@@ -224,33 +236,23 @@ where
     V: ValidatedVisitor,
 {
     type Error = Error<V::Error>;
-    type Context = ValidationContext<V::Context>;
+    type Context = InnerValidationContext<V::Context>;
 
     async fn visit_context(
         &self,
-        metadata: &ProviderMetadata,
+        context: &RetrievalContext,
     ) -> Result<Self::Context, Self::Error> {
+        let keys = context.keys.clone();
+
         let context = self
             .visitor
-            .visit_context(metadata)
+            .visit_context(&ValidationContext {
+                retrieval: &context,
+            })
             .await
             .map_err(Error::Visitor)?;
 
-        let mut keys = Vec::with_capacity(metadata.public_openpgp_keys.len());
-
-        for key in &metadata.public_openpgp_keys {
-            keys.extend(crate::utils::openpgp::fetch_key(&self.fetcher, key).await?);
-        }
-
-        log::info!("Loaded {} public keys", keys.len());
-        for key in &keys {
-            log::debug!("   {}", key.key_handle());
-            for id in key.userids() {
-                log::debug!("     {}", String::from_utf8_lossy(id.value()));
-            }
-        }
-
-        Ok(ValidationContext { context, keys })
+        Ok(Self::Context { context, keys })
     }
 
     async fn visit_advisory(
