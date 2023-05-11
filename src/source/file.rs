@@ -4,7 +4,7 @@ use crate::retrieve::{RetrievalMetadata, RetrievedAdvisory, RetrievedDigest};
 use crate::source::{KeySource, KeySourceError, Source};
 use crate::utils;
 use crate::utils::openpgp::PublicKey;
-use crate::visitors::store::{ATTR_ETAG, DIR_METADATA};
+use crate::visitors::store::DIR_METADATA;
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use bytes::Bytes;
@@ -16,6 +16,9 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use time::OffsetDateTime;
 use url::Url;
+
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+use crate::visitors::store::ATTR_ETAG;
 
 /// A file based source, possibly created by the [`crate::visitors::store::StoreVisitor`].
 #[derive(Clone)]
@@ -179,6 +182,8 @@ impl Source for FileSource {
             .transpose()
             .and_then(|r| r.ok())
             .and_then(|s| String::from_utf8(s).ok());
+        #[cfg(not(any(target_os = "linux", target_os = "macos")))]
+        let etag = None;
 
         Ok(RetrievedAdvisory {
             discovered,
