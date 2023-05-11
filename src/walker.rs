@@ -140,7 +140,7 @@ fn collect_sources<'s, V: DiscoveredVisitor, S: Source>(
     })
 }
 
-fn collect_urls<'s, V: DiscoveredVisitor, S: Source>(
+fn collect_urls<'s, V: DiscoveredVisitor + 's, S: Source>(
     source: &'s S,
     distributions: Vec<Distribution>,
 ) -> impl TryStream<Ok = Url, Error = Error<V::Error, S::Error>> + 's {
