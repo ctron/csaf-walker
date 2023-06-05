@@ -67,6 +67,7 @@ impl RetrievedVisitor for StoreVisitor {
         &self,
         context: &RetrievalContext,
     ) -> Result<Self::Context, Self::Error> {
+        self.store_provider_metadata(&context.metadata).await?;
         self.store_keys(&context.keys).await?;
         Ok(())
     }
