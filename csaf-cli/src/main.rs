@@ -44,7 +44,7 @@ impl Command {
     pub async fn run(self, progress: Progress) -> anyhow::Result<()> {
         match self {
             Command::Download(cmd) => cmd.run(progress).await,
-            Command::Scan(cmd) => cmd.run(progress).await,
+            Command::Scan(cmd) => cmd.run().await,
             Command::Discover(cmd) => cmd.run(progress).await,
             Command::Sync(cmd) => cmd.run(progress).await,
             Command::Report(cmd) => cmd.run(progress).await,
