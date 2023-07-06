@@ -124,7 +124,7 @@ impl StoreVisitor {
     }
 
     async fn store_keys(&self, keys: &Vec<PublicKey>) -> Result<(), StoreError> {
-        let metadata = self.base.join(DIR_METADATA);
+        let metadata = self.base.join(DIR_METADATA).join("keys");
         std::fs::create_dir(&metadata)
             // ignore if the directory already exists
             .or_else(|err| match err.kind() {
