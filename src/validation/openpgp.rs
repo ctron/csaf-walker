@@ -59,9 +59,9 @@ impl<'a, C> VerificationHelper for Helper<'a, C> {
 }
 
 #[derive(Debug)]
-struct WrappingPolicy<'a>(pub StandardPolicy<'a>);
+struct LoggingPolicy<'a>(pub StandardPolicy<'a>);
 
-impl<'a> Policy for WrappingPolicy<'a> {
+impl<'a> Policy for LoggingPolicy<'a> {
     fn signature(&self, sig: &Signature, sec: HashAlgoSecurity) -> sequoia_openpgp::Result<()> {
         self.0.signature(sig, sec)
     }
@@ -101,7 +101,7 @@ pub fn validate_signature<C>(
         Some(time) => StandardPolicy::at(time),
         None => StandardPolicy::new(),
     };
-    let policy = WrappingPolicy(policy);
+    let policy = LoggingPolicy(policy);
     let mut verifier = DetachedVerifierBuilder::from_bytes(&signature)?.with_policy(
         &policy,
         None,
