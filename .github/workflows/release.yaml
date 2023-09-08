@@ -77,7 +77,7 @@ jobs:
             os: windows-2022
             exe: ".exe"
             #args: --features crypto-cng --no-default-features
-            args: --features crypto-rust --no-default-features
+            args: --features crypto-botan --no-default-features
 
     runs-on: ${{ matrix.os }}
 
