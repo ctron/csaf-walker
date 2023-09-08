@@ -77,7 +77,7 @@ jobs:
             os: windows-2022
             exe: ".exe"
             #args: --features crypto-cng --no-default-features
-            args: --features vendored,crypto-openssl --no-default-features
+            args: --features crypto-openssl --no-default-features
             install: |
               echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
               vcpkg install openssl:x64-windows-static-md
