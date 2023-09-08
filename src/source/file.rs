@@ -112,7 +112,10 @@ impl Source for FileSource {
         Ok(metadata)
     }
 
-    async fn load_index(&self, distribution: &Distribution) -> Result<Vec<Url>, Self::Error> {
+    async fn load_index(
+        &self,
+        distribution: &Distribution,
+    ) -> Result<Vec<DiscoveredAdvisory>, Self::Error> {
         log::info!("Loading index - since: {:?}", self.options.since);
 
         let path = &distribution.directory_url.to_file_path().map_err(|()| {
@@ -147,10 +150,15 @@ impl Source for FileSource {
                 }
             }
 
-            result.push(
-                Url::from_file_path(&path)
-                    .map_err(|()| anyhow!("Failed to convert to URL: {}", path.display()))?,
-            )
+            let url = Url::from_file_path(&path)
+                .map_err(|()| anyhow!("Failed to convert to URL: {}", path.display()))?;
+
+            let modified = path.metadata()?.modified()?;
+
+            result.push(DiscoveredAdvisory {
+                url,
+                modified: Some(modified),
+            })
         }
 
         Ok(result)

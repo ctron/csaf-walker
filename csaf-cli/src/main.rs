@@ -28,6 +28,10 @@ struct Cli {
     #[arg(short, long, action = clap::ArgAction::Count, global = true)]
     verbose: u8,
 
+    /// Add timestamps to the output messages
+    #[arg(long, global = true)]
+    log_timestamps: bool,
+
     /// Disable progress bar
     #[arg(long, global = true)]
     no_progress: bool,
@@ -61,15 +65,30 @@ impl Cli {
 
         // remove timestamps
 
-        builder.format(|buf, record| writeln!(buf, "{}", record.args()));
+        if !self.log_timestamps {
+            builder.format(|buf, record| writeln!(buf, "{}", record.args()));
+        }
+
+        // log level
 
         match (self.quiet, self.verbose) {
             (true, _) => builder.filter_level(LevelFilter::Off),
             (_, 0) => builder
                 .filter_level(LevelFilter::Warn)
-                .filter_module("csaf_cli", LevelFilter::Info),
-            (_, 1) => builder.filter_level(LevelFilter::Info),
-            (_, 2) => builder.filter_level(LevelFilter::Debug),
+                .filter_module("csaf", LevelFilter::Info),
+            (_, 1) => builder
+                .filter_level(LevelFilter::Warn)
+                .filter_module("csaf", LevelFilter::Info)
+                .filter_module("csaf_walker", LevelFilter::Info),
+            (_, 2) => builder
+                .filter_level(LevelFilter::Warn)
+                .filter_module("csaf", LevelFilter::Debug)
+                .filter_module("csaf_walker", LevelFilter::Debug),
+            (_, 3) => builder
+                .filter_level(LevelFilter::Info)
+                .filter_module("csaf", LevelFilter::Debug)
+                .filter_module("csaf_walker", LevelFilter::Debug),
+            (_, 4) => builder.filter_level(LevelFilter::Debug),
             (_, _) => builder.filter_level(LevelFilter::Trace),
         };
 
@@ -82,14 +101,20 @@ impl Cli {
             }
             false => {
                 let logger = builder.build();
+                let max_level = logger.filter();
                 let multi = MultiProgress::new();
-                LogWrapper::new(multi.clone(), logger).try_init().unwrap();
+                let log = LogWrapper::new(multi.clone(), logger);
+                // NOTE: LogWrapper::try_init is buggy and messes up the log levels
+                log::set_boxed_logger(Box::new(log)).unwrap();
+                log::set_max_level(max_level);
 
                 Progress::new(MultiIndicatif(multi))
             }
         };
 
-        // setup
+        // run
+
+        log::debug!("Setup complete, start processing");
 
         let time = MeasureTime::new(self.quiet);
         self.command.run(progress).await?;

@@ -166,7 +166,11 @@ impl StoreVisitor {
     }
 
     async fn store(&self, advisory: &RetrievedAdvisory) -> Result<(), StoreError> {
-        log::info!("Storing: {}", advisory.url);
+        log::info!(
+            "Storing: {} (modified: {:?})",
+            advisory.url,
+            advisory.metadata.last_modification
+        );
 
         let file = PathBuf::from(advisory.url.path())
             .file_name()
@@ -174,6 +178,20 @@ impl StoreVisitor {
             .ok_or_else(|| StoreError::Filename(advisory.url.to_string()))?;
 
         log::debug!("Writing {}", file.display());
+
+        if let (Some(reported_modified), Some(stored_modified)) =
+            (advisory.modified, advisory.metadata.last_modification)
+        {
+            if reported_modified != stored_modified {
+                log::warn!(
+                    "{}: Modification timestamp discrepancy - changes: {}, retrieved: {}",
+                    file.display(),
+                    humantime::Timestamp::from(reported_modified),
+                    humantime::Timestamp::from(SystemTime::from(stored_modified)),
+                );
+            }
+        }
+
         fs::write(&file, &advisory.data)
             .await
             .with_context(|| format!("Failed to write advisory: {}", file.display()))

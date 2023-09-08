@@ -11,6 +11,7 @@ use digest::Digest;
 use futures::try_join;
 use reqwest::Response;
 use sha2::{Sha256, Sha512};
+use std::collections::HashMap;
 use std::time::SystemTime;
 use time::format_description::well_known::Rfc2822;
 use time::OffsetDateTime;
@@ -57,7 +58,10 @@ impl Source for HttpSource {
             .into_inner())
     }
 
-    async fn load_index(&self, distribution: &Distribution) -> Result<Vec<Url>, Self::Error> {
+    async fn load_index(
+        &self,
+        distribution: &Distribution,
+    ) -> Result<Vec<DiscoveredAdvisory>, Self::Error> {
         let base = distribution.directory_url.to_string();
         let has_slash = base.ends_with('/');
 
@@ -68,47 +72,30 @@ impl Source for HttpSource {
             Url::parse(&format!("{}{s}", base))
         };
 
-        if let Some(since) = self.options.since {
-            log::info!(
-                "Processing with start date: {}",
-                humantime::Timestamp::from(since)
-            );
-
-            let changes = self
-                .fetcher
-                .fetch::<Option<String>>(distribution.directory_url.join("changes.csv")?)
-                .await?;
-
-            if let Some(changes) = changes {
-                // if we have since and a change list, we use this as index
-
-                let reader = csv::ReaderBuilder::new()
-                    .delimiter(b',')
-                    .has_headers(false)
-                    .from_reader(changes.as_bytes());
-
-                return reader
-                    .into_deserialize::<ChangeEntry>()
-                    // filter out by "since", and convert error
-                    .filter_map(|entry| match entry {
-                        Ok(entry) if entry.timestamp > since => Some(Ok(entry)),
-                        Ok(_) => None,
-                        Err(err) => Some(Err(HttpSourceError::Csv(err))),
-                    })
-                    // convert into URL
-                    .map(|r| r.and_then(|entry| Ok(join_url(entry.file.as_str())?)))
-                    .collect::<Result<Vec<_>, _>>();
-            }
-
-            // otherwise, fall back to "all index"
-        }
+        let changes = ChangeSource::retrieve(&self.fetcher, &distribution.directory_url).await?;
 
         Ok(self
             .fetcher
             .fetch::<String>(distribution.directory_url.join("index.txt")?)
             .await?
             .lines()
-            .map(join_url)
+            .map(|line| {
+                let modified = changes.modified(line);
+                let url = join_url(line)?;
+
+                Ok::<_, ParseError>(DiscoveredAdvisory { url, modified })
+            })
+            // filter out advisories based in since, but only if we can be sure
+            .filter(|advisory| match (advisory, &self.options.since) {
+                (
+                    Ok(DiscoveredAdvisory {
+                        url: _,
+                        modified: Some(modified),
+                    }),
+                    Some(since),
+                ) => modified >= since,
+                _ => true,
+            })
             .collect::<Result<_, _>>()?)
     }
 
@@ -242,5 +229,39 @@ impl KeySource for HttpSource {
 
         utils::openpgp::validate_keys(bytes, &key_source.fingerprint)
             .map_err(KeySourceError::OpenPgp)
+    }
+}
+
+pub struct ChangeSource {
+    map: HashMap<String, SystemTime>,
+}
+
+impl ChangeSource {
+    pub fn modified(&self, file: &str) -> Option<SystemTime> {
+        self.map.get(file).copied()
+    }
+
+    pub async fn retrieve(fetcher: &Fetcher, base_url: &Url) -> Result<Self, HttpSourceError> {
+        let changes = fetcher
+            .fetch::<Option<String>>(base_url.join("changes.csv")?)
+            .await?;
+
+        log::info!("Found 'changes.txt', loading data");
+
+        let map = if let Some(changes) = changes {
+            let reader = csv::ReaderBuilder::new()
+                .delimiter(b',')
+                .has_headers(false)
+                .from_reader(changes.as_bytes());
+
+            reader
+                .into_deserialize::<ChangeEntry>()
+                .map(|entry| entry.map(|entry| (entry.file, entry.timestamp.into())))
+                .collect::<Result<HashMap<_, _>, _>>()?
+        } else {
+            HashMap::new()
+        };
+
+        Ok(Self { map })
     }
 }

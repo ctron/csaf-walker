@@ -15,7 +15,6 @@ use crate::utils;
 use crate::utils::openpgp::PublicKey;
 use async_trait::async_trait;
 use std::fmt::{Debug, Display};
-use url::Url;
 
 /// A source of CSAF documents
 #[async_trait(?Send)]
@@ -23,7 +22,10 @@ pub trait Source: Clone {
     type Error: Display + Debug;
 
     async fn load_metadata(&self) -> Result<ProviderMetadata, Self::Error>;
-    async fn load_index(&self, distribution: &Distribution) -> Result<Vec<Url>, Self::Error>;
+    async fn load_index(
+        &self,
+        distribution: &Distribution,
+    ) -> Result<Vec<DiscoveredAdvisory>, Self::Error>;
     async fn load_advisory(
         &self,
         advisory: DiscoveredAdvisory,

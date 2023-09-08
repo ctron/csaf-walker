@@ -4,11 +4,15 @@ use crate::model::metadata::ProviderMetadata;
 use async_trait::async_trait;
 use std::fmt::Debug;
 use std::future::Future;
+use std::time::SystemTime;
 use url::Url;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DiscoveredAdvisory {
+    /// The URL of the advisory
     pub url: Url,
+    /// The "last changed" date from the change information, if there was some.
+    pub modified: Option<SystemTime>,
 }
 
 #[derive(Debug)]

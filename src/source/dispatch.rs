@@ -5,7 +5,6 @@ use crate::retrieve::RetrievedAdvisory;
 use crate::source::{FileSource, HttpSource, KeySource, KeySourceError, MapSourceError};
 use crate::utils::openpgp::PublicKey;
 use async_trait::async_trait;
-use url::Url;
 
 /// A common source type, dispatching to the known implementations.
 ///
@@ -43,7 +42,10 @@ impl Source for DispatchSource {
         }
     }
 
-    async fn load_index(&self, distribution: &Distribution) -> Result<Vec<Url>, Self::Error> {
+    async fn load_index(
+        &self,
+        distribution: &Distribution,
+    ) -> Result<Vec<DiscoveredAdvisory>, Self::Error> {
         match self {
             Self::File(source) => source.load_index(distribution).await,
             Self::Http(source) => source

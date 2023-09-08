@@ -32,6 +32,10 @@ pub struct DiscoverArguments {
     /// Discover only changes since the provided timestamp, based on the "changes.csv"
     #[arg(short, long)]
     pub since: Option<StartTimestamp>,
+
+    /// A file to read/store the last sync timestamp to at the env of a successful run
+    #[arg(short = 'S', long)]
+    pub since_file: Option<PathBuf>,
 }
 
 #[derive(Debug, clap::Parser)]

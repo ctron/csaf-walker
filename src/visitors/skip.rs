@@ -44,20 +44,36 @@ impl<V: DiscoveredVisitor> DiscoveredVisitor for SkipExistingVisitor<V> {
         let name = PathBuf::from(advisory.url.path());
         let name = name.file_name().ok_or(Error::Name)?;
 
-        match fs::try_exists(self.output.join(name)).await? {
-            true => {
-                log::info!(
-                    "Skipping existing file: {}",
-                    name.to_str().unwrap_or_default()
+        let path = self.output.join(name);
+
+        if fs::try_exists(&path).await? {
+            if let Some(modified) = advisory.modified {
+                let file_modified = fs::metadata(&path).await?.modified()?;
+
+                log::debug!(
+                    "Advisory modified: {}, file ({}) modified: {}",
+                    humantime::Timestamp::from(modified),
+                    name.to_string_lossy(),
+                    humantime::Timestamp::from(file_modified)
                 );
-                Ok(())
+
+                if file_modified >= modified {
+                    // the file was modified after the change date, skip it
+                    return Ok(());
+                }
+            } else {
+                log::debug!(
+                    "Skipping file ({}), exists but was never modified",
+                    name.to_string_lossy()
+                );
+                return Ok(());
             }
-            false => self
-                .visitor
-                .visit_advisory(context, advisory)
-                .await
-                .map_err(Error::Visitor),
         }
+
+        self.visitor
+            .visit_advisory(context, advisory)
+            .await
+            .map_err(Error::Visitor)
     }
 }
 
