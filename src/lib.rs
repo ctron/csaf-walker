@@ -17,6 +17,7 @@
 //!   let fetcher = Fetcher::new(Default::default()).await?;
 //!   let source = HttpSource {
 //!     url: Url::parse("https://www.redhat.com/.well-known/csaf/provider-metadata.json")?,
+//!     options: Default::default(),
 //!     fetcher,
 //!   };
 //!

@@ -86,7 +86,7 @@ impl<'c> Deref for ValidationContext<'c> {
     type Target = RetrievalContext<'c>;
 
     fn deref(&self) -> &Self::Target {
-        &self.retrieval
+        self.retrieval
     }
 }
 
@@ -254,9 +254,7 @@ where
 
         let context = self
             .visitor
-            .visit_context(&ValidationContext {
-                retrieval: &context,
-            })
+            .visit_context(&ValidationContext { retrieval: context })
             .await
             .map_err(Error::Visitor)?;
 

@@ -73,6 +73,7 @@ impl Fetcher {
 
     /// fetch data, using a GET request.
     pub async fn fetch<D: Data>(&self, url: impl IntoUrl) -> Result<D, Error> {
+        log::debug!("Fetching: {}", url.as_str());
         self.fetch_processed(url, TypedProcessor::<D>::new()).await
     }
 

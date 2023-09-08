@@ -22,7 +22,7 @@ pub fn render_to_html<W: std::io::Write>(out: &mut W, report: &ReportResult) -> 
 </html>
 
 "#,
-        report = HtmlReport(&report)
+        report = HtmlReport(report)
     )?;
     Ok(())
 }

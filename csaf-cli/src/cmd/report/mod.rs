@@ -115,7 +115,7 @@ impl Report {
     }
 
     fn render(render: RenderOptions, report: ReportResult) -> anyhow::Result<()> {
-        let mut out = std::fs::File::create(&render.output)?;
+        let mut out = std::fs::File::create(render.output)?;
         render::render_to_html(&mut out, &report)?;
 
         Ok(())

@@ -152,7 +152,7 @@ impl<'c> Deref for RetrievalContext<'c> {
     type Target = DiscoveredContext<'c>;
 
     fn deref(&self) -> &Self::Target {
-        &self.discovered
+        self.discovered
     }
 }
 
@@ -263,7 +263,7 @@ where
 
         self.visitor
             .visit_context(&RetrievalContext {
-                discovered: &context,
+                discovered: context,
                 keys: &keys,
             })
             .await

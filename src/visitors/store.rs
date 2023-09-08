@@ -67,8 +67,8 @@ impl RetrievedVisitor for StoreVisitor {
         &self,
         context: &RetrievalContext,
     ) -> Result<Self::Context, Self::Error> {
-        self.store_provider_metadata(&context.metadata).await?;
-        self.store_keys(&context.keys).await?;
+        self.store_provider_metadata(context.metadata).await?;
+        self.store_keys(context.keys).await?;
         Ok(())
     }
 
@@ -91,8 +91,8 @@ impl ValidatedVisitor for StoreVisitor {
         &self,
         context: &ValidationContext,
     ) -> Result<Self::Context, Self::Error> {
-        self.store_provider_metadata(&context.metadata).await?;
-        self.store_keys(&context.retrieval.keys).await?;
+        self.store_provider_metadata(context.metadata).await?;
+        self.store_keys(context.retrieval.keys).await?;
         Ok(())
     }
 
@@ -123,7 +123,7 @@ impl StoreVisitor {
         Ok(())
     }
 
-    async fn store_keys(&self, keys: &Vec<PublicKey>) -> Result<(), StoreError> {
+    async fn store_keys(&self, keys: &[PublicKey]) -> Result<(), StoreError> {
         let metadata = self.base.join(DIR_METADATA).join("keys");
         std::fs::create_dir(&metadata)
             // ignore if the directory already exists

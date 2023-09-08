@@ -11,14 +11,21 @@ use digest::Digest;
 use futures::try_join;
 use reqwest::Response;
 use sha2::{Sha256, Sha512};
+use std::time::SystemTime;
 use time::format_description::well_known::Rfc2822;
 use time::OffsetDateTime;
 use url::{ParseError, Url};
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct HttpOptions {
+    pub since: Option<SystemTime>,
+}
 
 #[derive(Clone)]
 pub struct HttpSource {
     pub fetcher: Fetcher,
     pub url: Url,
+    pub options: HttpOptions,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -27,6 +34,15 @@ pub enum HttpSourceError {
     Fetcher(#[from] fetcher::Error),
     #[error("URL error: {0}")]
     Url(#[from] ParseError),
+    #[error("CSV error: {0}")]
+    Csv(#[from] csv::Error),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize)]
+struct ChangeEntry {
+    file: String,
+    #[serde(with = "time::serde::iso8601")]
+    timestamp: OffsetDateTime,
 }
 
 #[async_trait(?Send)]
@@ -45,17 +61,54 @@ impl Source for HttpSource {
         let base = distribution.directory_url.to_string();
         let has_slash = base.ends_with('/');
 
+        let join_url = |mut s: &str| {
+            if has_slash && s.ends_with('/') {
+                s = &s[1..];
+            }
+            Url::parse(&format!("{}{s}", base))
+        };
+
+        if let Some(since) = self.options.since {
+            log::info!(
+                "Processing with start date: {}",
+                humantime::Timestamp::from(since)
+            );
+
+            let changes = self
+                .fetcher
+                .fetch::<Option<String>>(distribution.directory_url.join("changes.csv")?)
+                .await?;
+
+            if let Some(changes) = changes {
+                // if we have since and a change list, we use this as index
+
+                let reader = csv::ReaderBuilder::new()
+                    .delimiter(b',')
+                    .has_headers(false)
+                    .from_reader(changes.as_bytes());
+
+                return reader
+                    .into_deserialize::<ChangeEntry>()
+                    // filter out by "since", and convert error
+                    .filter_map(|entry| match entry {
+                        Ok(entry) if entry.timestamp > since => Some(Ok(entry)),
+                        Ok(_) => None,
+                        Err(err) => Some(Err(HttpSourceError::Csv(err))),
+                    })
+                    // convert into URL
+                    .map(|r| r.and_then(|entry| Ok(join_url(entry.file.as_str())?)))
+                    .collect::<Result<Vec<_>, _>>();
+            }
+
+            // otherwise, fall back to "all index"
+        }
+
         Ok(self
             .fetcher
             .fetch::<String>(distribution.directory_url.join("index.txt")?)
             .await?
             .lines()
-            .map(|mut s| {
-                if has_slash && s.ends_with('/') {
-                    s = &s[1..];
-                }
-                Url::parse(&format!("{}{s}", base))
-            })
+            .map(join_url)
             .collect::<Result<_, _>>()?)
     }
 

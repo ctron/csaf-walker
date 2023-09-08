@@ -38,17 +38,14 @@ impl Source for DispatchSource {
 
     async fn load_metadata(&self) -> Result<ProviderMetadata, Self::Error> {
         match self {
-            Self::File(source) => source.load_metadata().await.map_err(|err| err.into()),
+            Self::File(source) => source.load_metadata().await,
             Self::Http(source) => source.load_metadata().await.map_err(|err| err.into()),
         }
     }
 
     async fn load_index(&self, distribution: &Distribution) -> Result<Vec<Url>, Self::Error> {
         match self {
-            Self::File(source) => source
-                .load_index(distribution)
-                .await
-                .map_err(|err| err.into()),
+            Self::File(source) => source.load_index(distribution).await,
             Self::Http(source) => source
                 .load_index(distribution)
                 .await
@@ -61,10 +58,7 @@ impl Source for DispatchSource {
         advisory: DiscoveredAdvisory,
     ) -> Result<RetrievedAdvisory, Self::Error> {
         match self {
-            Self::File(source) => source
-                .load_advisory(advisory)
-                .await
-                .map_err(|err| err.into()),
+            Self::File(source) => source.load_advisory(advisory).await,
             Self::Http(source) => source
                 .load_advisory(advisory)
                 .await
@@ -79,10 +73,7 @@ impl KeySource for DispatchSource {
 
     async fn load_public_key(&self, key: &Key) -> Result<PublicKey, KeySourceError<Self::Error>> {
         match self {
-            Self::File(source) => source
-                .load_public_key(key)
-                .await
-                .map_source(|err| err.into()),
+            Self::File(source) => source.load_public_key(key).await,
             Self::Http(source) => source
                 .load_public_key(key)
                 .await

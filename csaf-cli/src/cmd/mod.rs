@@ -1,6 +1,6 @@
 use anyhow::Context;
-use csaf_walker::validation::ValidationOptions;
-use csaf_walker::visitors::store::StoreVisitor;
+use csaf_walker::{validation::ValidationOptions, visitors::store::StoreVisitor};
+use flexible_time::timestamp::StartTimestamp;
 use std::path::PathBuf;
 use std::time::SystemTime;
 use time::{Date, Month, UtcOffset};
@@ -12,6 +12,7 @@ pub mod scan;
 pub mod sync;
 
 #[derive(Debug, clap::Parser)]
+#[command(next_help_heading = "Client")]
 pub struct ClientArguments {
     /// Per-request HTTP timeout, in humantime duration format.
     #[arg(short, long, default_value = "5s")]
@@ -23,12 +24,18 @@ pub struct ClientArguments {
 }
 
 #[derive(Debug, clap::Parser)]
+#[command(next_help_heading = "Discovery")]
 pub struct DiscoverArguments {
     /// Source to scan from, must be a URL pointing to the 'provider-metadata.json' file or path to a stored set of files.
     pub source: String,
+
+    /// Discover only changes since the provided timestamp, based on the "changes.csv"
+    #[arg(short, long)]
+    pub since: Option<StartTimestamp>,
 }
 
 #[derive(Debug, clap::Parser)]
+#[command(next_help_heading = "Runner")]
 pub struct RunnerArguments {
     /// Number of workers, too many parallel requests might make you violate request rates. NOTE: A number of zero will spawn an unlimited amount of workers.
     #[arg(short, long, default_value = "1")]
@@ -36,6 +43,7 @@ pub struct RunnerArguments {
 }
 
 #[derive(Debug, clap::Parser)]
+#[command(next_help_heading = "Validation")]
 pub struct ValidationArguments {
     /// OpenPGP policy date.
     #[arg(long)]
@@ -66,6 +74,7 @@ impl From<ValidationArguments> for ValidationOptions {
 }
 
 #[derive(Debug, clap::Parser)]
+#[command(next_help_heading = "Storage")]
 pub struct StoreArguments {
     /// Disable the use of extended attributes, e.g. for etag information.
     #[cfg(any(target_os = "linux", target_os = "macos"))]

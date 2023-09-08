@@ -3,10 +3,12 @@ mod common;
 mod progress;
 mod utils;
 
-use crate::progress::Indicatif;
+use crate::progress::MultiIndicatif;
 use clap::Parser;
 use cmd::{discover::Discover, download::Download, report::Report, scan::Scan, sync::Sync};
 use csaf_walker::progress::{NoProgress, Progress};
+use indicatif::MultiProgress;
+use indicatif_log_bridge::LogWrapper;
 use log::LevelFilter;
 use std::io::Write;
 use std::process::ExitCode;
@@ -71,14 +73,23 @@ impl Cli {
             (_, _) => builder.filter_level(LevelFilter::Trace),
         };
 
-        let progress = match (self.quiet | self.no_progress, self.verbose) {
-            (false, 0) => Progress::new(Indicatif),
-            _ => Progress::new(NoProgress),
+        // init the progress meter
+
+        let progress = match self.quiet | self.no_progress {
+            true => {
+                builder.init();
+                Progress::new(NoProgress)
+            }
+            false => {
+                let logger = builder.build();
+                let multi = MultiProgress::new();
+                LogWrapper::new(multi.clone(), logger).try_init().unwrap();
+
+                Progress::new(MultiIndicatif(multi))
+            }
         };
 
-        // not init the logger
-
-        builder.init();
+        // setup
 
         let time = MeasureTime::new(self.quiet);
         self.command.run(progress).await?;

@@ -1,12 +1,11 @@
 use crate::cmd::{ClientArguments, DiscoverArguments, RunnerArguments, ValidationArguments};
-use csaf_walker::discover::DiscoveredVisitor;
-use csaf_walker::progress::Progress;
-use csaf_walker::source::{DispatchSource, FileSource, HttpSource};
-use csaf_walker::validation::ValidatedVisitor;
 use csaf_walker::{
+    discover::DiscoveredVisitor,
     fetcher::{Fetcher, FetcherOptions},
+    progress::Progress,
     retrieve::RetrievingVisitor,
-    validation::{ValidationOptions, ValidationVisitor},
+    source::{DispatchSource, FileOptions, FileSource, HttpOptions, HttpSource},
+    validation::{ValidatedVisitor, ValidationOptions, ValidationVisitor},
     walker::Walker,
 };
 use reqwest::Url;
@@ -45,14 +44,20 @@ pub async fn new_source(
     discover: DiscoverArguments,
     client: ClientArguments,
 ) -> anyhow::Result<DispatchSource> {
+    let since = discover.since.map(|since| since.into());
     match Url::parse(&discover.source) {
         Ok(url) => {
             let fetcher = new_fetcher(client).await?;
-            Ok(HttpSource { url, fetcher }.into())
+            Ok(HttpSource {
+                url,
+                fetcher,
+                options: HttpOptions { since },
+            }
+            .into())
         }
         Err(_) => {
             // use as path
-            Ok(FileSource::new(&discover.source)?.into())
+            Ok(FileSource::new(&discover.source, FileOptions { since })?.into())
         }
     }
 }

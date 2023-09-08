@@ -14,23 +14,34 @@ use sha2::{Sha256, Sha512};
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 use time::OffsetDateTime;
 use url::Url;
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use crate::visitors::store::ATTR_ETAG;
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct FileOptions {
+    pub since: Option<SystemTime>,
+}
+
 /// A file based source, possibly created by the [`crate::visitors::store::StoreVisitor`].
 #[derive(Clone)]
 pub struct FileSource {
     /// the path to the storage base, an absolute path
     base: PathBuf,
+    options: FileOptions,
 }
 
 impl FileSource {
-    pub fn new(base: impl AsRef<Path>) -> anyhow::Result<Self> {
+    pub fn new(
+        base: impl AsRef<Path>,
+        options: impl Into<Option<FileOptions>>,
+    ) -> anyhow::Result<Self> {
         Ok(Self {
             base: fs::canonicalize(base)?,
+            options: options.into().unwrap_or_default(),
         })
     }
 
@@ -102,6 +113,8 @@ impl Source for FileSource {
     }
 
     async fn load_index(&self, distribution: &Distribution) -> Result<Vec<Url>, Self::Error> {
+        log::info!("Loading index - since: {:?}", self.options.since);
+
         let path = &distribution.directory_url.to_file_path().map_err(|()| {
             anyhow!(
                 "Failed to convert into path: {}",
@@ -117,15 +130,27 @@ impl Source for FileSource {
             if !path.is_file() {
                 continue;
             }
-            if let Some(name) = path.file_name().and_then(|s| s.to_str()) {
-                if name.ends_with(".json") {
-                    result.push(
-                        Url::from_file_path(&path).map_err(|()| {
-                            anyhow!("Failed to convert to URL: {}", path.display())
-                        })?,
-                    )
+            let name = match path.file_name().and_then(|s| s.to_str()) {
+                Some(name) => name,
+                None => continue,
+            };
+
+            if !name.ends_with(".json") {
+                continue;
+            }
+
+            if let Some(since) = self.options.since {
+                let modified = path.metadata()?.modified()?;
+                if modified < since {
+                    log::debug!("Skipping file due to modification constraint: {modified:?}");
+                    continue;
                 }
             }
+
+            result.push(
+                Url::from_file_path(&path)
+                    .map_err(|()| anyhow!("Failed to convert to URL: {}", path.display()))?,
+            )
         }
 
         Ok(result)
@@ -175,7 +200,7 @@ impl Source for FileSource {
             .metadata()
             .ok()
             .and_then(|md| md.modified().ok())
-            .map(|mtime| OffsetDateTime::from(mtime));
+            .map(OffsetDateTime::from);
 
         #[cfg(any(target_os = "linux", target_os = "macos"))]
         let etag = xattr::get(&path, ATTR_ETAG)

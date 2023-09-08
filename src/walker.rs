@@ -125,6 +125,7 @@ impl<S: Source> Walker<S> {
     }
 }
 
+#[allow(clippy::needless_lifetimes)] // false positive
 fn collect_sources<'s, V: DiscoveredVisitor, S: Source>(
     source: &'s S,
     distributions: Vec<Distribution>,
