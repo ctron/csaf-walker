@@ -78,7 +78,6 @@ jobs:
             exe: ".exe"
             #args: --features crypto-cng --no-default-features
             args: --features crypto-openssl --no-default-features
-            install: 'echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append ; vcpkg install openssl:x64-windows-static-md'
 
     runs-on: ${{ matrix.os }}
 
@@ -102,6 +101,12 @@ jobs:
 
       - run: rustup target add ${{ matrix.target }}
         if: matrix.target != ''
+
+      - name: Install dependencies (windnows)
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        run: |
+          echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
+          vcpkg install openssl:x64-windows-static-md
 
       - name: Install dependencies
         run: ${{ matrix.install }}
