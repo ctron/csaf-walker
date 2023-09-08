@@ -41,15 +41,14 @@ jobs:
 
 
   # check that our CI would pass
-  #ci:
-  #  uses: ./.github/workflows/ci.yaml
-
+  ci:
+    uses: ./.github/workflows/ci.yaml
 
   # now do the actual (release) builds
   build:
     needs:
       - init
-      # - ci
+      - ci
 
     strategy:
       matrix:
@@ -58,7 +57,7 @@ jobs:
           - x86_64-unknown-linux-gnu
           - x86_64-apple-darwin
           - aarch64-apple-darwin
-          - x86_64-pc-windows-gnu
+          - x86_64-pc-windows-msvc
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-22.04
@@ -78,7 +77,10 @@ jobs:
           - target: x86_64-pc-windows-msvc
             os: windows-2022
             exe: ".exe"
-            args: --features crypto-cng --no-default-features
+            args: --features crypto-openssl --no-default-features
+            install: |
+              echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
+              vcpkg install openssl:x64-windows-static-md
 
     runs-on: ${{ matrix.os }}
 
@@ -102,12 +104,6 @@ jobs:
 
       - run: rustup target add ${{ matrix.target }}
         if: matrix.target != ''
-
-      - name: Install dependencies (windows)
-        if: matrix.target == 'x86_64-pc-windows-msvc'
-        run: |
-          echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
-          vcpkg install openssl:x64-windows-static-md
 
       - name: Install dependencies
         run: ${{ matrix.install }}
