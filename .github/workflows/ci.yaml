@@ -41,7 +41,7 @@ jobs:
             install: sudo apt install clang llvm pkg-config nettle-dev
           - os: windows-latest
             # args: --features crypto-cng --no-default-features
-            args: --features crypto-botan  --no-default-features
+            args: --features vendored,crypto-openssl --no-default-features
 
     runs-on: ${{ matrix.os }}
 
