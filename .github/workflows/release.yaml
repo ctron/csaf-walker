@@ -102,7 +102,7 @@ jobs:
       - run: rustup target add ${{ matrix.target }}
         if: matrix.target != ''
 
-      - name: Install dependencies (windnows)
+      - name: Install dependencies (windows)
         if: matrix.target == 'x86_64-pc-windows-msvc'
         run: |
           echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
