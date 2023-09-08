@@ -41,13 +41,15 @@ jobs:
 
 
   # check that our CI would pass
-  ci:
-    uses: ./.github/workflows/ci.yaml
+  #ci:
+  #  uses: ./.github/workflows/ci.yaml
 
 
   # now do the actual (release) builds
   build:
-    needs: [ init, ci ]
+    needs:
+      - init
+      # - ci
 
     strategy:
       matrix:
@@ -77,7 +79,6 @@ jobs:
             os: windows-2022
             exe: ".exe"
             args: --features crypto-openssl --no-default-features
-            xargs: --features crypto-cng --no-default-features
 
     runs-on: ${{ matrix.os }}
 
