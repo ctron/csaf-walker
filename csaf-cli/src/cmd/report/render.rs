@@ -1,5 +1,6 @@
 use super::ReportResult;
 use std::fmt::{Display, Formatter};
+use std::time::SystemTime;
 
 pub fn render_to_html<W: std::io::Write>(out: &mut W, report: &ReportResult) -> anyhow::Result<()> {
     write!(
@@ -157,10 +158,12 @@ impl HtmlReport<'_> {
 
 impl<'r> Display for HtmlReport<'r> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let date = humantime::Timestamp::from(SystemTime::now());
+
         writeln!(
             f,
             r#"
-<h1>CSAF Report</h1>
+<h1>CSAF Report <span class="badge bg-secondary">{date}</span></h1>
 "#
         )?;
 
