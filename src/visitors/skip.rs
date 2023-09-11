@@ -3,6 +3,7 @@ use crate::validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, 
 use async_trait::async_trait;
 use std::fmt::{Debug, Display};
 use std::path::PathBuf;
+use std::time::SystemTime;
 use tokio::fs;
 
 #[derive(Debug, thiserror::Error)]
@@ -19,6 +20,10 @@ pub enum Error<VE: Display + Debug> {
 pub struct SkipExistingVisitor<V: DiscoveredVisitor> {
     pub visitor: V,
     pub output: PathBuf,
+    /// The time "since" when we consider changes "new"
+    ///
+    /// Overrides the "file modified" timestamp which is used by default.
+    pub since: Option<SystemTime>,
 }
 
 #[async_trait(?Send)]
@@ -48,13 +53,18 @@ impl<V: DiscoveredVisitor> DiscoveredVisitor for SkipExistingVisitor<V> {
 
         if fs::try_exists(&path).await? {
             if let Some(modified) = advisory.modified {
-                let file_modified = fs::metadata(&path).await?.modified()?;
+                // if we have a "since", we use it as the file modification timestamp
+                let file_modified = match self.since {
+                    Some(since) => since,
+                    None => fs::metadata(&path).await?.modified()?,
+                };
 
                 log::debug!(
-                    "Advisory modified: {}, file ({}) modified: {}",
+                    "Advisory modified: {}, file ({}) modified: {} ({:?})",
                     humantime::Timestamp::from(modified),
                     name.to_string_lossy(),
-                    humantime::Timestamp::from(file_modified)
+                    humantime::Timestamp::from(file_modified),
+                    self.since.map(humantime::Timestamp::from)
                 );
 
                 if file_modified >= modified {

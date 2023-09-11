@@ -1,11 +1,16 @@
-use crate::cmd::{
-    ClientArguments, DiscoverArguments, RunnerArguments, StoreArguments, ValidationArguments,
+use crate::{
+    cmd::{
+        ClientArguments, DiscoverArguments, RunnerArguments, SkipArguments, StoreArguments,
+        ValidationArguments,
+    },
+    common::{walk_visitor, DiscoverConfig},
+    since::Since,
 };
-use crate::common::walk_visitor;
-use csaf_walker::progress::Progress;
-use csaf_walker::retrieve::RetrievingVisitor;
-use csaf_walker::visitors::skip::SkipExistingVisitor;
-use csaf_walker::visitors::store::StoreVisitor;
+use csaf_walker::{
+    progress::Progress,
+    retrieve::RetrievingVisitor,
+    visitors::{skip::SkipExistingVisitor, store::StoreVisitor},
+};
 
 /// Like sync, but doesn't validate.
 #[derive(clap::Args, Debug)]
@@ -23,6 +28,9 @@ pub struct Download {
     validation: ValidationArguments,
 
     #[command(flatten)]
+    skip: SkipArguments,
+
+    #[command(flatten)]
     store: StoreArguments,
 }
 
@@ -31,10 +39,12 @@ impl Download {
         let store: StoreVisitor = self.store.try_into()?;
         let base = store.base.clone();
 
+        let since = Since::new(self.skip.since, self.skip.since_file)?;
+
         walk_visitor(
             progress,
             self.client,
-            self.discover,
+            DiscoverConfig::from(self.discover).with_since(since.since),
             self.runner,
             move |source| async move {
                 let base = base.clone();
@@ -43,6 +53,7 @@ impl Download {
                 Ok(SkipExistingVisitor {
                     visitor,
                     output: base,
+                    since: *since,
                 })
             },
         )

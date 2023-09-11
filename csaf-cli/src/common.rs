@@ -10,12 +10,13 @@ use csaf_walker::{
 };
 use reqwest::Url;
 use std::future::Future;
+use std::time::SystemTime;
 
 pub async fn walk_standard<V>(
     progress: Progress,
     client: ClientArguments,
     runner: RunnerArguments,
-    discover: DiscoverArguments,
+    discover: impl Into<DiscoverConfig>,
     validation: ValidationArguments,
     visitor: V,
 ) -> anyhow::Result<()>
@@ -40,24 +41,54 @@ where
     .await
 }
 
+pub struct DiscoverConfig {
+    pub source: String,
+    pub since: Option<SystemTime>,
+}
+
+impl DiscoverConfig {
+    pub fn with_since(mut self, since: impl Into<Option<SystemTime>>) -> Self {
+        self.since = since.into();
+        self
+    }
+}
+
+impl From<DiscoverArguments> for DiscoverConfig {
+    fn from(value: DiscoverArguments) -> Self {
+        Self {
+            since: None,
+            source: value.source,
+        }
+    }
+}
+
 pub async fn new_source(
-    discover: DiscoverArguments,
+    discover: impl Into<DiscoverConfig>,
     client: ClientArguments,
 ) -> anyhow::Result<DispatchSource> {
-    let since = discover.since.map(|since| since.into());
+    let discover = discover.into();
+
     match Url::parse(&discover.source) {
         Ok(url) => {
             let fetcher = new_fetcher(client).await?;
             Ok(HttpSource {
                 url,
                 fetcher,
-                options: HttpOptions { since },
+                options: HttpOptions {
+                    since: discover.since,
+                },
             }
             .into())
         }
         Err(_) => {
             // use as path
-            Ok(FileSource::new(&discover.source, FileOptions { since })?.into())
+            Ok(FileSource::new(
+                &discover.source,
+                FileOptions {
+                    since: discover.since,
+                },
+            )?
+            .into())
         }
     }
 }
@@ -65,7 +96,7 @@ pub async fn new_source(
 pub async fn walk_visitor<F, Fut, V>(
     progress: Progress,
     client: ClientArguments,
-    discover: DiscoverArguments,
+    discover: impl Into<DiscoverConfig>,
     runner: RunnerArguments,
     f: F,
 ) -> anyhow::Result<()>

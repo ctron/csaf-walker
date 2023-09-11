@@ -28,14 +28,6 @@ pub struct ClientArguments {
 pub struct DiscoverArguments {
     /// Source to scan from, must be a URL pointing to the 'provider-metadata.json' file or path to a stored set of files.
     pub source: String,
-
-    /// Discover only changes since the provided timestamp, based on the "changes.csv"
-    #[arg(short, long)]
-    pub since: Option<StartTimestamp>,
-
-    /// A file to read/store the last sync timestamp to at the env of a successful run
-    #[arg(short = 'S', long)]
-    pub since_file: Option<PathBuf>,
 }
 
 #[derive(Debug, clap::Parser)]
@@ -109,4 +101,16 @@ impl TryFrom<StoreArguments> for StoreVisitor {
             base,
         })
     }
+}
+
+#[derive(Debug, clap::Parser)]
+#[command(next_help_heading = "Skipping")]
+pub struct SkipArguments {
+    /// Provide a timestamp since when files will be considered changed.
+    #[arg(short, long)]
+    pub since: Option<StartTimestamp>,
+
+    /// A file to read/store the last sync timestamp to at the end of a successful run.
+    #[arg(short = 'S', long)]
+    pub since_file: Option<PathBuf>,
 }
