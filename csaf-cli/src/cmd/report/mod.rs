@@ -1,16 +1,19 @@
 mod render;
 
-use crate::cmd::{ClientArguments, DiscoverArguments, RunnerArguments, ValidationArguments};
-use crate::common::walk_visitor;
+use crate::{
+    cmd::{ClientArguments, DiscoverArguments, RunnerArguments, ValidationArguments},
+    common::walk_visitor,
+};
 use anyhow::anyhow;
 use async_trait::async_trait;
 use csaf::Csaf;
-use csaf_walker::discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor};
-use csaf_walker::progress::Progress;
-use csaf_walker::retrieve::RetrievingVisitor;
-use csaf_walker::validation::{
-    ValidatedAdvisory, ValidationError, ValidationOptions, ValidationVisitor,
+use csaf_walker::{
+    discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor},
+    progress::Progress,
+    retrieve::RetrievingVisitor,
+    validation::{ValidatedAdvisory, ValidationError, ValidationOptions, ValidationVisitor},
 };
+use reqwest::Url;
 use std::{
     collections::{BTreeMap, HashSet},
     path::PathBuf,
@@ -41,6 +44,10 @@ pub struct RenderOptions {
     /// Path of the HTML output file
     #[arg(long, default_value = "report.html")]
     output: PathBuf,
+
+    /// Make links relative to this URL.
+    #[arg(short = 'B', long)]
+    base_url: Option<Url>,
 }
 
 #[derive(Clone, Debug, serde::Serialize)]
@@ -115,8 +122,8 @@ impl Report {
     }
 
     fn render(render: RenderOptions, report: ReportResult) -> anyhow::Result<()> {
-        let mut out = std::fs::File::create(render.output)?;
-        render::render_to_html(&mut out, &report)?;
+        let mut out = std::fs::File::create(&render.output)?;
+        render::render_to_html(&mut out, &report, &render)?;
 
         Ok(())
     }

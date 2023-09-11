@@ -1,8 +1,15 @@
 use super::ReportResult;
+use crate::cmd::report::RenderOptions;
+use reqwest::Url;
+use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
 use std::time::SystemTime;
 
-pub fn render_to_html<W: std::io::Write>(out: &mut W, report: &ReportResult) -> anyhow::Result<()> {
+pub fn render_to_html<W: std::io::Write>(
+    out: &mut W,
+    report: &ReportResult,
+    render: &RenderOptions,
+) -> anyhow::Result<()> {
     write!(
         out,
         r#"
@@ -23,12 +30,12 @@ pub fn render_to_html<W: std::io::Write>(out: &mut W, report: &ReportResult) -> 
 </html>
 
 "#,
-        report = HtmlReport(report)
+        report = HtmlReport(report, render)
     )?;
     Ok(())
 }
 
-struct HtmlReport<'r>(&'r ReportResult<'r>);
+struct HtmlReport<'r>(&'r ReportResult<'r>, &'r RenderOptions);
 
 impl HtmlReport<'_> {
     fn render_duplicates(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -111,11 +118,19 @@ impl HtmlReport<'_> {
             )?;
 
             for (k, v) in self.0.errors {
+                let k: Cow<str> = match (&self.1.base_url, Url::parse(k)) {
+                    (Some(base_url), Ok(url)) => match base_url.make_relative(&url) {
+                        Some(url) => Cow::Owned(url),
+                        None => Cow::Borrowed(k),
+                    },
+                    _ => Cow::Borrowed(k),
+                };
+
                 writeln!(
                     f,
                     r#"
             <tr>
-                <td><a href="{k}">{k}</a></td>
+                <td><a href="{k}" target="_blank">{k}</a></td>
                 <td><code>{v}</code></td>
             </tr>
             "#,
