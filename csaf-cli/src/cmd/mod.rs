@@ -43,7 +43,7 @@ pub struct RunnerArguments {
 pub struct ValidationArguments {
     /// OpenPGP policy date.
     #[arg(long)]
-    policy_date: Option<humantime::Timestamp>,
+    policy_date: Option<StartTimestamp>,
 
     /// Enable OpenPGP v3 signatures. Conflicts with 'policy_date'.
     #[arg(short = '3', long = "v3-signatures", conflicts_with = "policy_date")]
