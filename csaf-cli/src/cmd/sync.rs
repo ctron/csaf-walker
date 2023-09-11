@@ -41,7 +41,14 @@ impl Sync {
         let store: StoreVisitor = self.store.try_into()?;
         let base = store.base.clone();
 
-        let since = Since::new(self.skip.since, self.skip.since_file)?;
+        let since = Since::new(
+            self.skip.since,
+            self.skip.since_file,
+            self.skip
+                .since_file_offset
+                .map(|d| d.into())
+                .unwrap_or_default(),
+        )?;
 
         walk_visitor(
             progress,

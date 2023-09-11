@@ -77,6 +77,7 @@ pub struct StoreArguments {
     #[arg(long)]
     pub no_xattrs: bool,
 
+    /// Disable applying the modification timestamp to the downloaded file.
     #[arg(long)]
     pub no_timestamps: bool,
 
@@ -113,4 +114,8 @@ pub struct SkipArguments {
     /// A file to read/store the last sync timestamp to at the end of a successful run.
     #[arg(short = 'S', long)]
     pub since_file: Option<PathBuf>,
+
+    /// A delta to add to the value loaded from the since state file.
+    #[arg(long)]
+    pub since_file_offset: Option<humantime::Duration>,
 }
