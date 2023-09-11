@@ -26,8 +26,11 @@ pub struct ClientArguments {
 #[derive(Debug, clap::Parser)]
 #[command(next_help_heading = "Discovery")]
 pub struct DiscoverArguments {
-    /// Source to scan from, must be a URL pointing to the 'provider-metadata.json' file or path to a stored set of files.
+    /// Source to scan from, will be suffixed with "/.well-known/csaf/provider-metadata.json" unless "--full" is used.
     pub source: String,
+    #[arg(long)]
+    /// Treat the "source" as a full URL to the metadata.
+    pub full: bool,
 }
 
 #[derive(Debug, clap::Parser)]

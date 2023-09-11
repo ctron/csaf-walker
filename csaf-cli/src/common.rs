@@ -42,7 +42,17 @@ where
 }
 
 pub struct DiscoverConfig {
+    /// The URL to locate the provider metadata.
+    ///
+    /// If `full` is `true`, this must be the full path to the `provider-metadata.json`, otherwise
+    /// it `/.well-known/csaf/provider-metadata.json` will be appended.
     pub source: String,
+
+    /// Mark the source as a full path to the metadata.
+    pub full: bool,
+
+    /// Only report documents which have changed since the provided date. If a document has no
+    /// change information, or this field is [`None`], it wil always be reported.
     pub since: Option<SystemTime>,
 }
 
@@ -58,9 +68,12 @@ impl From<DiscoverArguments> for DiscoverConfig {
         Self {
             since: None,
             source: value.source,
+            full: value.full,
         }
     }
 }
+
+const WELL_KNOWN_METADATA: &str = ".well-known/csaf/provider-metadata.json";
 
 pub async fn new_source(
     discover: impl Into<DiscoverConfig>,
@@ -69,7 +82,13 @@ pub async fn new_source(
     let discover = discover.into();
 
     match Url::parse(&discover.source) {
-        Ok(url) => {
+        Ok(mut url) => {
+            if !discover.full && !url.path().ends_with("/provider-metadata.json") {
+                url = url.join(WELL_KNOWN_METADATA)?;
+                log::info!("Discovery URL: {url}");
+            } else {
+                log::info!("Fully provided discovery URL: {url}");
+            }
             let fetcher = new_fetcher(client).await?;
             Ok(HttpSource {
                 url,
