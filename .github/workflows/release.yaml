@@ -77,10 +77,7 @@ jobs:
           - target: x86_64-pc-windows-msvc
             os: windows-2022
             exe: ".exe"
-            args: --features crypto-openssl --no-default-features
-            install: |
-              echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
-              vcpkg install openssl:x64-windows-static-md
+            args: --features crypto-cng --no-default-features
 
     runs-on: ${{ matrix.os }}
 
