@@ -1,15 +1,19 @@
-use crate::cmd::{DiscoverArguments, RunnerArguments, ValidationArguments};
+use crate::cmd::DiscoverArguments;
 use csaf_walker::{
     discover::DiscoveredVisitor,
     retrieve::RetrievingVisitor,
     source::{DispatchSource, FileOptions, FileSource, HttpOptions, HttpSource},
-    validation::{ValidatedVisitor, ValidationOptions, ValidationVisitor},
+    validation::{ValidatedVisitor, ValidationVisitor},
     walker::Walker,
 };
 use reqwest::Url;
 use std::future::Future;
 use std::time::SystemTime;
-use walker_common::{cli::ClientArguments, progress::Progress};
+use walker_common::{
+    cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
+    progress::Progress,
+    validate::ValidationOptions,
+};
 
 pub async fn walk_standard<V>(
     progress: Progress,

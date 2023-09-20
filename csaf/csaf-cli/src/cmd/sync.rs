@@ -1,13 +1,18 @@
 use crate::{
-    cmd::{DiscoverArguments, RunnerArguments, SkipArguments, StoreArguments, ValidationArguments},
+    cmd::{DiscoverArguments, SkipArguments, StoreArguments},
     common::{walk_visitor, DiscoverConfig},
 };
 use csaf_walker::{
     retrieve::RetrievingVisitor,
-    validation::{ValidationOptions, ValidationVisitor},
+    validation::ValidationVisitor,
     visitors::{skip::SkipExistingVisitor, store::StoreVisitor},
 };
-use walker_common::{cli::ClientArguments, progress::Progress, since::Since};
+use walker_common::validate::ValidationOptions;
+use walker_common::{
+    cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
+    progress::Progress,
+    since::Since,
+};
 
 /// Sync only what changed, and don't validate.
 #[derive(clap::Args, Debug)]

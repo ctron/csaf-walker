@@ -1,5 +1,6 @@
 //! Discovering
 
+use crate::model::metadata::SourceMetadata;
 use async_trait::async_trait;
 use std::fmt::Debug;
 use std::future::Future;
@@ -14,13 +15,27 @@ pub struct DiscoveredSbom {
     pub modified: Option<SystemTime>,
 }
 
+#[derive(Debug)]
+pub struct DiscoveredContext<'c> {
+    pub metadata: &'c SourceMetadata,
+}
+
 /// Visiting discovered SBOMs
 #[async_trait(?Send)]
 pub trait DiscoveredVisitor {
     type Error: std::fmt::Display + Debug;
     type Context;
 
-    async fn visit_sbom(&self, sbom: DiscoveredSbom) -> Result<(), Self::Error>;
+    async fn visit_context(
+        &self,
+        context: &DiscoveredContext,
+    ) -> Result<Self::Context, Self::Error>;
+
+    async fn visit_sbom(
+        &self,
+        context: &Self::Context,
+        sbom: DiscoveredSbom,
+    ) -> Result<(), Self::Error>;
 }
 
 #[async_trait(?Send)]
@@ -33,7 +48,18 @@ where
     type Error = E;
     type Context = ();
 
-    async fn visit_sbom(&self, sbom: DiscoveredSbom) -> Result<(), Self::Error> {
+    async fn visit_context(
+        &self,
+        _context: &DiscoveredContext,
+    ) -> Result<Self::Context, Self::Error> {
+        Ok(())
+    }
+
+    async fn visit_sbom(
+        &self,
+        _context: &Self::Context,
+        sbom: DiscoveredSbom,
+    ) -> Result<(), Self::Error> {
         self(sbom).await
     }
 }

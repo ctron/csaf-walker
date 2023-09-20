@@ -1,8 +1,7 @@
 use crate::{cmd::DiscoverArguments, common::new_source};
 use csaf_walker::{discover::DiscoveredAdvisory, walker::Walker};
 use std::convert::Infallible;
-use walker_common::cli::ClientArguments;
-use walker_common::progress::Progress;
+use walker_common::{cli::client::ClientArguments, progress::Progress};
 
 /// Discover advisories, just lists the URLs.
 #[derive(clap::Args, Debug)]

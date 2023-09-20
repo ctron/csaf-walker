@@ -1,6 +1,6 @@
 //! The actual walker
 
-use crate::discover::{DiscoveredSbom, DiscoveredVisitor};
+use crate::discover::{DiscoveredContext, DiscoveredSbom, DiscoveredVisitor};
 use crate::source::Source;
 use futures::{stream, StreamExt, TryFutureExt, TryStream, TryStreamExt};
 use std::fmt::Debug;
@@ -44,6 +44,15 @@ impl<S: Source> Walker<S> {
     where
         V: DiscoveredVisitor,
     {
+        let metadata = self.source.load_metadata().await.map_err(Error::Source)?;
+
+        let context = visitor
+            .visit_context(&DiscoveredContext {
+                metadata: &metadata,
+            })
+            .await
+            .map_err(Error::Visitor)?;
+
         let index = self.source.load_index().await.map_err(Error::Source)?;
         let progress = self.progress.start(index.len());
 
@@ -58,7 +67,10 @@ impl<S: Source> Walker<S> {
                     .to_string()
                     .into(),
             );
-            visitor.visit_sbom(sbom).await.map_err(Error::Visitor)?;
+            visitor
+                .visit_sbom(&context, sbom)
+                .await
+                .map_err(Error::Visitor)?;
             progress.tick();
         }
 
@@ -73,15 +85,30 @@ impl<S: Source> Walker<S> {
     where
         V: DiscoveredVisitor,
     {
+        let metadata = self.source.load_metadata().await.map_err(Error::Source)?;
+        let context = visitor
+            .visit_context(&DiscoveredContext {
+                metadata: &metadata,
+            })
+            .await
+            .map_err(Error::Visitor)?;
+
         let visitor = Arc::new(visitor);
+        let context = Arc::new(context);
 
         stream::iter(self.source.load_index().await.map_err(Error::Source)?)
             .map(Ok)
             .try_for_each_concurrent(limit, |sbom| {
                 log::debug!("Discovered advisory: {}", sbom.url);
                 let visitor = visitor.clone();
+                let context = context.clone();
 
-                async move { visitor.visit_sbom(sbom).map_err(Error::Visitor).await }
+                async move {
+                    visitor
+                        .visit_sbom(&context, sbom)
+                        .map_err(Error::Visitor)
+                        .await
+                }
             })
             .await?;
 

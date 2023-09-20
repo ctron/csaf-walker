@@ -1,16 +1,14 @@
+use crate::cmd::StoreArguments;
 use crate::{
-    cmd::{DiscoverArguments, SkipArguments, StoreArguments},
+    cmd::{DiscoverArguments, RunnerArguments, SkipArguments},
     common::{walk_visitor, DiscoverConfig},
 };
-use csaf_walker::{
-    retrieve::RetrievingVisitor,
-    visitors::{skip::SkipExistingVisitor, store::StoreVisitor},
-};
-use walker_common::{
-    cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
-    progress::Progress,
-    since::Since,
-};
+use sbom_walker::retrieve::RetrievingVisitor;
+use sbom_walker::visitors::skip::SkipExistingVisitor;
+use sbom_walker::visitors::store::StoreVisitor;
+use walker_common::cli::client::ClientArguments;
+use walker_common::cli::validation::ValidationArguments;
+use walker_common::{progress::Progress, since::Since};
 
 /// Like sync, but doesn't validate.
 #[derive(clap::Args, Debug)]

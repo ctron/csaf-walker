@@ -5,3 +5,4 @@ pub mod progress;
 pub mod retrieve;
 pub mod since;
 pub mod utils;
+pub mod validate;

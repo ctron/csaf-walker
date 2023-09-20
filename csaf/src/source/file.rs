@@ -1,7 +1,7 @@
 use crate::discover::DiscoveredAdvisory;
-use crate::model::metadata::{Distribution, Key, ProviderMetadata};
+use crate::model::metadata::{self, Distribution, ProviderMetadata};
 use crate::retrieve::{RetrievalMetadata, RetrievedAdvisory};
-use crate::source::{KeySource, KeySourceError, Source};
+use crate::source::Source;
 use crate::visitors::store::DIR_METADATA;
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
@@ -17,6 +17,7 @@ use time::OffsetDateTime;
 use url::Url;
 use walker_common::retrieve::RetrievedDigest;
 use walker_common::utils::{self, openpgp::PublicKey};
+use walker_common::validate::source::{Key, KeySource, KeySourceError};
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use crate::visitors::store::ATTR_ETAG;
@@ -45,7 +46,7 @@ impl FileSource {
         })
     }
 
-    async fn scan_keys(&self) -> Result<Vec<Key>, anyhow::Error> {
+    async fn scan_keys(&self) -> Result<Vec<metadata::Key>, anyhow::Error> {
         let dir = self.base.join(DIR_METADATA).join("keys");
 
         let mut result = Vec::new();
@@ -71,7 +72,7 @@ impl FileSource {
                 .and_then(|s| s.to_str())
                 .and_then(|s| s.rsplit_once('.'))
             {
-                Some((name, "txt")) => result.push(Key {
+                Some((name, "txt")) => result.push(metadata::Key {
                     fingerprint: Some(name.to_string()),
                     url: Url::from_file_path(&path).map_err(|()| {
                         anyhow!("Failed to build file URL for: {}", path.display())
@@ -249,11 +250,14 @@ fn to_path(url: &Url) -> Result<PathBuf, anyhow::Error> {
 impl KeySource for FileSource {
     type Error = anyhow::Error;
 
-    async fn load_public_key(&self, key: &Key) -> Result<PublicKey, KeySourceError<Self::Error>> {
-        let bytes = tokio::fs::read(to_path(&key.url).map_err(KeySourceError::Source)?)
+    async fn load_public_key<'a>(
+        &self,
+        key: Key<'a>,
+    ) -> Result<PublicKey, KeySourceError<Self::Error>> {
+        let bytes = tokio::fs::read(to_path(key.url).map_err(KeySourceError::Source)?)
             .await
             .map_err(|err| KeySourceError::Source(err.into()))?;
-        utils::openpgp::validate_keys(bytes.into(), &key.fingerprint)
+        utils::openpgp::validate_keys(bytes.into(), key.fingerprint)
             .map_err(KeySourceError::OpenPgp)
     }
 }

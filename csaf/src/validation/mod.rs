@@ -8,10 +8,10 @@ use digest::Digest;
 use std::fmt::{Debug, Display, Formatter};
 use std::future::Future;
 use std::ops::{Deref, DerefMut};
-use std::time::SystemTime;
 use url::Url;
 use walker_common::retrieve::RetrievedDigest;
 use walker_common::utils::openpgp::PublicKey;
+use walker_common::validate::ValidationOptions;
 
 #[derive(Clone, Debug)]
 pub struct ValidatedAdvisory {
@@ -130,12 +130,6 @@ where
     ) -> Result<(), Self::Error> {
         self(result).await
     }
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct ValidationOptions {
-    /// time for policy checks
-    pub validation_date: Option<SystemTime>,
 }
 
 pub struct ValidationVisitor<V>

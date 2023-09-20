@@ -1,16 +1,13 @@
 mod render;
 
-use crate::{
-    cmd::{DiscoverArguments, RunnerArguments, ValidationArguments},
-    common::walk_visitor,
-};
+use crate::{cmd::DiscoverArguments, common::walk_visitor};
 use anyhow::anyhow;
 use async_trait::async_trait;
 use csaf::Csaf;
 use csaf_walker::{
     discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor},
     retrieve::RetrievingVisitor,
-    validation::{ValidatedAdvisory, ValidationError, ValidationOptions, ValidationVisitor},
+    validation::{ValidatedAdvisory, ValidationError, ValidationVisitor},
 };
 use reqwest::Url;
 use std::{
@@ -18,7 +15,11 @@ use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
 };
-use walker_common::{cli::ClientArguments, progress::Progress};
+use walker_common::validate::ValidationOptions;
+use walker_common::{
+    cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
+    progress::Progress,
+};
 
 /// Analyze (and report) the state of the data.
 #[derive(clap::Args, Debug)]

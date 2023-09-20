@@ -1,10 +1,13 @@
 use super::Source;
 use crate::discover::DiscoveredAdvisory;
-use crate::model::metadata::{Distribution, Key, ProviderMetadata};
+use crate::model::metadata::{Distribution, ProviderMetadata};
 use crate::retrieve::RetrievedAdvisory;
-use crate::source::{FileSource, HttpSource, KeySource, KeySourceError, MapSourceError};
+use crate::source::{FileSource, HttpSource};
 use async_trait::async_trait;
-use walker_common::utils::openpgp::PublicKey;
+use walker_common::{
+    utils::openpgp::PublicKey,
+    validate::source::{Key, KeySource, KeySourceError, MapSourceError},
+};
 
 /// A common source type, dispatching to the known implementations.
 ///
@@ -73,7 +76,10 @@ impl Source for DispatchSource {
 impl KeySource for DispatchSource {
     type Error = anyhow::Error;
 
-    async fn load_public_key(&self, key: &Key) -> Result<PublicKey, KeySourceError<Self::Error>> {
+    async fn load_public_key<'a>(
+        &self,
+        key: Key<'a>,
+    ) -> Result<PublicKey, KeySourceError<Self::Error>> {
         match self {
             Self::File(source) => source.load_public_key(key).await,
             Self::Http(source) => source

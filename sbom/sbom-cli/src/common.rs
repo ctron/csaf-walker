@@ -1,5 +1,6 @@
 use crate::cmd::{DiscoverArguments, RunnerArguments};
 use reqwest::Url;
+use sbom_walker::model::metadata;
 use sbom_walker::{
     discover::DiscoveredVisitor,
     source::{DispatchSource, HttpOptions, HttpSource},
@@ -7,7 +8,8 @@ use sbom_walker::{
 };
 use std::future::Future;
 use std::time::SystemTime;
-use walker_common::{cli::ClientArguments, progress::Progress};
+use walker_common::cli::client::ClientArguments;
+use walker_common::progress::Progress;
 
 /*
 pub async fn walk_standard<V>(
@@ -49,6 +51,9 @@ pub struct DiscoverConfig {
     /// Only report documents which have changed since the provided date. If a document has no
     /// change information, or this field is [`None`], it wil always be reported.
     pub since: Option<SystemTime>,
+
+    /// Keys which can be used for validation
+    pub keys: Vec<metadata::Key>,
 }
 
 impl DiscoverConfig {
@@ -63,6 +68,11 @@ impl From<DiscoverArguments> for DiscoverConfig {
         Self {
             since: None,
             source: value.source,
+            keys: value
+                .keys
+                .into_iter()
+                .map(metadata::Key::from)
+                .collect::<Vec<_>>(),
         }
     }
 }
@@ -83,6 +93,7 @@ pub async fn new_source(
         fetcher,
         options: HttpOptions {
             since: discover.since,
+            keys: discover.keys,
         },
     }
     .into())

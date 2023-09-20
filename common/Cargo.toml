@@ -19,6 +19,7 @@ bytes = "1"
 clap = { version = "4.3", features = ["derive"] }
 csv = "1"
 digest = "0.10.7"
+flexible-time = "0.1"
 humantime = "2"
 indicatif = "0.17.6"
 log = "0.4"

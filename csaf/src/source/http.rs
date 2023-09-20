@@ -1,7 +1,7 @@
 use crate::discover::DiscoveredAdvisory;
-use crate::model::metadata::{Distribution, Key, ProviderMetadata};
+use crate::model::metadata::{Distribution, ProviderMetadata};
 use crate::retrieve::{RetrievalMetadata, RetrievedAdvisory};
-use crate::source::{KeySource, KeySourceError, Source};
+use crate::source::Source;
 use async_trait::async_trait;
 use bytes::{BufMut, Bytes, BytesMut};
 use digest::Digest;
@@ -12,11 +12,12 @@ use std::time::SystemTime;
 use time::format_description::well_known::Rfc2822;
 use time::OffsetDateTime;
 use url::{ParseError, Url};
+use walker_common::validate::source::{Key, KeySource, KeySourceError};
 use walker_common::{
     changes::{self, ChangeSource},
     fetcher::{self, DataProcessor, Fetcher, Json},
     retrieve::{RetrievedDigest, RetrievingDigest},
-    utils::{self, openpgp::PublicKey},
+    utils::openpgp::PublicKey,
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -222,17 +223,10 @@ impl DataProcessor for FetchingRetrievedAdvisory {
 impl KeySource for HttpSource {
     type Error = fetcher::Error;
 
-    async fn load_public_key(
+    async fn load_public_key<'a>(
         &self,
-        key_source: &Key,
+        key_source: Key<'a>,
     ) -> Result<PublicKey, KeySourceError<Self::Error>> {
-        let bytes = self
-            .fetcher
-            .fetch::<Bytes>(key_source.url.clone())
-            .await
-            .map_err(KeySourceError::Source)?;
-
-        utils::openpgp::validate_keys(bytes, &key_source.fingerprint)
-            .map_err(KeySourceError::OpenPgp)
+        self.load_public_key(key_source).await
     }
 }

@@ -1,6 +1,6 @@
 //! Retrieval
 
-use crate::discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor};
+use crate::discover::{DiscoveredContext, DiscoveredSbom, DiscoveredVisitor};
 use crate::source::Source;
 use async_trait::async_trait;
 use bytes::Bytes;
@@ -14,11 +14,11 @@ use url::Url;
 use walker_common::validate::source::{KeySource, KeySourceError};
 use walker_common::{retrieve::RetrievedDigest, utils::openpgp::PublicKey};
 
-/// A retrieved (but unverified) advisory
+/// A retrieved (but unverified) SBOM
 #[derive(Clone, Debug)]
-pub struct RetrievedAdvisory {
+pub struct RetrievedSbom {
     /// The discovered advisory
-    pub discovered: DiscoveredAdvisory,
+    pub discovered: DiscoveredSbom,
 
     /// The advisory data
     pub data: Bytes,
@@ -43,15 +43,15 @@ pub struct RetrievalMetadata {
     pub etag: Option<String>,
 }
 
-impl Deref for RetrievedAdvisory {
-    type Target = DiscoveredAdvisory;
+impl Deref for RetrievedSbom {
+    type Target = DiscoveredSbom;
 
     fn deref(&self) -> &Self::Target {
         &self.discovered
     }
 }
 
-impl DerefMut for RetrievedAdvisory {
+impl DerefMut for RetrievedSbom {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.discovered
     }
@@ -62,7 +62,7 @@ pub enum RetrievalError {
     #[error("Invalid response retrieving: {code}")]
     InvalidResponse {
         code: StatusCode,
-        discovered: DiscoveredAdvisory,
+        discovered: DiscoveredSbom,
     },
 }
 
@@ -95,17 +95,17 @@ pub trait RetrievedVisitor {
     async fn visit_context(&self, context: &RetrievalContext)
         -> Result<Self::Context, Self::Error>;
 
-    async fn visit_advisory(
+    async fn visit_sbom(
         &self,
         context: &Self::Context,
-        result: Result<RetrievedAdvisory, RetrievalError>,
+        result: Result<RetrievedSbom, RetrievalError>,
     ) -> Result<(), Self::Error>;
 }
 
 #[async_trait(?Send)]
 impl<F, E, Fut> RetrievedVisitor for F
 where
-    F: Fn(Result<RetrievedAdvisory, RetrievalError>) -> Fut,
+    F: Fn(Result<RetrievedSbom, RetrievalError>) -> Fut,
     Fut: Future<Output = Result<(), E>>,
     E: std::fmt::Display + Debug,
 {
@@ -119,10 +119,10 @@ where
         Ok(())
     }
 
-    async fn visit_advisory(
+    async fn visit_sbom(
         &self,
         _ctx: &Self::Context,
-        outcome: Result<RetrievedAdvisory, RetrievalError>,
+        outcome: Result<RetrievedSbom, RetrievalError>,
     ) -> Result<(), Self::Error> {
         self(outcome).await
     }
@@ -171,9 +171,9 @@ where
         &self,
         context: &DiscoveredContext,
     ) -> Result<Self::Context, Self::Error> {
-        let mut keys = Vec::with_capacity(context.metadata.public_openpgp_keys.len());
+        let mut keys = Vec::with_capacity(context.metadata.keys.len());
 
-        for key in &context.metadata.public_openpgp_keys {
+        for key in &context.metadata.keys {
             keys.push(
                 self.source
                     .load_public_key(key.into())
@@ -198,26 +198,26 @@ where
 
         self.visitor
             .visit_context(&RetrievalContext {
-                discovered: context,
                 keys: &keys,
+                discovered: context,
             })
             .await
             .map_err(Error::Visitor)
     }
 
-    async fn visit_advisory(
+    async fn visit_sbom(
         &self,
         context: &Self::Context,
-        discovered: DiscoveredAdvisory,
+        discovered: DiscoveredSbom,
     ) -> Result<(), Self::Error> {
-        let advisory = self
+        let sbom = self
             .source
-            .load_advisory(discovered)
+            .load_sbom(discovered)
             .await
             .map_err(Error::Source)?;
 
         self.visitor
-            .visit_advisory(context, Ok(advisory))
+            .visit_sbom(context, Ok(sbom))
             .await
             .map_err(Error::Visitor)?;
 

@@ -96,7 +96,6 @@ impl<S: Source> Walker<S> {
         V: DiscoveredVisitor,
     {
         let metadata = self.source.load_metadata().await.map_err(Error::Source)?;
-
         let context = visitor
             .visit_context(&DiscoveredContext {
                 metadata: &metadata,

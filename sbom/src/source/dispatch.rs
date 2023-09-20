@@ -1,6 +1,12 @@
 use crate::discover::DiscoveredSbom;
+use crate::model::metadata::SourceMetadata;
+use crate::retrieve::RetrievedSbom;
 use crate::source::{HttpSource, Source};
 use async_trait::async_trait;
+use walker_common::{
+    utils::openpgp::PublicKey,
+    validate::source::{Key, KeySource, KeySourceError, MapSourceError},
+};
 
 /// A common source type, dispatching to the known implementations.
 ///
@@ -24,9 +30,38 @@ impl From<HttpSource> for DispatchSource {
 impl Source for DispatchSource {
     type Error = anyhow::Error;
 
+    async fn load_metadata(&self) -> Result<SourceMetadata, Self::Error> {
+        match self {
+            Self::Http(source) => Ok(source.load_metadata().await?),
+        }
+    }
+
     async fn load_index(&self) -> Result<Vec<DiscoveredSbom>, Self::Error> {
         match self {
             Self::Http(source) => Ok(source.load_index().await?),
+        }
+    }
+
+    async fn load_sbom(&self, sbom: DiscoveredSbom) -> Result<RetrievedSbom, Self::Error> {
+        match self {
+            Self::Http(source) => Ok(source.load_sbom(sbom).await?),
+        }
+    }
+}
+
+#[async_trait(?Send)]
+impl KeySource for DispatchSource {
+    type Error = anyhow::Error;
+
+    async fn load_public_key<'a>(
+        &self,
+        key: Key<'a>,
+    ) -> Result<PublicKey, KeySourceError<Self::Error>> {
+        match self {
+            Self::Http(source) => source
+                .load_public_key(key)
+                .await
+                .map_source(|err| err.into()),
         }
     }
 }

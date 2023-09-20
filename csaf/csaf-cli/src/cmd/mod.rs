@@ -1,9 +1,7 @@
 use anyhow::Context;
-use csaf_walker::{validation::ValidationOptions, visitors::store::StoreVisitor};
+use csaf_walker::visitors::store::StoreVisitor;
 use flexible_time::timestamp::StartTimestamp;
 use std::path::PathBuf;
-use std::time::SystemTime;
-use time::{Date, Month, UtcOffset};
 
 pub mod discover;
 pub mod download;
@@ -19,45 +17,6 @@ pub struct DiscoverArguments {
     #[arg(long)]
     /// Treat the "source" as a full URL to the metadata.
     pub full: bool,
-}
-
-#[derive(Debug, clap::Parser)]
-#[command(next_help_heading = "Runner")]
-pub struct RunnerArguments {
-    /// Number of workers, too many parallel requests might make you violate request rates. NOTE: A number of zero will spawn an unlimited amount of workers.
-    #[arg(short, long, default_value = "1")]
-    pub workers: usize,
-}
-
-#[derive(Debug, clap::Parser)]
-#[command(next_help_heading = "Validation")]
-pub struct ValidationArguments {
-    /// OpenPGP policy date.
-    #[arg(long)]
-    policy_date: Option<StartTimestamp>,
-
-    /// Enable OpenPGP v3 signatures. Conflicts with 'policy_date'.
-    #[arg(short = '3', long = "v3-signatures", conflicts_with = "policy_date")]
-    v3_signatures: bool,
-}
-
-impl From<ValidationArguments> for ValidationOptions {
-    fn from(value: ValidationArguments) -> Self {
-        let validation_date: Option<SystemTime> = match (value.policy_date, value.v3_signatures) {
-            (_, true) => Some(SystemTime::from(
-                Date::from_calendar_date(2007, Month::January, 1)
-                    .unwrap()
-                    .midnight()
-                    .assume_offset(UtcOffset::UTC),
-            )),
-            (Some(date), _) => Some(date.into()),
-            _ => None,
-        };
-
-        log::debug!("Policy date: {validation_date:?}");
-
-        Self { validation_date }
-    }
 }
 
 #[derive(Debug, clap::Parser)]

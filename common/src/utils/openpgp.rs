@@ -20,7 +20,7 @@ pub struct PublicKey {
     pub raw: Bytes,
 }
 
-pub fn validate_keys(bytes: Bytes, fingerprint: &Option<String>) -> Result<PublicKey, Error> {
+pub fn validate_keys(bytes: Bytes, fingerprint: Option<&str>) -> Result<PublicKey, Error> {
     let certs = CertParser::from_bytes(&bytes)?.collect::<Result<Vec<_>, _>>()?;
 
     for cert in &certs {

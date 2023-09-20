@@ -1,8 +1,8 @@
 mod cmd;
 mod common;
 
+use crate::cmd::{discover::Discover, download::Download};
 use clap::Parser;
-use cmd::discover::Discover;
 use indicatif::MultiProgress;
 use indicatif_log_bridge::LogWrapper;
 use log::LevelFilter;
@@ -39,12 +39,14 @@ struct Cli {
 #[derive(clap::Subcommand, Debug)]
 enum Command {
     Discover(Discover),
+    Download(Download),
 }
 
 impl Command {
     pub async fn run(self, progress: Progress) -> anyhow::Result<()> {
         match self {
             Command::Discover(cmd) => cmd.run(progress).await,
+            Command::Download(cmd) => cmd.run(progress).await,
         }
     }
 }

@@ -13,6 +13,15 @@ pub struct Key {
     pub url: Url,
 }
 
+impl<'a> From<&'a Key> for walker_common::validate::source::Key<'a> {
+    fn from(value: &'a Key) -> Self {
+        walker_common::validate::source::Key {
+            fingerprint: value.fingerprint.as_deref(),
+            url: &value.url,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct Publisher {
     pub category: String,

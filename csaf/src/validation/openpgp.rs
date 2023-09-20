@@ -1,5 +1,5 @@
 use crate::retrieve::RetrievedAdvisory;
-use crate::validation::{InnerValidationContext, ValidationOptions};
+use crate::validation::InnerValidationContext;
 use anyhow::bail;
 use sequoia_openpgp::{
     cert::prelude::ValidErasedKeyAmalgamation,
@@ -13,6 +13,7 @@ use sequoia_openpgp::{
     Cert, KeyHandle, Packet,
 };
 use std::fmt::Debug;
+use walker_common::validate::ValidationOptions;
 
 struct Helper<'a, C> {
     context: &'a InnerValidationContext<C>,
