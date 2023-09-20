@@ -1,8 +1,8 @@
 //! The actual walker
 
-use crate::discover::{DiscoveredContext, DiscoveredSbom, DiscoveredVisitor};
+use crate::discover::{DiscoveredContext, DiscoveredVisitor};
 use crate::source::Source;
-use futures::{stream, StreamExt, TryFutureExt, TryStream, TryStreamExt};
+use futures::{stream, StreamExt, TryFutureExt, TryStreamExt};
 use std::fmt::Debug;
 use std::sync::Arc;
 use url::ParseError;

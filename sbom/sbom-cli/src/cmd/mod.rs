@@ -6,6 +6,7 @@ use std::path::PathBuf;
 
 pub mod discover;
 pub mod download;
+pub mod sync;
 
 #[derive(Debug, clap::Parser)]
 #[command(next_help_heading = "Discovery")]
@@ -18,14 +19,6 @@ pub struct DiscoverArguments {
     #[arg(short = 'k', long = "key")]
     /// URLs to keys which should be used for validation. The fragment part of a key can be used as fingerprint.
     pub keys: Vec<Url>,
-}
-
-#[derive(Debug, clap::Parser)]
-#[command(next_help_heading = "Runner")]
-pub struct RunnerArguments {
-    /// Number of workers, too many parallel requests might make you violate request rates. NOTE: A number of zero will spawn an unlimited amount of workers.
-    #[arg(short, long, default_value = "1")]
-    pub workers: usize,
 }
 
 #[derive(Debug, clap::Parser)]

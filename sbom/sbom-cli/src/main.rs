@@ -1,7 +1,7 @@
 mod cmd;
 mod common;
 
-use crate::cmd::{discover::Discover, download::Download};
+use crate::cmd::{discover::Discover, download::Download, sync::Sync};
 use clap::Parser;
 use indicatif::MultiProgress;
 use indicatif_log_bridge::LogWrapper;
@@ -40,6 +40,7 @@ struct Cli {
 enum Command {
     Discover(Discover),
     Download(Download),
+    Sync(Sync),
 }
 
 impl Command {
@@ -47,6 +48,7 @@ impl Command {
         match self {
             Command::Discover(cmd) => cmd.run(progress).await,
             Command::Download(cmd) => cmd.run(progress).await,
+            Command::Sync(cmd) => cmd.run(progress).await,
         }
     }
 }

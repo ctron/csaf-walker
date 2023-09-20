@@ -8,19 +8,15 @@ use digest::Digest;
 use futures::try_join;
 use reqwest::Response;
 use sha2::{Sha256, Sha512};
-use std::collections::HashMap;
-use std::fmt::format;
 use std::time::SystemTime;
 use time::{format_description::well_known::Rfc2822, OffsetDateTime};
 use url::{ParseError, Url};
-use walker_common::retrieve::RetrievingDigest;
-use walker_common::validate::source::Key;
 use walker_common::{
     changes::{self, ChangeSource},
-    fetcher::{self, DataProcessor, Fetcher, Json},
-    retrieve::RetrievedDigest,
-    utils::{self, openpgp::PublicKey},
-    validate::source::{KeySource, KeySourceError},
+    fetcher::{self, DataProcessor, Fetcher},
+    retrieve::{RetrievedDigest, RetrievingDigest},
+    utils::openpgp::PublicKey,
+    validate::source::{Key, KeySource, KeySourceError},
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -74,7 +70,7 @@ impl Source for HttpSource {
     }
 
     async fn load_index(&self) -> Result<Vec<DiscoveredSbom>, Self::Error> {
-        let base = match self.url.path().ends_with("/") {
+        let base = match self.url.path().ends_with('/') {
             true => self.url.clone(),
             false => Url::parse(&format!("{}/", self.url))?,
         };

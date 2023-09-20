@@ -1,4 +1,4 @@
-use crate::cmd::{DiscoverArguments, RunnerArguments};
+use crate::cmd::DiscoverArguments;
 use reqwest::Url;
 use sbom_walker::model::metadata;
 use sbom_walker::{
@@ -8,8 +8,10 @@ use sbom_walker::{
 };
 use std::future::Future;
 use std::time::SystemTime;
-use walker_common::cli::client::ClientArguments;
-use walker_common::progress::Progress;
+use walker_common::{
+    cli::{client::ClientArguments, runner::RunnerArguments},
+    progress::Progress,
+};
 
 /*
 pub async fn walk_standard<V>(

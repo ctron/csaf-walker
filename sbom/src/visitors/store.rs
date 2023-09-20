@@ -1,6 +1,6 @@
-use crate::retrieve::{RetrievalContext, RetrievalError, RetrievedSbom, RetrievedVisitor};
-// use crate::validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, ValidationError};
 use crate::model::metadata::SourceMetadata;
+use crate::retrieve::{RetrievalContext, RetrievalError, RetrievedSbom, RetrievedVisitor};
+use crate::validation::{ValidatedSbom, ValidatedVisitor, ValidationContext, ValidationError};
 use anyhow::Context;
 use async_trait::async_trait;
 use sequoia_openpgp::armor::Kind;
@@ -41,14 +41,13 @@ pub enum StoreRetrievedError {
     Retrieval(#[from] RetrievalError),
 }
 
-/*
 #[derive(Debug, thiserror::Error)]
 pub enum StoreValidatedError {
     #[error(transparent)]
     Store(#[from] StoreError),
     #[error(transparent)]
     Validation(#[from] ValidationError),
-}*/
+}
 
 #[async_trait(?Send)]
 impl RetrievedVisitor for StoreVisitor {
@@ -74,7 +73,6 @@ impl RetrievedVisitor for StoreVisitor {
     }
 }
 
-/*
 #[async_trait(?Send)]
 impl ValidatedVisitor for StoreVisitor {
     type Error = StoreValidatedError;
@@ -92,16 +90,27 @@ impl ValidatedVisitor for StoreVisitor {
     async fn visit_advisory(
         &self,
         _context: &Self::Context,
-        result: Result<ValidatedAdvisory, ValidationError>,
+        result: Result<ValidatedSbom, ValidationError>,
     ) -> Result<(), Self::Error> {
         self.store(&result?.retrieved).await?;
         Ok(())
     }
-}*/
+}
 
 impl StoreVisitor {
     async fn store_provider_metadata(&self, metadata: &SourceMetadata) -> Result<(), StoreError> {
-        let file = self.base.join(DIR_METADATA).join("metadata.json");
+        let metadir = self.base.join(DIR_METADATA);
+
+        fs::create_dir(&metadir)
+            .await
+            .or_else(|err| match err.kind() {
+                ErrorKind::AlreadyExists => Ok(()),
+                _ => Err(err),
+            })
+            .with_context(|| format!("Failed to create metadata directory: {}", metadir.display()))
+            .map_err(StoreError::Io)?;
+
+        let file = metadir.join("metadata.json");
         let mut out = std::fs::File::create(&file)
             .with_context(|| {
                 format!(

@@ -1,31 +1,33 @@
 //! Validation
 
-use crate::retrieve::{RetrievalContext, RetrievalError, RetrievedAdvisory, RetrievedVisitor};
+use crate::retrieve::{RetrievalContext, RetrievalError, RetrievedSbom, RetrievedVisitor};
 use async_trait::async_trait;
 use digest::Digest;
 use std::fmt::{Debug, Display, Formatter};
 use std::future::Future;
 use std::ops::{Deref, DerefMut};
 use url::Url;
-use walker_common::retrieve::RetrievedDigest;
-use walker_common::utils::openpgp::PublicKey;
-use walker_common::validate::{openpgp, ValidationOptions};
+use walker_common::{
+    retrieve::RetrievedDigest,
+    utils::openpgp::PublicKey,
+    validate::{openpgp, ValidationOptions},
+};
 
 #[derive(Clone, Debug)]
-pub struct ValidatedAdvisory {
+pub struct ValidatedSbom {
     /// The discovered advisory
-    pub retrieved: RetrievedAdvisory,
+    pub retrieved: RetrievedSbom,
 }
 
-impl Deref for ValidatedAdvisory {
-    type Target = RetrievedAdvisory;
+impl Deref for ValidatedSbom {
+    type Target = RetrievedSbom;
 
     fn deref(&self) -> &Self::Target {
         &self.retrieved
     }
 }
 
-impl DerefMut for ValidatedAdvisory {
+impl DerefMut for ValidatedSbom {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.retrieved
     }
@@ -37,11 +39,11 @@ pub enum ValidationError {
     DigestMismatch {
         expected: String,
         actual: String,
-        retrieved: RetrievedAdvisory,
+        retrieved: RetrievedSbom,
     },
     Signature {
         error: anyhow::Error,
-        retrieved: RetrievedAdvisory,
+        retrieved: RetrievedSbom,
     },
 }
 
@@ -100,14 +102,14 @@ pub trait ValidatedVisitor {
     async fn visit_advisory(
         &self,
         context: &Self::Context,
-        result: Result<ValidatedAdvisory, ValidationError>,
+        result: Result<ValidatedSbom, ValidationError>,
     ) -> Result<(), Self::Error>;
 }
 
 #[async_trait(?Send)]
 impl<F, E, Fut> ValidatedVisitor for F
 where
-    F: Fn(Result<ValidatedAdvisory, ValidationError>) -> Fut,
+    F: Fn(Result<ValidatedSbom, ValidationError>) -> Fut,
     Fut: Future<Output = Result<(), E>>,
     E: Display + Debug,
 {
@@ -124,7 +126,7 @@ where
     async fn visit_advisory(
         &self,
         _context: &Self::Context,
-        result: Result<ValidatedAdvisory, ValidationError>,
+        result: Result<ValidatedSbom, ValidationError>,
     ) -> Result<(), Self::Error> {
         self(result).await
     }
@@ -180,8 +182,8 @@ where
     async fn validate(
         &self,
         context: &InnerValidationContext<V::Context>,
-        retrieved: RetrievedAdvisory,
-    ) -> Result<ValidatedAdvisory, ValidationProcessError> {
+        retrieved: RetrievedSbom,
+    ) -> Result<ValidatedSbom, ValidationProcessError> {
         if let Err((expected, actual)) = Self::validate_digest(&retrieved.sha256) {
             return Err(ValidationProcessError::Proceed(
                 ValidationError::DigestMismatch {
@@ -208,13 +210,13 @@ where
                 signature,
                 &retrieved.data,
             ) {
-                Ok(()) => Ok(ValidatedAdvisory { retrieved }),
+                Ok(()) => Ok(ValidatedSbom { retrieved }),
                 Err(error) => Err(ValidationProcessError::Proceed(
                     ValidationError::Signature { error, retrieved },
                 )),
             }
         } else {
-            Ok(ValidatedAdvisory { retrieved })
+            Ok(ValidatedSbom { retrieved })
         }
     }
 
@@ -257,10 +259,10 @@ where
         Ok(Self::Context { context, keys })
     }
 
-    async fn visit_advisory(
+    async fn visit_sbom(
         &self,
         context: &Self::Context,
-        outcome: Result<RetrievedAdvisory, RetrievalError>,
+        outcome: Result<RetrievedSbom, RetrievalError>,
     ) -> Result<(), Self::Error> {
         match outcome {
             Ok(advisory) => {

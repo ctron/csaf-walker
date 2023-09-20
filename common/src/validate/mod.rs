@@ -1,3 +1,4 @@
+pub mod openpgp;
 pub mod source;
 
 use std::time::SystemTime;

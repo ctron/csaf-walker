@@ -3,25 +3,28 @@ use crate::{
     common::{walk_visitor, DiscoverConfig},
 };
 use sbom_walker::{
-    retrieve::RetrievingVisitor, visitors::skip::SkipExistingVisitor, visitors::store::StoreVisitor,
+    retrieve::RetrievingVisitor,
+    validation::ValidationVisitor,
+    visitors::{skip::SkipExistingVisitor, store::StoreVisitor},
 };
 use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
     progress::Progress,
     since::Since,
+    validate::ValidationOptions,
 };
 
-/// Like sync, but doesn't validate.
+/// Sync only what changed, and don't validate.
 #[derive(clap::Args, Debug)]
-pub struct Download {
+pub struct Sync {
     #[command(flatten)]
     client: ClientArguments,
 
     #[command(flatten)]
-    discover: DiscoverArguments,
+    runner: RunnerArguments,
 
     #[command(flatten)]
-    runner: RunnerArguments,
+    discover: DiscoverArguments,
 
     #[command(flatten)]
     validation: ValidationArguments,
@@ -33,8 +36,9 @@ pub struct Download {
     store: StoreArguments,
 }
 
-impl Download {
+impl Sync {
     pub async fn run(self, progress: Progress) -> anyhow::Result<()> {
+        let options: ValidationOptions = self.validation.into();
         let store: StoreVisitor = self.store.try_into()?;
         let base = store.base.clone();
 
@@ -54,16 +58,23 @@ impl Download {
             self.runner,
             move |source| async move {
                 let base = base.clone();
-                let visitor = { RetrievingVisitor::new(source.clone(), store) };
+                let visitor = {
+                    RetrievingVisitor::new(
+                        source.clone(),
+                        ValidationVisitor::new(store).with_options(options),
+                    )
+                };
 
                 Ok(SkipExistingVisitor {
                     visitor,
                     output: base,
-                    since: *since,
+                    since: since.since,
                 })
             },
         )
         .await?;
+
+        since.store()?;
 
         Ok(())
     }

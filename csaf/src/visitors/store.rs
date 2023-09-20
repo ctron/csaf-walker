@@ -108,7 +108,18 @@ impl ValidatedVisitor for StoreVisitor {
 
 impl StoreVisitor {
     async fn store_provider_metadata(&self, metadata: &ProviderMetadata) -> Result<(), StoreError> {
-        let file = self.base.join(DIR_METADATA).join("provider-metadata.json");
+        let metadir = self.base.join(DIR_METADATA);
+
+        fs::create_dir(&metadir)
+            .await
+            .or_else(|err| match err.kind() {
+                ErrorKind::AlreadyExists => Ok(()),
+                _ => Err(err),
+            })
+            .with_context(|| format!("Failed to create metadata directory: {}", metadir.display()))
+            .map_err(StoreError::Io)?;
+
+        let file = metadir.join("provider-metadata.json");
         let mut out = std::fs::File::create(&file)
             .with_context(|| {
                 format!(

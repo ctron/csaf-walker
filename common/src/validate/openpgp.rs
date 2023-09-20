@@ -1,5 +1,5 @@
-use crate::retrieve::RetrievedAdvisory;
-use crate::validation::InnerValidationContext;
+use crate::utils::openpgp::PublicKey;
+use crate::validate::ValidationOptions;
 use anyhow::bail;
 use sequoia_openpgp::{
     cert::prelude::ValidErasedKeyAmalgamation,
@@ -13,20 +13,14 @@ use sequoia_openpgp::{
     Cert, KeyHandle, Packet,
 };
 use std::fmt::Debug;
-use walker_common::validate::ValidationOptions;
 
-struct Helper<'a, C> {
-    context: &'a InnerValidationContext<C>,
+struct Helper<'a> {
+    keys: &'a [PublicKey],
 }
 
-impl<'a, C> VerificationHelper for Helper<'a, C> {
+impl<'a> VerificationHelper for Helper<'a> {
     fn get_certs(&mut self, _ids: &[KeyHandle]) -> sequoia_openpgp::Result<Vec<Cert>> {
-        Ok(self
-            .context
-            .keys
-            .iter()
-            .flat_map(|k| k.certs.clone())
-            .collect())
+        Ok(self.keys.iter().flat_map(|k| k.certs.clone()).collect())
     }
 
     fn check(&mut self, structure: MessageStructure) -> sequoia_openpgp::Result<()> {
@@ -91,11 +85,11 @@ impl<'a> Policy for LoggingPolicy<'a> {
     }
 }
 
-pub fn validate_signature<C>(
+pub fn validate_signature(
     options: &ValidationOptions,
-    context: &InnerValidationContext<C>,
+    keys: &[PublicKey],
     signature: &str,
-    retrieved: &RetrievedAdvisory,
+    data: impl AsRef<[u8]>,
 ) -> Result<(), anyhow::Error> {
     // TODO: we could move this into the context and re-use
     let policy = match options.validation_date {
@@ -106,10 +100,10 @@ pub fn validate_signature<C>(
     let mut verifier = DetachedVerifierBuilder::from_bytes(&signature)?.with_policy(
         &policy,
         None,
-        Helper { context },
+        Helper { keys },
     )?;
 
-    verifier.verify_bytes(&retrieved.data)?;
+    verifier.verify_bytes(data)?;
 
     Ok(())
 }
