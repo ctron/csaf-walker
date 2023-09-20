@@ -1,9 +1,7 @@
 use crate::discover::DiscoveredAdvisory;
 use crate::model::metadata::{Distribution, Key, ProviderMetadata};
-use crate::retrieve::{RetrievalMetadata, RetrievedAdvisory, RetrievedDigest};
+use crate::retrieve::{RetrievalMetadata, RetrievedAdvisory};
 use crate::source::{KeySource, KeySourceError, Source};
-use crate::utils;
-use crate::utils::openpgp::PublicKey;
 use crate::visitors::store::DIR_METADATA;
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
@@ -17,6 +15,8 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 use time::OffsetDateTime;
 use url::Url;
+use walker_common::retrieve::RetrievedDigest;
+use walker_common::utils::{self, openpgp::PublicKey};
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use crate::visitors::store::ATTR_ETAG;

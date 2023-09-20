@@ -1,7 +1,7 @@
 mod render;
 
 use crate::{
-    cmd::{ClientArguments, DiscoverArguments, RunnerArguments, ValidationArguments},
+    cmd::{DiscoverArguments, RunnerArguments, ValidationArguments},
     common::walk_visitor,
 };
 use anyhow::anyhow;
@@ -9,7 +9,6 @@ use async_trait::async_trait;
 use csaf::Csaf;
 use csaf_walker::{
     discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor},
-    progress::Progress,
     retrieve::RetrievingVisitor,
     validation::{ValidatedAdvisory, ValidationError, ValidationOptions, ValidationVisitor},
 };
@@ -19,6 +18,7 @@ use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
 };
+use walker_common::{cli::ClientArguments, progress::Progress};
 
 /// Analyze (and report) the state of the data.
 #[derive(clap::Args, Debug)]

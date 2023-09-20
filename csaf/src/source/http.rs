@@ -1,21 +1,23 @@
 use crate::discover::DiscoveredAdvisory;
-use crate::fetcher::{DataProcessor, Fetcher, Json};
 use crate::model::metadata::{Distribution, Key, ProviderMetadata};
-use crate::retrieve::{RetrievalMetadata, RetrievedAdvisory, RetrievedDigest, RetrievingDigest};
+use crate::retrieve::{RetrievalMetadata, RetrievedAdvisory};
 use crate::source::{KeySource, KeySourceError, Source};
-use crate::utils::openpgp::PublicKey;
-use crate::{fetcher, utils};
 use async_trait::async_trait;
 use bytes::{BufMut, Bytes, BytesMut};
 use digest::Digest;
 use futures::try_join;
 use reqwest::Response;
 use sha2::{Sha256, Sha512};
-use std::collections::HashMap;
 use std::time::SystemTime;
 use time::format_description::well_known::Rfc2822;
 use time::OffsetDateTime;
 use url::{ParseError, Url};
+use walker_common::{
+    changes::{self, ChangeSource},
+    fetcher::{self, DataProcessor, Fetcher, Json},
+    retrieve::{RetrievedDigest, RetrievingDigest},
+    utils::{self, openpgp::PublicKey},
+};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct HttpOptions {
@@ -39,11 +41,14 @@ pub enum HttpSourceError {
     Csv(#[from] csv::Error),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize)]
-struct ChangeEntry {
-    file: String,
-    #[serde(with = "time::serde::iso8601")]
-    timestamp: OffsetDateTime,
+impl From<changes::Error> for HttpSourceError {
+    fn from(value: changes::Error) -> Self {
+        match value {
+            changes::Error::Fetcher(err) => Self::Fetcher(err),
+            changes::Error::Url(err) => Self::Url(err),
+            changes::Error::Csv(err) => Self::Csv(err),
+        }
+    }
 }
 
 #[async_trait(?Send)]
@@ -229,39 +234,5 @@ impl KeySource for HttpSource {
 
         utils::openpgp::validate_keys(bytes, &key_source.fingerprint)
             .map_err(KeySourceError::OpenPgp)
-    }
-}
-
-pub struct ChangeSource {
-    map: HashMap<String, SystemTime>,
-}
-
-impl ChangeSource {
-    pub fn modified(&self, file: &str) -> Option<SystemTime> {
-        self.map.get(file).copied()
-    }
-
-    pub async fn retrieve(fetcher: &Fetcher, base_url: &Url) -> Result<Self, HttpSourceError> {
-        let changes = fetcher
-            .fetch::<Option<String>>(base_url.join("changes.csv")?)
-            .await?;
-
-        log::info!("Found 'changes.txt', loading data");
-
-        let map = if let Some(changes) = changes {
-            let reader = csv::ReaderBuilder::new()
-                .delimiter(b',')
-                .has_headers(false)
-                .from_reader(changes.as_bytes());
-
-            reader
-                .into_deserialize::<ChangeEntry>()
-                .map(|entry| entry.map(|entry| (entry.file, entry.timestamp.into())))
-                .collect::<Result<HashMap<_, _>, _>>()?
-        } else {
-            HashMap::new()
-        };
-
-        Ok(Self { map })
     }
 }

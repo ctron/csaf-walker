@@ -11,10 +11,9 @@ pub use http::*;
 use crate::discover::DiscoveredAdvisory;
 use crate::model::metadata::{Distribution, Key, ProviderMetadata};
 use crate::retrieve::RetrievedAdvisory;
-use crate::utils;
-use crate::utils::openpgp::PublicKey;
 use async_trait::async_trait;
 use std::fmt::{Debug, Display};
+use walker_common::utils::{self, openpgp::PublicKey};
 
 /// A source of CSAF documents
 #[async_trait(?Send)]

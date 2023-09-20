@@ -3,8 +3,8 @@ use crate::discover::DiscoveredAdvisory;
 use crate::model::metadata::{Distribution, Key, ProviderMetadata};
 use crate::retrieve::RetrievedAdvisory;
 use crate::source::{FileSource, HttpSource, KeySource, KeySourceError, MapSourceError};
-use crate::utils::openpgp::PublicKey;
 use async_trait::async_trait;
+use walker_common::utils::openpgp::PublicKey;
 
 /// A common source type, dispatching to the known implementations.
 ///

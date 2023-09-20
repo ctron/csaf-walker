@@ -12,18 +12,6 @@ pub mod scan;
 pub mod sync;
 
 #[derive(Debug, clap::Parser)]
-#[command(next_help_heading = "Client")]
-pub struct ClientArguments {
-    /// Per-request HTTP timeout, in humantime duration format.
-    #[arg(short, long, default_value = "5s")]
-    pub timeout: humantime::Duration,
-
-    /// Per-request retries count
-    #[arg(short, long, default_value = "50")]
-    pub retries: usize,
-}
-
-#[derive(Debug, clap::Parser)]
 #[command(next_help_heading = "Discovery")]
 pub struct DiscoverArguments {
     /// Source to scan from, will be suffixed with "/.well-known/csaf/provider-metadata.json" unless "--full" is used.

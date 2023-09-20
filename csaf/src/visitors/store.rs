@@ -1,6 +1,5 @@
 use crate::model::metadata::ProviderMetadata;
 use crate::retrieve::{RetrievalContext, RetrievalError, RetrievedAdvisory, RetrievedVisitor};
-use crate::utils::openpgp::PublicKey;
 use crate::validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, ValidationError};
 use anyhow::Context;
 use async_trait::async_trait;
@@ -11,6 +10,7 @@ use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 use tokio::fs;
+use walker_common::utils::openpgp::PublicKey;
 
 #[cfg(target_os = "macos")]
 pub const ATTR_ETAG: &str = "etag";

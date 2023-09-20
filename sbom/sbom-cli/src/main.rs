@@ -2,7 +2,7 @@ mod cmd;
 mod common;
 
 use clap::Parser;
-use cmd::{discover::Discover, download::Download, report::Report, scan::Scan, sync::Sync};
+use cmd::discover::Discover;
 use indicatif::MultiProgress;
 use indicatif_log_bridge::LogWrapper;
 use log::LevelFilter;
@@ -14,7 +14,7 @@ use walker_common::{
 };
 
 #[derive(Debug, Parser)]
-#[command(version, about = "CSAF Tool", author, long_about = None)]
+#[command(version, about = "SBOM Tool", author, long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -38,25 +38,16 @@ struct Cli {
 
 #[derive(clap::Subcommand, Debug)]
 enum Command {
-    Download(Download),
-    Scan(Scan),
     Discover(Discover),
-    Sync(Sync),
-    Report(Report),
 }
 
 impl Command {
     pub async fn run(self, progress: Progress) -> anyhow::Result<()> {
         match self {
-            Command::Download(cmd) => cmd.run(progress).await,
-            Command::Scan(cmd) => cmd.run().await,
             Command::Discover(cmd) => cmd.run(progress).await,
-            Command::Sync(cmd) => cmd.run(progress).await,
-            Command::Report(cmd) => cmd.run(progress).await,
         }
     }
 }
-
 impl Cli {
     pub async fn run(self) -> anyhow::Result<()> {
         // init logging

@@ -1,4 +1,4 @@
-use csaf_walker::progress::{ProgressBar, ProgressImpl};
+use super::{ProgressBar, ProgressImpl};
 use indicatif::{MultiProgress, ProgressStyle};
 use std::borrow::Cow;
 use std::rc::Rc;

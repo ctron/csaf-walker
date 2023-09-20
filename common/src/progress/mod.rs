@@ -1,3 +1,5 @@
+pub mod indicatif;
+
 use std::borrow::Cow;
 use std::ops::Deref;
 use std::rc::Rc;

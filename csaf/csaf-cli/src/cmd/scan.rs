@@ -1,11 +1,12 @@
 use crate::{
-    cmd::{ClientArguments, DiscoverArguments, RunnerArguments, ValidationArguments},
+    cmd::{DiscoverArguments, RunnerArguments, ValidationArguments},
     common::walk_standard,
 };
 use csaf::Csaf;
-use csaf_walker::{
+use csaf_walker::validation::{ValidatedAdvisory, ValidationError};
+use walker_common::{
+    cli::ClientArguments,
     progress::{NoProgress, Progress},
-    validation::{ValidatedAdvisory, ValidationError},
 };
 
 /// Scan advisories

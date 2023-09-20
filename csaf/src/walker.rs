@@ -2,12 +2,12 @@
 
 use crate::discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor};
 use crate::model::metadata::Distribution;
-use crate::progress::Progress;
 use crate::source::Source;
 use futures::{stream, Stream, StreamExt, TryFutureExt, TryStream, TryStreamExt};
 use std::fmt::Debug;
 use std::sync::Arc;
 use url::ParseError;
+use walker_common::progress::Progress;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error<VE, SE>

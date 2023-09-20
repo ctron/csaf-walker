@@ -1,13 +1,13 @@
 [package]
-name = "csaf-cli"
-description = "A CLI to work with CSAF data"
+name = "sbom-cli"
+description = "A CLI to work with SBOM data"
 version = "0.4.0"
 edition = "2021"
 authors = ["Jens Reimann <ctron@dentrassi.de>"]
 license = "Apache-2.0"
 repository = "https://github.com/ctron/csaf-walker"
 categories = ["command-line-utilities", "data-structures"]
-keywords = ["csaf", "vex", "cli"]
+keywords = ["sbom", "cli"]
 readme = "../README.md"
 # based on clap
 rust-version = "1.70"
@@ -33,25 +33,25 @@ time = "0.3.20"
 tokio = { version = "1", features = ["full"] }
 
 walker-common = { version = "0.4.0", path = "../../common" }
-csaf-walker = { version = "0.4.0", path = "..", default-features = false }
+sbom-walker = { version = "0.4.0", path = "..", default-features = false }
 
 # just there for the feature
 openssl = { version = "0.10", optional = true }
 
 [features]
 default = ["crypto-nettle"]
-crypto-cng = ["csaf-walker/crypto-cng"]
-crypto-nettle = ["csaf-walker/crypto-nettle"]
-crypto-openssl = ["csaf-walker/crypto-openssl"]
-crypto-botan = ["csaf-walker/crypto-botan"]
-crypto-rust = ["csaf-walker/crypto-rust"]
+crypto-cng = ["sbom-walker/crypto-cng"]
+crypto-nettle = ["sbom-walker/crypto-nettle"]
+crypto-openssl = ["sbom-walker/crypto-openssl"]
+crypto-botan = ["sbom-walker/crypto-botan"]
+crypto-rust = ["sbom-walker/crypto-rust"]
 
 vendored = ["openssl/vendored"]
 
 [[bin]]
-name = "csaf"
+name = "sbom"
 path = "src/main.rs"
 
 [package.metadata.binstall]
-pkg-url = "{ repo }/releases/download/v{ version }/csaf-{ target }{ binary-ext }"
+pkg-url = "{ repo }/releases/download/v{ version }/sbom-{ target }{ binary-ext }"
 pkg-fmt = "bin"

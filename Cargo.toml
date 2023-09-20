@@ -1,8 +1,11 @@
 [workspace]
 resolver = "2"
 members = [
+    "common",
     "csaf",
-    "csaf/csaf-cli"
+    "csaf/csaf-cli",
+    "sbom",
+    "sbom/sbom-cli",
 ]
 
 [patch.crates-io]

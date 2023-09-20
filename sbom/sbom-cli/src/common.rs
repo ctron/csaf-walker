@@ -1,16 +1,15 @@
-use crate::cmd::{DiscoverArguments, RunnerArguments, ValidationArguments};
-use csaf_walker::{
+use crate::cmd::{DiscoverArguments, RunnerArguments};
+use reqwest::Url;
+use sbom_walker::{
     discover::DiscoveredVisitor,
-    retrieve::RetrievingVisitor,
-    source::{DispatchSource, FileOptions, FileSource, HttpOptions, HttpSource},
-    validation::{ValidatedVisitor, ValidationOptions, ValidationVisitor},
+    source::{DispatchSource, HttpOptions, HttpSource},
     walker::Walker,
 };
-use reqwest::Url;
 use std::future::Future;
 use std::time::SystemTime;
 use walker_common::{cli::ClientArguments, progress::Progress};
 
+/*
 pub async fn walk_standard<V>(
     progress: Progress,
     client: ClientArguments,
@@ -38,7 +37,7 @@ where
         },
     )
     .await
-}
+}*/
 
 pub struct DiscoverConfig {
     /// The URL to locate the provider metadata.
@@ -46,9 +45,6 @@ pub struct DiscoverConfig {
     /// If `full` is `true`, this must be the full path to the `provider-metadata.json`, otherwise
     /// it `/.well-known/csaf/provider-metadata.json` will be appended.
     pub source: String,
-
-    /// Mark the source as a full path to the metadata.
-    pub full: bool,
 
     /// Only report documents which have changed since the provided date. If a document has no
     /// change information, or this field is [`None`], it wil always be reported.
@@ -67,12 +63,9 @@ impl From<DiscoverArguments> for DiscoverConfig {
         Self {
             since: None,
             source: value.source,
-            full: value.full,
         }
     }
 }
-
-const WELL_KNOWN_METADATA: &str = ".well-known/csaf/provider-metadata.json";
 
 pub async fn new_source(
     discover: impl Into<DiscoverConfig>,
@@ -80,35 +73,19 @@ pub async fn new_source(
 ) -> anyhow::Result<DispatchSource> {
     let discover = discover.into();
 
-    match Url::parse(&discover.source) {
-        Ok(mut url) => {
-            if !discover.full && !url.path().ends_with("/provider-metadata.json") {
-                url = url.join(WELL_KNOWN_METADATA)?;
-                log::info!("Discovery URL: {url}");
-            } else {
-                log::info!("Fully provided discovery URL: {url}");
-            }
-            let fetcher = client.new_fetcher().await?;
-            Ok(HttpSource {
-                url,
-                fetcher,
-                options: HttpOptions {
-                    since: discover.since,
-                },
-            }
-            .into())
-        }
-        Err(_) => {
-            // use as path
-            Ok(FileSource::new(
-                &discover.source,
-                FileOptions {
-                    since: discover.since,
-                },
-            )?
-            .into())
-        }
+    let url = Url::parse(&discover.source)?;
+
+    // FIXME: add fallback to filesystem later
+
+    let fetcher = client.new_fetcher().await?;
+    Ok(HttpSource {
+        url,
+        fetcher,
+        options: HttpOptions {
+            since: discover.since,
+        },
     }
+    .into())
 }
 
 pub async fn walk_visitor<F, Fut, V>(

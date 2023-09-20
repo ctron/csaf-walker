@@ -1,8 +1,7 @@
 use crate::{cmd::DiscoverArguments, common::new_source};
-use csaf_walker::{discover::DiscoveredAdvisory, walker::Walker};
+use sbom_walker::{discover::DiscoveredSbom, walker::Walker};
 use std::convert::Infallible;
-use walker_common::cli::ClientArguments;
-use walker_common::progress::Progress;
+use walker_common::{cli::ClientArguments, progress::Progress};
 
 /// Discover advisories, just lists the URLs.
 #[derive(clap::Args, Debug)]
@@ -18,8 +17,15 @@ impl Discover {
     pub async fn run(self, progress: Progress) -> anyhow::Result<()> {
         Walker::new(new_source(self.discover, self.client).await?)
             .with_progress(progress)
-            .walk(|discovered: DiscoveredAdvisory| async move {
-                println!("{}", discovered.url);
+            .walk(|discovered: DiscoveredSbom| async move {
+                println!(
+                    "{} ({})",
+                    discovered.url,
+                    discovered
+                        .modified
+                        .map(|s| humantime::format_rfc3339(s).to_string())
+                        .unwrap_or_else(|| "n/a".to_string())
+                );
 
                 Ok::<_, Infallible>(())
             })
