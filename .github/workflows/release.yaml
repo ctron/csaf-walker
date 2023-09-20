@@ -183,7 +183,7 @@ jobs:
 
       - name: Install convco
         run: |
-          curl -sLO https://github.com/convco/convco/releases/download/v0.4.0/convco-ubuntu.zip
+          curl -sLO https://github.com/convco/convco/releases/download/v0.4.2/convco-ubuntu.zip
           unzip convco-ubuntu.zip
           chmod a+x convco
           sudo mv convco /usr/local/bin
