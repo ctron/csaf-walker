@@ -140,6 +140,7 @@ jobs:
           fi
           
           env NETTLE_STATIC=yes ${CMD} build -p csaf-cli ${OPTS}
+          env NETTLE_STATIC=yes ${CMD} build -p sbom-cli ${OPTS}
 
       - name: List output
         shell: bash
@@ -153,22 +154,31 @@ jobs:
           
           # if we have an alternate target, there is a sub-directory
           if [[ -f "target/release/csaf${{ matrix.exe }}" ]]; then
-            SRC="target/release/csaf${{ matrix.exe }}"
+            SRC_CSAF="target/release/csaf${{ matrix.exe }}"
+            SRC_SBOM="target/release/sbom${{ matrix.exe }}"
           elif [[ -f "target/${{ matrix.target }}/release/csaf${{ matrix.exe }}" ]]; then
-            SRC="target/${{ matrix.target }}/release/csaf${{ matrix.exe }}"
+            SRC_CSAF="target/${{ matrix.target }}/release/csaf${{ matrix.exe }}"
+            SRC_SBOM="target/${{ matrix.target }}/release/sbom${{ matrix.exe }}"
           else
             echo "Unable to find output"
             false # stop build
           fi
           
           # for upload
-          cp -pv "${SRC}" upload/csaf-${{ matrix.target }}${{ matrix.exe }}
+          cp -pv "${SRC_CSAF}" upload/csaf-${{ matrix.target }}${{ matrix.exe }}
+          cp -pv "${SRC_SBOM}" upload/sbom-${{ matrix.target }}${{ matrix.exe }}
 
-      - name: Upload binary
+      - name: Upload binary (csaf)
         uses: actions/upload-artifact@v3
         with:
           name: csaf-${{ matrix.target }}
           path: upload/csaf-${{ matrix.target }}${{ matrix.exe }}
+          if-no-files-found: error
+      - name: Upload binary (sbom)
+        uses: actions/upload-artifact@v3
+        with:
+          name: sbom-${{ matrix.target }}
+          path: upload/sbom-${{ matrix.target }}${{ matrix.exe }}
           if-no-files-found: error
 
   publish:
@@ -203,6 +213,7 @@ jobs:
         run: |
           mkdir -p staging
           cp -pv ~/download/*/csaf-* staging/
+          cp -pv ~/download/*/sbom-* staging/
 
       - name: Display staging area
         run: ls -R staging
