@@ -1,7 +1,7 @@
 use crate::discover::DiscoveredSbom;
 use crate::model::metadata::SourceMetadata;
 use crate::retrieve::RetrievedSbom;
-use crate::source::{HttpSource, Source};
+use crate::source::{FileSource, HttpSource, Source};
 use async_trait::async_trait;
 use walker_common::{
     utils::openpgp::PublicKey,
@@ -18,11 +18,18 @@ use walker_common::{
 #[derive(Clone)]
 pub enum DispatchSource {
     Http(HttpSource),
+    File(FileSource),
 }
 
 impl From<HttpSource> for DispatchSource {
     fn from(value: HttpSource) -> Self {
         Self::Http(value)
+    }
+}
+
+impl From<FileSource> for DispatchSource {
+    fn from(value: FileSource) -> Self {
+        Self::File(value)
     }
 }
 
@@ -33,18 +40,21 @@ impl Source for DispatchSource {
     async fn load_metadata(&self) -> Result<SourceMetadata, Self::Error> {
         match self {
             Self::Http(source) => Ok(source.load_metadata().await?),
+            Self::File(source) => Ok(source.load_metadata().await?),
         }
     }
 
     async fn load_index(&self) -> Result<Vec<DiscoveredSbom>, Self::Error> {
         match self {
             Self::Http(source) => Ok(source.load_index().await?),
+            Self::File(source) => Ok(source.load_index().await?),
         }
     }
 
     async fn load_sbom(&self, sbom: DiscoveredSbom) -> Result<RetrievedSbom, Self::Error> {
         match self {
             Self::Http(source) => Ok(source.load_sbom(sbom).await?),
+            Self::File(source) => Ok(source.load_sbom(sbom).await?),
         }
     }
 }
@@ -62,6 +72,7 @@ impl KeySource for DispatchSource {
                 .load_public_key(key)
                 .await
                 .map_source(|err| err.into()),
+            Self::File(source) => source.load_public_key(key).await,
         }
     }
 }

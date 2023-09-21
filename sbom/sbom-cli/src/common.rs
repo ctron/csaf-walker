@@ -1,19 +1,21 @@
 use crate::cmd::DiscoverArguments;
 use reqwest::Url;
-use sbom_walker::model::metadata;
 use sbom_walker::{
     discover::DiscoveredVisitor,
-    source::{DispatchSource, HttpOptions, HttpSource},
+    model::metadata,
+    retrieve::RetrievingVisitor,
+    source::{DispatchSource, FileOptions, FileSource, HttpOptions, HttpSource},
+    validation::{ValidatedVisitor, ValidationVisitor},
     walker::Walker,
 };
 use std::future::Future;
 use std::time::SystemTime;
 use walker_common::{
-    cli::{client::ClientArguments, runner::RunnerArguments},
+    cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
     progress::Progress,
+    validate::ValidationOptions,
 };
 
-/*
 pub async fn walk_standard<V>(
     progress: Progress,
     client: ClientArguments,
@@ -41,7 +43,7 @@ where
         },
     )
     .await
-}*/
+}
 
 pub struct DiscoverConfig {
     /// The URL to locate the provider metadata.
@@ -85,20 +87,30 @@ pub async fn new_source(
 ) -> anyhow::Result<DispatchSource> {
     let discover = discover.into();
 
-    let url = Url::parse(&discover.source)?;
-
-    // FIXME: add fallback to filesystem later
-
-    let fetcher = client.new_fetcher().await?;
-    Ok(HttpSource {
-        url,
-        fetcher,
-        options: HttpOptions {
-            since: discover.since,
-            keys: discover.keys,
-        },
+    match Url::parse(&discover.source) {
+        Ok(url) => {
+            let fetcher = client.new_fetcher().await?;
+            Ok(HttpSource {
+                url,
+                fetcher,
+                options: HttpOptions {
+                    since: discover.since,
+                    keys: discover.keys,
+                },
+            }
+            .into())
+        }
+        Err(_) => {
+            // use as path
+            Ok(FileSource::new(
+                &discover.source,
+                FileOptions {
+                    since: discover.since,
+                },
+            )?
+            .into())
+        }
     }
-    .into())
 }
 
 pub async fn walk_visitor<F, Fut, V>(

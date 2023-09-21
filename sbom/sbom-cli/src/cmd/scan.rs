@@ -1,6 +1,10 @@
 use crate::{cmd::DiscoverArguments, common::walk_standard};
-use csaf::Csaf;
-use csaf_walker::validation::{ValidatedAdvisory, ValidationError};
+use bzip2_rs::DecoderReader;
+use sbom_walker::validation::{ValidatedSbom, ValidationError};
+use sbom_walker::Sbom;
+use std::borrow::Cow;
+use std::io::Read;
+use tokio::runtime::Handle;
 use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
     progress::Progress,
@@ -30,29 +34,37 @@ impl Scan {
             self.runner,
             self.discover,
             self.validation,
-            |advisory: Result<ValidatedAdvisory, ValidationError>| async move {
+            |advisory: Result<ValidatedSbom, ValidationError>| async move {
                 match advisory {
                     Ok(adv) => {
                         println!("Advisory: {}", adv.url);
                         log::debug!("  Metadata: {:?}", adv.sha256);
                         log::debug!("    SHA256: {:?}", adv.sha256);
                         log::debug!("    SHA512: {:?}", adv.sha512);
-                        match serde_json::from_slice::<Csaf>(&adv.data) {
-                            Ok(csaf) => {
-                                println!(
-                                    "  {} ({}): {}",
-                                    csaf.document.tracking.id,
-                                    csaf.document.tracking.initial_release_date,
-                                    csaf.document.title
-                                );
+
+                        let data = if adv.url.path().ends_with(".bz2") {
+                            let mut decoder = DecoderReader::new(adv.data.as_ref());
+                            let mut data = vec![];
+                            decoder.read_to_end(&mut data)?;
+                            Cow::<[u8]>::Owned(data)
+                        } else {
+                            Cow::Borrowed(adv.data.as_ref())
+                        };
+
+                        match Sbom::try_parse_any(&data) {
+                            Ok(sbom) => {
+                                Handle::current()
+                                    .spawn_blocking(move || process_sbom(sbom))
+                                    .await?;
                             }
+
                             Err(err) => {
                                 eprintln!("  Format error: {err}");
                             }
                         }
                     }
                     Err(err) => {
-                        eprintln!("Advisory(ERR): {err}");
+                        eprintln!("SBOM(ERR): {err}");
                     }
                 }
 
@@ -62,5 +74,19 @@ impl Scan {
         .await?;
 
         Ok(())
+    }
+}
+
+fn process_sbom(sbom: Sbom) {
+    match sbom {
+        Sbom::Spdx(sbom) => {
+            println!(
+                "  SPDX: {}",
+                sbom.document_creation_information.document_name
+            );
+        }
+        Sbom::CycloneDx(_sbom) => {
+            println!("  CycloneDX");
+        }
     }
 }

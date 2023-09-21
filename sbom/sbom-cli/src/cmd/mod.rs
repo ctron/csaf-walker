@@ -6,6 +6,7 @@ use std::path::PathBuf;
 
 pub mod discover;
 pub mod download;
+pub mod scan;
 pub mod sync;
 
 #[derive(Debug, clap::Parser)]

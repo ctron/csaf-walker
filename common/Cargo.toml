@@ -31,3 +31,8 @@ time = { version = "0.3", features = ["serde"] }
 url = "2"
 
 sequoia-openpgp = { version = "1", default-features = false }
+
+[package.metadata.cargo-all-features]
+always_include_features = [
+    "sequoia-openpgp/crypto-nettle",
+]

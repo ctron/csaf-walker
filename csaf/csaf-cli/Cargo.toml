@@ -55,3 +55,14 @@ path = "src/main.rs"
 [package.metadata.binstall]
 pkg-url = "{ repo }/releases/download/v{ version }/csaf-{ target }{ binary-ext }"
 pkg-fmt = "bin"
+
+[package.metadata.cargo-all-features]
+always_include_features = [
+    "crypto-nettle",
+]
+denylist = [
+    "crypto-cng",
+    "crypto-openssl",
+    "crypto-botan",
+    "crypto-rust",
+]

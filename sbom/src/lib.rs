@@ -5,3 +5,5 @@ pub mod source;
 pub mod validation;
 pub mod visitors;
 pub mod walker;
+
+pub use model::sbom::Sbom;

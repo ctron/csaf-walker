@@ -31,6 +31,7 @@ serde_json = "1"
 thiserror = "1"
 time = "0.3.20"
 tokio = { version = "1", features = ["full"] }
+bzip2-rs = { version = "0.1", features = ["rustc_1_37"] }
 
 walker-common = { version = "0.4.0", path = "../../common" }
 sbom-walker = { version = "0.4.0", path = "..", default-features = false }
@@ -39,14 +40,28 @@ sbom-walker = { version = "0.4.0", path = "..", default-features = false }
 openssl = { version = "0.10", optional = true }
 
 [features]
-default = ["crypto-nettle"]
+default = ["crypto-nettle", "cyclonedx-rust", "spdx-rs"]
 crypto-cng = ["sbom-walker/crypto-cng"]
 crypto-nettle = ["sbom-walker/crypto-nettle"]
 crypto-openssl = ["sbom-walker/crypto-openssl"]
 crypto-botan = ["sbom-walker/crypto-botan"]
 crypto-rust = ["sbom-walker/crypto-rust"]
 
+cyclonedx-rust = ["sbom-walker/cyclonedx-rust"]
+spdx-rs = ["sbom-walker/spdx-rs"]
+
 vendored = ["openssl/vendored"]
+
+[package.metadata.cargo-all-features]
+always_include_features = [
+    "crypto-nettle",
+]
+denylist = [
+    "crypto-cng",
+    "crypto-openssl",
+    "crypto-botan",
+    "crypto-rust",
+]
 
 [[bin]]
 name = "sbom"
@@ -55,3 +70,4 @@ path = "src/main.rs"
 [package.metadata.binstall]
 pkg-url = "{ repo }/releases/download/v{ version }/sbom-{ target }{ binary-ext }"
 pkg-fmt = "bin"
+

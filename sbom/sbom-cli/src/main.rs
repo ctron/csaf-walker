@@ -1,7 +1,7 @@
 mod cmd;
 mod common;
 
-use crate::cmd::{discover::Discover, download::Download, sync::Sync};
+use crate::cmd::{discover::Discover, download::Download, scan::Scan, sync::Sync};
 use clap::Parser;
 use indicatif::MultiProgress;
 use indicatif_log_bridge::LogWrapper;
@@ -41,6 +41,7 @@ enum Command {
     Discover(Discover),
     Download(Download),
     Sync(Sync),
+    Scan(Scan),
 }
 
 impl Command {
@@ -49,6 +50,7 @@ impl Command {
             Command::Discover(cmd) => cmd.run(progress).await,
             Command::Download(cmd) => cmd.run(progress).await,
             Command::Sync(cmd) => cmd.run(progress).await,
+            Command::Scan(cmd) => cmd.run(progress).await,
         }
     }
 }
@@ -70,19 +72,19 @@ impl Cli {
             (true, _) => builder.filter_level(LevelFilter::Off),
             (_, 0) => builder
                 .filter_level(LevelFilter::Warn)
-                .filter_module("csaf", LevelFilter::Info),
+                .filter_module("sbom", LevelFilter::Info),
             (_, 1) => builder
                 .filter_level(LevelFilter::Warn)
-                .filter_module("csaf", LevelFilter::Info)
-                .filter_module("csaf_walker", LevelFilter::Info),
+                .filter_module("sbom", LevelFilter::Info)
+                .filter_module("v_walker", LevelFilter::Info),
             (_, 2) => builder
                 .filter_level(LevelFilter::Warn)
-                .filter_module("csaf", LevelFilter::Debug)
-                .filter_module("csaf_walker", LevelFilter::Debug),
+                .filter_module("sbom", LevelFilter::Debug)
+                .filter_module("sbom_walker", LevelFilter::Debug),
             (_, 3) => builder
                 .filter_level(LevelFilter::Info)
-                .filter_module("csaf", LevelFilter::Debug)
-                .filter_module("csaf_walker", LevelFilter::Debug),
+                .filter_module("sbom", LevelFilter::Debug)
+                .filter_module("sbom_walker", LevelFilter::Debug),
             (_, 4) => builder.filter_level(LevelFilter::Debug),
             (_, _) => builder.filter_level(LevelFilter::Trace),
         };

@@ -1,9 +1,11 @@
 //! Sources
 
 mod dispatch;
+mod file;
 mod http;
 
 pub use dispatch::*;
+pub use file::*;
 pub use http::*;
 
 use crate::discover::DiscoveredSbom;

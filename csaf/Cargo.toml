@@ -47,3 +47,14 @@ crypto-rust = ["sequoia-openpgp/crypto-rust"]
 # workaround until xattr fixes its win32 compilation issues.
 [target.'cfg(any(unix, macos))'.dependencies]
 xattr = { version = "1" }
+
+[package.metadata.cargo-all-features]
+always_include_features = [
+    "crypto-nettle",
+]
+denylist = [
+    "crypto-cng",
+    "crypto-openssl",
+    "crypto-botan",
+    "crypto-rust",
+]

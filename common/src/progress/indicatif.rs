@@ -27,6 +27,10 @@ impl ProgressBar for IndicatifProgressBar {
     fn set_message(&self, msg: Cow<'static, str>) {
         self.0.set_message(msg);
     }
+
+    fn println(&self, msg: &str) {
+        self.0.println(msg);
+    }
 }
 
 pub struct MultiIndicatif(pub MultiProgress);

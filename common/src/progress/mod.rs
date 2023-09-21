@@ -41,6 +41,7 @@ pub trait ProgressImpl {
 pub trait ProgressBar {
     fn tick(&self);
     fn set_message(&self, msg: Cow<'static, str>);
+    fn println(&self, msg: &str);
 }
 
 /// A no-op implementation
@@ -55,4 +56,7 @@ impl ProgressImpl for NoProgress {
 impl ProgressBar for () {
     fn tick(&self) {}
     fn set_message(&self, _msg: Cow<'static, str>) {}
+    fn println(&self, msg: &str) {
+        println!("{}", msg);
+    }
 }
