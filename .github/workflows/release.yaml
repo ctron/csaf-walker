@@ -139,8 +139,7 @@ jobs:
             CMD="cross"
           fi
           
-          env NETTLE_STATIC=yes ${CMD} build -p csaf-cli ${OPTS}
-          env NETTLE_STATIC=yes ${CMD} build -p sbom-cli ${OPTS}
+          env NETTLE_STATIC=yes ${CMD} build ${OPTS}
 
       - name: List output
         shell: bash
