@@ -42,3 +42,6 @@ default = ["bzip2"]
 always_include_features = [
     "sequoia-openpgp/crypto-nettle",
 ]
+
+[package.metadata.release]
+enable-features = ["sequoia-openpgp/crypto-nettle"]
