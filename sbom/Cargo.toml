@@ -43,7 +43,3 @@ crypto-nettle = ["sequoia-openpgp/crypto-nettle"]
 crypto-openssl = ["sequoia-openpgp/crypto-openssl"]
 crypto-botan = ["sequoia-openpgp/crypto-botan"]
 crypto-rust = ["sequoia-openpgp/crypto-rust"]
-
-# workaround until xattr fixes its win32 compilation issues.
-[target.'cfg(any(unix, macos))'.dependencies]
-xattr = { version = "1" }
