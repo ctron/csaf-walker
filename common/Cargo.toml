@@ -45,3 +45,4 @@ always_include_features = [
 
 [package.metadata.release]
 enable-features = ["sequoia-openpgp/crypto-nettle"]
+tag = true
