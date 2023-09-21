@@ -1,7 +1,7 @@
 mod cmd;
 mod common;
 
-use crate::cmd::{discover::Discover, download::Download, scan::Scan, sync::Sync};
+use crate::cmd::{discover::Discover, download::Download, report::Report, scan::Scan, sync::Sync};
 use clap::Parser;
 use indicatif::MultiProgress;
 use indicatif_log_bridge::LogWrapper;
@@ -42,6 +42,7 @@ enum Command {
     Download(Download),
     Sync(Sync),
     Scan(Scan),
+    Report(Report),
 }
 
 impl Command {
@@ -51,6 +52,7 @@ impl Command {
             Command::Download(cmd) => cmd.run(progress).await,
             Command::Sync(cmd) => cmd.run(progress).await,
             Command::Scan(cmd) => cmd.run(progress).await,
+            Command::Report(cmd) => cmd.run(progress).await,
         }
     }
 }

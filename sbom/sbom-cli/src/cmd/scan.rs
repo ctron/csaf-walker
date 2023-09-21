@@ -1,12 +1,14 @@
 use crate::{cmd::DiscoverArguments, common::walk_standard};
-use bzip2_rs::DecoderReader;
-use sbom_walker::validation::{ValidatedSbom, ValidationError};
-use sbom_walker::Sbom;
-use std::borrow::Cow;
-use std::io::Read;
-use tokio::runtime::Handle;
+use sbom_walker::{
+    discover::DiscoveredSbom,
+    retrieve::RetrievedSbom,
+    validation::{ValidatedSbom, ValidationError},
+    Sbom,
+};
+use tokio::task;
 use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
+    compression::decompress,
     progress::Progress,
 };
 
@@ -36,28 +38,26 @@ impl Scan {
             self.validation,
             |advisory: Result<ValidatedSbom, ValidationError>| async move {
                 match advisory {
-                    Ok(adv) => {
-                        println!("Advisory: {}", adv.url);
-                        log::debug!("  Metadata: {:?}", adv.sha256);
-                        log::debug!("    SHA256: {:?}", adv.sha256);
-                        log::debug!("    SHA512: {:?}", adv.sha512);
+                    Ok(sbom) => {
+                        println!("Advisory: {}", sbom.url);
+                        log::debug!("  Metadata: {:?}", sbom.sha256);
+                        log::debug!("    SHA256: {:?}", sbom.sha256);
+                        log::debug!("    SHA512: {:?}", sbom.sha512);
 
-                        let data = if adv.url.path().ends_with(".bz2") {
-                            let mut decoder = DecoderReader::new(adv.data.as_ref());
-                            let mut data = vec![];
-                            decoder.read_to_end(&mut data)?;
-                            Cow::<[u8]>::Owned(data)
-                        } else {
-                            Cow::Borrowed(adv.data.as_ref())
-                        };
+                        let ValidatedSbom {
+                            retrieved:
+                                RetrievedSbom {
+                                    data,
+                                    discovered: DiscoveredSbom { url, .. },
+                                    ..
+                                },
+                        } = sbom;
+
+                        let data =
+                            task::spawn_blocking(move || decompress(data, url.path())).await??;
 
                         match Sbom::try_parse_any(&data) {
-                            Ok(sbom) => {
-                                Handle::current()
-                                    .spawn_blocking(move || process_sbom(sbom))
-                                    .await?;
-                            }
-
+                            Ok(sbom) => process_sbom(sbom),
                             Err(err) => {
                                 eprintln!("  Format error: {err}");
                             }

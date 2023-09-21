@@ -1,6 +1,6 @@
 //! SBOM Model
 
-use anyhow::{anyhow, bail, Context, Error};
+use anyhow::{anyhow, bail, Context};
 use serde::Deserialize;
 use serde_json::Value;
 use std::fmt::{Debug, Display, Formatter};
@@ -30,11 +30,13 @@ impl Debug for Sbom {
     }
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct ParseAnyError(Vec<(ParserKind, anyhow::Error)>);
 
+impl std::error::Error for ParseAnyError {}
+
 impl From<(ParserKind, anyhow::Error)> for ParseAnyError {
-    fn from(value: (ParserKind, Error)) -> Self {
+    fn from(value: (ParserKind, anyhow::Error)) -> Self {
         Self(vec![value])
     }
 }
@@ -125,7 +127,7 @@ impl Sbom {
                 Ok("1.2" | "1.3") => {
                     return Self::try_cyclonedx_json(JsonPayload::Value(json)).map_err(|e| {
                         // drop any previous error, as we know what format and version it is
-                        ParseAnyError::from((ParserKind::Cyclone13DxJson, e.into())).into()
+                        ParseAnyError::from((ParserKind::Cyclone13DxJson, e.into()))
                     });
                 }
                 Ok(version) => {
@@ -134,8 +136,7 @@ impl Sbom {
                     return Err(ParseAnyError::from((
                         ParserKind::Cyclone13DxJson,
                         anyhow!("Unsupported CycloneDX version: {version}"),
-                    ))
-                    .into());
+                    )));
                 }
                 // failed to detect as CycloneDX, record error and move on
                 Err(e) => err.add(ParserKind::Cyclone13DxJson, e),
@@ -145,16 +146,16 @@ impl Sbom {
                 Ok("SPDX-2.2" | "SPDX-2.3") => {
                     return Self::try_spdx_json(JsonPayload::Value(json)).map_err(|e| {
                         // drop any previous error, as we know what format and version it is
-                        ParseAnyError::from((ParserKind::Spdx23Json, e.into())).into()
+                        ParseAnyError::from((ParserKind::Spdx23Json, e.into()))
                     });
                 }
                 Ok(version) => {
                     // We can stop here, and drop any previous error, as we know what the format is.
                     // But we disagree with the version.
-                    return Err(ParseAnyError::from((
+                    Err(ParseAnyError::from((
                         ParserKind::Spdx23Json,
                         anyhow!("Unsupported SPDX version: {version}"),
-                    )));
+                    )))
                 }
                 Err(e) => Err(err.add(ParserKind::Spdx23Json, e)),
             }
@@ -162,17 +163,17 @@ impl Sbom {
             // it is not JSON, it could be XML or "tagged"
             let mut err = ParseAnyError::new();
 
-            match Self::try_cyclonedx_xml(&data) {
+            match Self::try_cyclonedx_xml(data) {
                 Ok(doc) => return Ok(doc),
                 Err(e) => err = err.add(ParserKind::Cyclone13DxXml, e.into()),
             }
 
             match std::str::from_utf8(data)
                 .context("interpret bytes as string")
-                .and_then(|data| Self::try_spdx_tag(&data).map_err(|err| err.into()))
+                .and_then(|data| Self::try_spdx_tag(data).map_err(|err| err.into()))
             {
                 Ok(doc) => return Ok(doc),
-                Err(e) => err = err.add(ParserKind::Spdx23Tag, e.into()),
+                Err(e) => err = err.add(ParserKind::Spdx23Tag, e),
             }
 
             Err(err)

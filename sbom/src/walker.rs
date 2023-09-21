@@ -85,6 +85,8 @@ impl<S: Source> Walker<S> {
     where
         V: DiscoveredVisitor,
     {
+        log::debug!("Running {limit} workers");
+
         let metadata = self.source.load_metadata().await.map_err(Error::Source)?;
         let context = visitor
             .visit_context(&DiscoveredContext {

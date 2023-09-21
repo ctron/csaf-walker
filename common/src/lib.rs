@@ -1,5 +1,6 @@
 pub mod changes;
 pub mod cli;
+pub mod compression;
 pub mod fetcher;
 pub mod progress;
 pub mod retrieve;
