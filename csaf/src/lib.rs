@@ -9,9 +9,9 @@
 //! use url::Url;
 //! use csaf_walker::source::HttpSource;
 //! use csaf_walker::walker::Walker;
-//! use csaf_walker::fetcher::Fetcher;
 //! use csaf_walker::retrieve::RetrievingVisitor;
 //! use csaf_walker::validation::{ValidatedAdvisory, ValidationError, ValidationVisitor};
+//! use walker_common::fetcher::Fetcher;
 //!
 //! async fn walk() -> Result<()> {
 //!   let fetcher = Fetcher::new(Default::default()).await?;
