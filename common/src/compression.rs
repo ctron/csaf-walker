@@ -1,12 +1,11 @@
 use bytes::Bytes;
 
+/// Decompress a bz2 stream, or fail if no encoder was configured.
 pub fn decompress<'a>(data: Bytes, name: &str) -> Result<Bytes, anyhow::Error> {
     if name.ends_with(".bz2") {
-        #[cfg(all(feature = "bzip2", not(feature = "bzip2-rs")))]
+        #[cfg(any(feature = "bzip2", feature = "bzip2-rs"))]
         return Ok(decompress_bzip2(&data)?);
-        #[cfg(all(feature = "bzip2-rs", not(feature = "bzip2")))]
-        return Ok(decompress_bzip2_rs(&data)?);
-        #[cfg(all(not(feature = "bzip2-rs"), not(feature = "bzip2")))]
+        #[cfg(not(any(feature = "bzip2", feature = "bzip2-rs")))]
         anyhow::bail!("No bz2 decoder enabled");
     }
 
@@ -14,8 +13,8 @@ pub fn decompress<'a>(data: Bytes, name: &str) -> Result<Bytes, anyhow::Error> {
 }
 
 /// Decompress bz2 using `bzip2-rs` (pure Rust version)
-#[cfg(feature = "bzip2-rs")]
-pub fn decompress_bzip2_rs(data: &[u8]) -> Result<Bytes, std::io::Error> {
+#[cfg(all(feature = "bzip2-rs", not(feature = "bzip2")))]
+pub fn decompress_bzip2(data: &[u8]) -> Result<Bytes, std::io::Error> {
     use std::io::Read;
 
     let mut decoder = bzip2_rs::DecoderReader::new(data);
