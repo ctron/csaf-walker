@@ -54,9 +54,7 @@ jobs:
       matrix:
         target:
           - aarch64-unknown-linux-gnu
-          - aarch64-unknown-linux-musl
           - x86_64-unknown-linux-gnu
-          - x86_64-unknown-linux-musl
           - x86_64-apple-darwin
           - aarch64-apple-darwin
           - x86_64-pc-windows-msvc
@@ -65,15 +63,7 @@ jobs:
             os: ubuntu-22.04
             install: sudo apt install clang llvm pkg-config nettle-dev
             args: --features vendored,crypto-openssl,walker-common/bzip2-rs --no-default-features
-          - target: x86_64-unknown-linux-musl
-            os: ubuntu-22.04
-            install: sudo apt install clang llvm pkg-config nettle-dev
-            args: --features vendored,crypto-openssl,walker-common/bzip2-rs --no-default-features
           - target: aarch64-unknown-linux-gnu
-            os: ubuntu-22.04
-            cross: "true"
-            args: --features vendored,crypto-openssl,walker-common/bzip2-rs --no-default-features
-          - target: aarch64-unknown-linux-musl
             os: ubuntu-22.04
             cross: "true"
             args: --features vendored,crypto-openssl,walker-common/bzip2-rs --no-default-features
