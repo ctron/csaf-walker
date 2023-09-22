@@ -1,7 +1,7 @@
 use bytes::Bytes;
 
 /// Decompress a bz2 stream, or fail if no encoder was configured.
-pub fn decompress<'a>(data: Bytes, name: &str) -> Result<Bytes, anyhow::Error> {
+pub fn decompress(data: Bytes, name: &str) -> Result<Bytes, anyhow::Error> {
     if name.ends_with(".bz2") {
         #[cfg(any(feature = "bzip2", feature = "bzip2-rs"))]
         return Ok(decompress_bzip2(&data)?);
