@@ -34,21 +34,18 @@ tokio = { version = "1", features = ["full"] }
 bzip2-rs = { version = "0.1", features = ["rustc_1_37"] }
 
 walker-common = { version = "0.4.4", path = "../../common" }
-sbom-walker = { version = "0.4.4", path = "..", default-features = false }
+sbom-walker = { version = "0.4.4", path = "..", default-features = false, features = ["cyclonedx-rust", "spdx-rs"] }
 
 # just there for the feature
 openssl = { version = "0.10", optional = true }
 
 [features]
-default = ["crypto-nettle", "cyclonedx-rust", "spdx-rs"]
+default = ["crypto-nettle"]
 crypto-cng = ["sbom-walker/crypto-cng"]
 crypto-nettle = ["sbom-walker/crypto-nettle"]
 crypto-openssl = ["sbom-walker/crypto-openssl"]
 crypto-botan = ["sbom-walker/crypto-botan"]
 crypto-rust = ["sbom-walker/crypto-rust"]
-
-cyclonedx-rust = ["sbom-walker/cyclonedx-rust"]
-spdx-rs = ["sbom-walker/spdx-rs"]
 
 vendored = ["openssl/vendored"]
 

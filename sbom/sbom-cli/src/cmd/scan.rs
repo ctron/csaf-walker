@@ -85,6 +85,7 @@ fn process_sbom(sbom: Sbom) {
                 sbom.document_creation_information.document_name
             );
         }
+
         Sbom::CycloneDx(_sbom) => {
             println!("  CycloneDX");
         }
