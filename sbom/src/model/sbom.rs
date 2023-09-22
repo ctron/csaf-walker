@@ -169,7 +169,7 @@ impl Sbom {
             }
 
             match std::str::from_utf8(data)
-                .context("interpret bytes as string")
+                .context("unable to interpret bytes as string")
                 .and_then(|data| Self::try_spdx_tag(data).map_err(|err| err.into()))
             {
                 Ok(doc) => return Ok(doc),
