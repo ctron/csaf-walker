@@ -7,11 +7,11 @@ use csaf_walker::{
     validation::ValidationVisitor,
     visitors::{skip::SkipExistingVisitor, store::StoreVisitor},
 };
-use walker_common::validate::ValidationOptions;
 use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
     progress::Progress,
     since::Since,
+    validate::ValidationOptions,
 };
 
 /// Sync only what changed, and don't validate.
