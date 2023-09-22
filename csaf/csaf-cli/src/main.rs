@@ -2,7 +2,9 @@ mod cmd;
 mod common;
 
 use clap::Parser;
-use cmd::{discover::Discover, download::Download, report::Report, scan::Scan, sync::Sync};
+use cmd::{
+    discover::Discover, download::Download, report::Report, scan::Scan, send::Send, sync::Sync,
+};
 use indicatif::MultiProgress;
 use indicatif_log_bridge::LogWrapper;
 use log::LevelFilter;
@@ -43,6 +45,7 @@ enum Command {
     Discover(Discover),
     Sync(Sync),
     Report(Report),
+    Send(Send),
 }
 
 impl Command {
@@ -53,6 +56,7 @@ impl Command {
             Command::Discover(cmd) => cmd.run(progress).await,
             Command::Sync(cmd) => cmd.run(progress).await,
             Command::Report(cmd) => cmd.run(progress).await,
+            Command::Send(cmd) => cmd.run(progress).await,
         }
     }
 }

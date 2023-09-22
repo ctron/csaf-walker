@@ -33,13 +33,13 @@ cargo binstall sbom-cli
 You can download all documents be providing a link to the metadata endpoint:
 
 ```shell
-csaf download -3 -v -d out/ https://www.redhat.com/.well-known/csaf/provider-metadata.json
+csaf download -3 -v -d out/ https://www.redhat.com
 ```
 
 It is also possible to only download validated files:
 
 ```shell
-csaf sync -3 -v -d out/ https://www.redhat.com/.well-known/csaf/provider-metadata.json
+csaf sync -3 -v -d out/ https://www.redhat.com
 ```
 
 > [!NOTE]
@@ -64,6 +64,20 @@ when the application started processing.
 
 If both `--since` and `--since-file` are provided, then the "since file" will be used first, and the "since" value will
 act as a fallback if the file is not present.
+
+### Sending data
+
+Instead of storing, it is also possible to send data to a remote instance (using the Vexination or Bombastic API).
+
+```shell
+csaf send -3 https://www.redhat.com http://localhost:8083
+```
+
+Of course, it is also possible use the filesystem as source:
+
+```shell
+csaf send -3 out/ http://localhost:8083
+```
 
 ## As a library
 

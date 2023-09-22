@@ -1,12 +1,18 @@
 use anyhow::Context;
+use csaf_walker::visitors::send::SendVisitor;
 use csaf_walker::visitors::store::StoreVisitor;
 use flexible_time::timestamp::StartTimestamp;
+use reqwest::Url;
 use std::path::PathBuf;
+use walker_common::sender;
+use walker_common::sender::provider::OpenIdTokenProviderConfigArguments;
+use walker_common::sender::HttpSender;
 
 pub mod discover;
 pub mod download;
 pub mod report;
 pub mod scan;
+pub mod send;
 pub mod sync;
 
 #[derive(Debug, clap::Parser)]
@@ -50,6 +56,43 @@ impl TryFrom<StoreArguments> for StoreVisitor {
             no_xattrs: value.no_xattrs,
             no_timestamps: value.no_timestamps,
             base,
+        })
+    }
+}
+
+#[derive(Debug, clap::Parser)]
+#[command(next_help_heading = "Sending")]
+pub struct SendArguments {
+    /// Target to send to
+    pub target: Url,
+
+    /// Sender connect timeout
+    #[arg(id = "sender-connect-timeout", long, default_value = "15s")]
+    pub connect_timeout: humantime::Duration,
+
+    /// Sender request timeout
+    #[arg(id = "sender-timeout", long, default_value = "5m")]
+    pub timeout: humantime::Duration,
+
+    #[command(flatten)]
+    pub oidc: OpenIdTokenProviderConfigArguments,
+}
+
+impl SendArguments {
+    pub async fn into_visitor(self) -> Result<SendVisitor, anyhow::Error> {
+        let provider = self.oidc.into_provider().await?;
+        let sender = HttpSender::new(
+            provider,
+            sender::Options {
+                connect_timeout: Some(self.connect_timeout.into()),
+                timeout: Some(self.timeout.into()),
+            },
+        )
+        .await?;
+
+        Ok(SendVisitor {
+            url: self.target,
+            sender,
         })
     }
 }

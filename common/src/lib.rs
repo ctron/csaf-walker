@@ -4,6 +4,7 @@ pub mod compression;
 pub mod fetcher;
 pub mod progress;
 pub mod retrieve;
+pub mod sender;
 pub mod since;
 pub mod utils;
 pub mod validate;
