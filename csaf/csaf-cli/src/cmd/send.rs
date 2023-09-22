@@ -3,7 +3,8 @@ use crate::{
     common::{walk_visitor, DiscoverConfig},
 };
 use csaf_walker::{
-    retrieve::RetrievingVisitor, validation::ValidationVisitor, visitors::send::SendVisitor,
+    retrieve::RetrievingVisitor, visitors::send::SendVisitor,
+    visitors::skip::MaySkipValidationVisitor,
 };
 use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
@@ -32,12 +33,20 @@ pub struct Send {
 
     #[command(flatten)]
     send: SendArguments,
+
+    /// Disable validation of digest and signatures (DANGER!)
+    #[arg(long)]
+    disable_validation: bool,
 }
 
 impl Send {
     pub async fn run(self, progress: Progress) -> anyhow::Result<()> {
         let options: ValidationOptions = self.validation.into();
         let send: SendVisitor = self.send.into_visitor().await?;
+
+        if self.disable_validation {
+            log::warn!("Validation is disabled");
+        }
 
         let since = Since::new(
             self.skip.since,
@@ -55,10 +64,9 @@ impl Send {
             self.runner,
             move |source| async move {
                 let visitor = {
-                    RetrievingVisitor::new(
-                        source.clone(),
-                        ValidationVisitor::new(send).with_options(options),
-                    )
+                    RetrievingVisitor::new(source.clone(), {
+                        MaySkipValidationVisitor::new(self.disable_validation, send, Some(options))
+                    })
                 };
 
                 Ok(visitor)
