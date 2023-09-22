@@ -47,6 +47,10 @@ jobs:
         run: |
           cargo binstall -y cargo-all-features
 
+      - name: Install dependencies
+        run: |
+          sudo apt install clang llvm pkg-config nettle-dev
+
       - name: Check (all features)
         run: |
           cargo check-all-features
