@@ -78,7 +78,7 @@ impl Cli {
             (_, 1) => builder
                 .filter_level(LevelFilter::Warn)
                 .filter_module("sbom", LevelFilter::Info)
-                .filter_module("v_walker", LevelFilter::Info),
+                .filter_module("sbom_walker", LevelFilter::Info),
             (_, 2) => builder
                 .filter_level(LevelFilter::Warn)
                 .filter_module("sbom", LevelFilter::Debug)
