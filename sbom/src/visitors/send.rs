@@ -96,13 +96,28 @@ impl SendVisitor {
             ..
         } = advisory;
 
-        let response = self
+        let name = url
+            .path_segments()
+            .and_then(|p| p.last())
+            .unwrap_or_else(|| url.path());
+
+        if !(name.ends_with(".json") || name.ends_with(".json.bz2")) {
+            log::warn!("Skipping unknown file: {name}");
+            return Ok(());
+        }
+
+        let mut request = self
             .sender
             .request(Method::POST, self.url.clone())
             .await?
-            .body(Body::from(data))
-            .send()
-            .await?;
+            .header(header::CONTENT_TYPE, "application/json")
+            .query(&[("id", name)]);
+
+        if name.ends_with(".bz2") {
+            request = request.header(header::CONTENT_ENCODING, "bzip2");
+        }
+
+        let response = request.body(Body::from(data)).send().await?;
 
         let status = response.status();
 
