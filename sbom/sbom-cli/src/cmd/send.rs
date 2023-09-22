@@ -3,8 +3,8 @@ use crate::{
     common::{walk_visitor, DiscoverConfig},
 };
 use sbom_walker::{
-    retrieve::RetrievingVisitor, visitors::send::SendVisitor,
-    visitors::skip::MaySkipValidationVisitor,
+    retrieve::RetrievingVisitor, validation::ValidationVisitor, visitors::send::SendVisitor,
+    visitors::skip::SkipFailedVisitor,
 };
 use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
@@ -65,7 +65,11 @@ impl Send {
             move |source| async move {
                 let visitor = {
                     RetrievingVisitor::new(source.clone(), {
-                        MaySkipValidationVisitor::new(self.disable_validation, send, Some(options))
+                        ValidationVisitor::new(SkipFailedVisitor {
+                            skip_failures: self.disable_validation,
+                            visitor: send,
+                        })
+                        .with_options(options)
                     })
                 };
 

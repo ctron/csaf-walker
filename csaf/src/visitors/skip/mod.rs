@@ -1,7 +1,3 @@
-mod maybe;
-
-pub use maybe::*;
-
 use crate::discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor};
 use crate::validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, ValidationError};
 use async_trait::async_trait;
@@ -91,13 +87,18 @@ impl<V: DiscoveredVisitor> DiscoveredVisitor for SkipExistingVisitor<V> {
     }
 }
 
+/// A visitor which will skip (with a warning) any failed document.
 pub struct SkipFailedVisitor<V> {
     pub visitor: V,
+    pub skip_failures: bool,
 }
 
 impl<V> SkipFailedVisitor<V> {
     pub fn new(visitor: V) -> Self {
-        Self { visitor }
+        Self {
+            visitor,
+            skip_failures: true,
+        }
     }
 }
 
@@ -118,11 +119,13 @@ impl<V: ValidatedVisitor> ValidatedVisitor for SkipFailedVisitor<V> {
         context: &Self::Context,
         result: Result<ValidatedAdvisory, ValidationError>,
     ) -> Result<(), Self::Error> {
-        if let Err(err) = &result {
-            log::warn!("Skipping failed advisory: {err}");
-            return Ok(());
+        match (self.skip_failures, result) {
+            (_, Ok(result)) => self.visitor.visit_advisory(context, Ok(result)).await,
+            (false, Err(err)) => self.visitor.visit_advisory(context, Err(err)).await,
+            (true, Err(err)) => {
+                log::warn!("Skipping failed advisory ({}): {err}", err.url());
+                Ok(())
+            }
         }
-
-        self.visitor.visit_advisory(context, result).await
     }
 }
