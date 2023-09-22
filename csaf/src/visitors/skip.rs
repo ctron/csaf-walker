@@ -87,7 +87,7 @@ impl<V: DiscoveredVisitor> DiscoveredVisitor for SkipExistingVisitor<V> {
     }
 }
 
-/// A visitor skipping failed [`ValidatedAdvisories`]
+/// A visitor skipping failed [`ValidatedAdvisory`]
 pub struct SkipFailedVisitor<V> {
     pub disabled: bool,
     pub visitor: V,

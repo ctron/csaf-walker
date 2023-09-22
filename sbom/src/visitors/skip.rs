@@ -1,5 +1,5 @@
 use crate::discover::{DiscoveredContext, DiscoveredSbom, DiscoveredVisitor};
-// use crate::validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, ValidationError};
+use crate::validation::{ValidatedSbom, ValidatedVisitor, ValidationContext, ValidationError};
 use async_trait::async_trait;
 use std::fmt::{Debug, Display};
 use std::path::PathBuf;
@@ -87,7 +87,7 @@ impl<V: DiscoveredVisitor> DiscoveredVisitor for SkipExistingVisitor<V> {
     }
 }
 
-/// A visitor skipping failed [`ValidatedAdvisories`]
+/// A visitor skipping failed [`ValidatedSbom`]
 pub struct SkipFailedVisitor<V> {
     pub disabled: bool,
     pub visitor: V,
@@ -102,7 +102,6 @@ impl<V> SkipFailedVisitor<V> {
     }
 }
 
-/*
 #[async_trait(?Send)]
 impl<V: ValidatedVisitor> ValidatedVisitor for SkipFailedVisitor<V> {
     type Error = V::Error;
@@ -118,7 +117,7 @@ impl<V: ValidatedVisitor> ValidatedVisitor for SkipFailedVisitor<V> {
     async fn visit_advisory(
         &self,
         context: &Self::Context,
-        result: Result<ValidatedAdvisory, ValidationError>,
+        result: Result<ValidatedSbom, ValidationError>,
     ) -> Result<(), Self::Error> {
         if let Err(err) = &result {
             log::warn!("Skipping failed advisory: {err}");
@@ -128,4 +127,3 @@ impl<V: ValidatedVisitor> ValidatedVisitor for SkipFailedVisitor<V> {
         self.visitor.visit_advisory(context, result).await
     }
 }
-*/
