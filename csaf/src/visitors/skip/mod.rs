@@ -1,5 +1,9 @@
-use crate::discover::{DiscoveredContext, DiscoveredSbom, DiscoveredVisitor};
-use crate::validation::{ValidatedSbom, ValidatedVisitor, ValidationContext, ValidationError};
+mod maybe;
+
+pub use maybe::*;
+
+use crate::discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor};
+use crate::validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, ValidationError};
 use async_trait::async_trait;
 use std::fmt::{Debug, Display};
 use std::path::PathBuf;
@@ -41,18 +45,18 @@ impl<V: DiscoveredVisitor> DiscoveredVisitor for SkipExistingVisitor<V> {
             .map_err(Error::Visitor)
     }
 
-    async fn visit_sbom(
+    async fn visit_advisory(
         &self,
         context: &Self::Context,
-        sbom: DiscoveredSbom,
+        advisory: DiscoveredAdvisory,
     ) -> Result<(), Self::Error> {
-        let name = PathBuf::from(sbom.url.path());
+        let name = PathBuf::from(advisory.url.path());
         let name = name.file_name().ok_or(Error::Name)?;
 
         let path = self.output.join(name);
 
         if fs::try_exists(&path).await? {
-            if let Some(modified) = sbom.modified {
+            if let Some(modified) = advisory.modified {
                 // if we have a "since", we use it as the file modification timestamp
                 let file_modified = match self.since {
                     Some(since) => since,
@@ -81,24 +85,19 @@ impl<V: DiscoveredVisitor> DiscoveredVisitor for SkipExistingVisitor<V> {
         }
 
         self.visitor
-            .visit_sbom(context, sbom)
+            .visit_advisory(context, advisory)
             .await
             .map_err(Error::Visitor)
     }
 }
 
-/// A visitor skipping failed [`ValidatedSbom`]
 pub struct SkipFailedVisitor<V> {
-    pub disabled: bool,
     pub visitor: V,
 }
 
 impl<V> SkipFailedVisitor<V> {
     pub fn new(visitor: V) -> Self {
-        Self {
-            visitor,
-            disabled: false,
-        }
+        Self { visitor }
     }
 }
 
@@ -117,7 +116,7 @@ impl<V: ValidatedVisitor> ValidatedVisitor for SkipFailedVisitor<V> {
     async fn visit_advisory(
         &self,
         context: &Self::Context,
-        result: Result<ValidatedSbom, ValidationError>,
+        result: Result<ValidatedAdvisory, ValidationError>,
     ) -> Result<(), Self::Error> {
         if let Err(err) = &result {
             log::warn!("Skipping failed advisory: {err}");

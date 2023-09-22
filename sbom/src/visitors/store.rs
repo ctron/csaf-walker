@@ -87,7 +87,7 @@ impl ValidatedVisitor for StoreVisitor {
         Ok(())
     }
 
-    async fn visit_advisory(
+    async fn visit_sbom(
         &self,
         _context: &Self::Context,
         result: Result<ValidatedSbom, ValidationError>,

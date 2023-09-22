@@ -99,7 +99,7 @@ pub trait ValidatedVisitor {
         context: &ValidationContext,
     ) -> Result<Self::Context, Self::Error>;
 
-    async fn visit_advisory(
+    async fn visit_sbom(
         &self,
         context: &Self::Context,
         result: Result<ValidatedSbom, ValidationError>,
@@ -123,7 +123,7 @@ where
         Ok(())
     }
 
-    async fn visit_advisory(
+    async fn visit_sbom(
         &self,
         _context: &Self::Context,
         result: Result<ValidatedSbom, ValidationError>,
@@ -272,13 +272,13 @@ where
                     Err(ValidationProcessError::Abort(err)) => return Err(Error::Validation(err)),
                 };
                 self.visitor
-                    .visit_advisory(&context.context, result)
+                    .visit_sbom(&context.context, result)
                     .await
                     .map_err(Error::Visitor)?
             }
             Err(err) => self
                 .visitor
-                .visit_advisory(&context.context, Err(ValidationError::Retrieval(err)))
+                .visit_sbom(&context.context, Err(ValidationError::Retrieval(err)))
                 .await
                 .map_err(Error::Visitor)?,
         }
