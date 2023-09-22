@@ -22,6 +22,35 @@ jobs:
         run: |
           cargo fmt --check
 
+  check-all:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: linux-cargo-all-${{ hashFiles('**/Cargo.toml') }}
+
+      - name: Install binstall
+        run: |
+          curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+
+      - name: Install cargo-all-features
+        run: |
+          cargo binstall -y cargo-all-features
+
+      - name: Check (all features)
+        run: |
+          cargo check-all-features
+
   check:
 
     strategy:
@@ -58,7 +87,6 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-            frontend/target/
           key: ${{ runner.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.toml') }}
 
       - name: Install Rust ${{ matrix.rust }}
@@ -73,15 +101,3 @@ jobs:
 
       - name: Test
         run: cargo +${{ matrix.rust }} test --all ${{ matrix.args }} -- --nocapture
-
-      - name: Install binstall
-        run: |
-          curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-
-      - name: Install cargo-all-features
-        run: |
-          cargo binstall -y cargo-all-features
-
-      - name: Check (all features)
-        run: |
-          cargo check-all-features
