@@ -1,15 +1,23 @@
 use bytes::Bytes;
 
 /// Decompress a bz2 stream, or fail if no encoder was configured.
-pub fn decompress(data: Bytes, name: &str) -> Result<Bytes, anyhow::Error> {
+///
+/// This function will not consume the data, but return `None`, if no decompression was required.
+/// This allows one to hold on to the original, compressed, data if necessary.
+pub fn decompress_opt(data: &[u8], name: &str) -> Option<Result<Bytes, anyhow::Error>> {
     if name.ends_with(".bz2") {
         #[cfg(any(feature = "bzip2", feature = "bzip2-rs"))]
-        return Ok(decompress_bzip2(&data)?);
+        return Some(decompress_bzip2(&data).map_err(|err| err.into()));
         #[cfg(not(any(feature = "bzip2", feature = "bzip2-rs")))]
-        anyhow::bail!("No bz2 decoder enabled");
+        return Some(Err(anyhow::anyhow!("No bz2 decoder enabled")));
     }
 
-    Ok(data)
+    None
+}
+
+/// Decompress a bz2 stream, or fail if no encoder was configured.
+pub fn decompress(data: Bytes, name: &str) -> Result<Bytes, anyhow::Error> {
+    decompress_opt(&data, name).unwrap_or_else(|| Ok(data))
 }
 
 /// Decompress bz2 using `bzip2-rs` (pure Rust version)
