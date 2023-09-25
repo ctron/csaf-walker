@@ -34,7 +34,7 @@ tokio = { version = "1", features = ["full"] }
 bzip2-rs = { version = "0.1", features = ["rustc_1_37"] }
 
 walker-common = { version = "0.4.5", path = "../../common" }
-sbom-walker = { version = "0.4.5", path = "..", default-features = false, features = ["cyclonedx-rust", "spdx-rs"] }
+sbom-walker = { version = "0.4.5", path = "..", default-features = false, features = ["cyclonedx-bom", "spdx-rs"] }
 
 # just there for the feature
 openssl = { version = "0.10", optional = true }
