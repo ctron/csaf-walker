@@ -4,10 +4,10 @@ use bytes::Bytes;
 ///
 /// This function will not consume the data, but return `None`, if no decompression was required.
 /// This allows one to hold on to the original, compressed, data if necessary.
-pub fn decompress_opt(data: &[u8], name: &str) -> Option<Result<Bytes, anyhow::Error>> {
+pub fn decompress_opt(_data: &[u8], name: &str) -> Option<Result<Bytes, anyhow::Error>> {
     if name.ends_with(".bz2") {
         #[cfg(any(feature = "bzip2", feature = "bzip2-rs"))]
-        return Some(decompress_bzip2(&data).map_err(|err| err.into()));
+        return Some(decompress_bzip2(&_data).map_err(|err| err.into()));
         #[cfg(not(any(feature = "bzip2", feature = "bzip2-rs")))]
         return Some(Err(anyhow::anyhow!("No bz2 decoder enabled")));
     }
