@@ -36,7 +36,7 @@ impl Debug for Sbom {
 }
 
 #[derive(Default, Debug)]
-pub struct ParseAnyError(Vec<(ParserKind, anyhow::Error)>);
+pub struct ParseAnyError(pub Vec<(ParserKind, anyhow::Error)>);
 
 impl std::error::Error for ParseAnyError {}
 
