@@ -3,7 +3,8 @@ mod common;
 
 use clap::Parser;
 use cmd::{
-    discover::Discover, download::Download, report::Report, scan::Scan, send::Send, sync::Sync,
+    discover::Discover, download::Download, parse::Parse, report::Report, scan::Scan, send::Send,
+    sync::Sync,
 };
 use indicatif::MultiProgress;
 use indicatif_log_bridge::LogWrapper;
@@ -40,6 +41,7 @@ struct Cli {
 
 #[derive(clap::Subcommand, Debug)]
 enum Command {
+    Parse(Parse),
     Download(Download),
     Scan(Scan),
     Discover(Discover),
@@ -51,6 +53,7 @@ enum Command {
 impl Command {
     pub async fn run(self, progress: Progress) -> anyhow::Result<()> {
         match self {
+            Command::Parse(cmd) => cmd.run(progress).await,
             Command::Download(cmd) => cmd.run(progress).await,
             Command::Scan(cmd) => cmd.run(progress).await,
             Command::Discover(cmd) => cmd.run(progress).await,

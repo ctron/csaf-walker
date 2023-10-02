@@ -10,6 +10,7 @@ use walker_common::sender::HttpSender;
 
 pub mod discover;
 pub mod download;
+pub mod parse;
 pub mod report;
 pub mod scan;
 pub mod send;
