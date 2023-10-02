@@ -40,6 +40,7 @@ struct Cli {
 
 #[derive(clap::Subcommand, Debug)]
 enum Command {
+    Parse(Parse),
     Download(Download),
     Scan(Scan),
     Discover(Discover),
@@ -51,6 +52,7 @@ enum Command {
 impl Command {
     pub async fn run(self, progress: Progress) -> anyhow::Result<()> {
         match self {
+            Command::Parse(cmd) => cmd.run(progress).await,
             Command::Download(cmd) => cmd.run(progress).await,
             Command::Scan(cmd) => cmd.run(progress).await,
             Command::Discover(cmd) => cmd.run(progress).await,
