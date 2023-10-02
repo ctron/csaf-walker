@@ -3,7 +3,8 @@ mod common;
 
 use clap::Parser;
 use cmd::{
-    discover::Discover, download::Download, report::Report, scan::Scan, send::Send, sync::Sync,
+    discover::Discover, download::Download, parse::Parse, report::Report, scan::Scan, send::Send,
+    sync::Sync,
 };
 use indicatif::MultiProgress;
 use indicatif_log_bridge::LogWrapper;

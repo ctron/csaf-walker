@@ -17,7 +17,9 @@ impl Parse {
             Ok(csaf) => {
                 println!(
                     "  {} ({}): {}",
-                    csaf.document.tracking.id, csaf.document.tracking.initial_release_date, csaf.document.title
+                    csaf.document.tracking.id,
+                    csaf.document.tracking.initial_release_date,
+                    csaf.document.title
                 );
             }
             Err(err) => {
