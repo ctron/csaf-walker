@@ -227,6 +227,6 @@ impl KeySource for HttpSource {
         &self,
         key_source: Key<'a>,
     ) -> Result<PublicKey, KeySourceError<Self::Error>> {
-        self.load_public_key(key_source).await
+        self.fetcher.load_public_key(key_source).await
     }
 }
