@@ -26,6 +26,7 @@ where
 pub struct Walker<S: Source> {
     source: S,
     progress: Progress,
+    distribution_filter: Option<Box<dyn Fn(&Distribution) -> bool>>,
 }
 
 impl<S: Source> Walker<S> {
@@ -33,11 +34,20 @@ impl<S: Source> Walker<S> {
         Self {
             source,
             progress: Progress::default(),
+            distribution_filter: None,
         }
     }
 
     pub fn with_progress(mut self, progress: Progress) -> Self {
         self.progress = progress;
+        self
+    }
+
+    pub fn with_distribution_filter(
+        mut self,
+        distribution_filter: Box<dyn Fn(&Distribution) -> bool>,
+    ) -> Self {
+        self.distribution_filter = Some(distribution_filter);
         self
     }
 
@@ -55,6 +65,11 @@ impl<S: Source> Walker<S> {
             .map_err(Error::Visitor)?;
 
         for distribution in metadata.distributions {
+            if let Some(distribution_filter) = &self.distribution_filter {
+                if !distribution_filter(&distribution) {
+                    continue;
+                }
+            }
             log::debug!("Walking: {}", distribution.directory_url);
             let index = self
                 .source
@@ -106,7 +121,17 @@ impl<S: Source> Walker<S> {
         let context = Arc::new(context);
         let visitor = Arc::new(visitor);
 
-        collect_advisories::<V, S>(&self.source, metadata.distributions)
+        let distributions = if let Some(distribution_filter) = self.distribution_filter {
+            metadata
+                .distributions
+                .into_iter()
+                .filter(|distribution| distribution_filter(distribution))
+                .collect()
+        } else {
+            metadata.distributions
+        };
+
+        collect_advisories::<V, S>(&self.source, distributions)
             .try_for_each_concurrent(limit, |advisory| {
                 log::debug!("Discovered advisory: {}", advisory.url);
                 let context = context.clone();
