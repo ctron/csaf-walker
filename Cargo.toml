@@ -15,5 +15,3 @@ tag-name = "v{{version}}"
 [patch.crates-io]
 # csaf = { path = "../csaf-rs" }
 #csaf = { git = "https://github.com/ctron/csaf-rs", rev = "0bbc262c76c50f7ec918e65d1cf9bf4c5dd564d7" }
-
-cpe = { git = "https://github.com/trustification/cpe-rs", rev = "dc2c5661d436410cc9562596ab16a2e771261eb2" }
