@@ -7,7 +7,7 @@ use bytes::Bytes;
 pub fn decompress_opt(_data: &[u8], name: &str) -> Option<Result<Bytes, anyhow::Error>> {
     if name.ends_with(".bz2") {
         #[cfg(any(feature = "bzip2", feature = "bzip2-rs"))]
-        return Some(decompress_bzip2(&_data).map_err(|err| err.into()));
+        return Some(decompress_bzip2(_data).map_err(|err| err.into()));
         #[cfg(not(any(feature = "bzip2", feature = "bzip2-rs")))]
         return Some(Err(anyhow::anyhow!("No bz2 decoder enabled")));
     }

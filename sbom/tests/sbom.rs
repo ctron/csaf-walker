@@ -1,4 +1,3 @@
-use sbom_walker::model::sbom::JsonPayload;
 use sbom_walker::Sbom;
 
 #[test]
