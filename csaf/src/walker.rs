@@ -23,10 +23,12 @@ where
     Visitor(VE),
 }
 
+pub type DistributionFilter = Box<dyn Fn(&Distribution) -> bool>;
+
 pub struct Walker<S: Source> {
     source: S,
     progress: Progress,
-    distribution_filter: Option<Box<dyn Fn(&Distribution) -> bool>>,
+    distribution_filter: Option<DistributionFilter>,
 }
 
 impl<S: Source> Walker<S> {
@@ -43,10 +45,7 @@ impl<S: Source> Walker<S> {
         self
     }
 
-    pub fn with_distribution_filter(
-        mut self,
-        distribution_filter: Box<dyn Fn(&Distribution) -> bool>,
-    ) -> Self {
+    pub fn with_distribution_filter(mut self, distribution_filter: DistributionFilter) -> Self {
         self.distribution_filter = Some(distribution_filter);
         self
     }
