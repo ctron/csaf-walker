@@ -85,6 +85,7 @@ impl Source for HttpSource {
             .fetch::<String>(distribution.directory_url.join("index.txt")?)
             .await?
             .lines()
+            .rev()
             .map(|line| {
                 let modified = changes.modified(line);
                 let url = join_url(line)?;
