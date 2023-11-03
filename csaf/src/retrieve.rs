@@ -41,6 +41,17 @@ impl Urlify for RetrievedAdvisory {
     }
 }
 
+/// Get a document as [`RetrievedAdvisory`]
+pub trait AsRetrieved: Debug {
+    fn as_retrieved(&self) -> &RetrievedAdvisory;
+}
+
+impl AsRetrieved for RetrievedAdvisory {
+    fn as_retrieved(&self) -> &RetrievedAdvisory {
+        self
+    }
+}
+
 /// Metadata of the retrieval process.
 #[derive(Clone, Debug)]
 pub struct RetrievalMetadata {

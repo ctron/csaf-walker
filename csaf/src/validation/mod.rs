@@ -1,16 +1,20 @@
 //! Validation
 
-use crate::retrieve::{RetrievalContext, RetrievalError, RetrievedAdvisory, RetrievedVisitor};
+use crate::retrieve::{
+    AsRetrieved, RetrievalContext, RetrievalError, RetrievedAdvisory, RetrievedVisitor,
+};
 use async_trait::async_trait;
 use digest::Digest;
 use std::fmt::{Debug, Display, Formatter};
 use std::future::Future;
 use std::ops::{Deref, DerefMut};
 use url::Url;
-use walker_common::retrieve::RetrievedDigest;
-use walker_common::utils::openpgp::PublicKey;
-use walker_common::utils::url::Urlify;
-use walker_common::validate::{openpgp, ValidationOptions};
+use walker_common::{
+    retrieve::RetrievedDigest,
+    utils::openpgp::PublicKey,
+    utils::url::Urlify,
+    validate::{openpgp, ValidationOptions},
+};
 
 /// A validated CSAF document
 ///
@@ -20,7 +24,7 @@ use walker_common::validate::{openpgp, ValidationOptions};
 /// * The signature was valid
 #[derive(Clone, Debug)]
 pub struct ValidatedAdvisory {
-    /// The discovered advisory
+    /// The retrieved advisory
     pub retrieved: RetrievedAdvisory,
 }
 
@@ -41,6 +45,12 @@ impl Deref for ValidatedAdvisory {
 impl DerefMut for ValidatedAdvisory {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.retrieved
+    }
+}
+
+impl AsRetrieved for ValidatedAdvisory {
+    fn as_retrieved(&self) -> &RetrievedAdvisory {
+        &self.retrieved
     }
 }
 

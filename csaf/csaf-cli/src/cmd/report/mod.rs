@@ -8,9 +8,11 @@ use csaf_walker::{
     discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor},
     retrieve::RetrievingVisitor,
     validation::{ValidatedAdvisory, ValidationError, ValidationVisitor},
+    verification::{VerificationError, VerifiedAdvisory, VerifyingVisitor},
 };
 use reqwest::Url;
 use std::{
+    borrow::Cow,
     collections::{BTreeMap, HashSet},
     path::PathBuf,
     sync::{Arc, Mutex},
@@ -18,7 +20,6 @@ use std::{
 use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
     progress::Progress,
-    utils::url::Urlify,
     validate::ValidationOptions,
 };
 
@@ -56,6 +57,7 @@ pub struct RenderOptions {
 pub struct ReportResult<'d> {
     pub duplicates: &'d Duplicates,
     pub errors: &'d BTreeMap<String, String>,
+    pub warnings: &'d BTreeMap<String, Vec<Cow<'static, str>>>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -70,38 +72,52 @@ impl Report {
 
         let duplicates: Arc<Mutex<Duplicates>> = Default::default();
         let errors: Arc<Mutex<BTreeMap<String, String>>> = Default::default();
+        let warnings: Arc<Mutex<BTreeMap<String, Vec<Cow<'static, str>>>>> = Default::default();
 
         {
             let duplicates = duplicates.clone();
             let errors = errors.clone();
+            let warnings = warnings.clone();
+
+            let visitor = move |advisory: Result<
+                VerifiedAdvisory<ValidatedAdvisory, _>,
+                VerificationError<ValidationError, _>,
+            >| {
+                let errors = errors.clone();
+                let warnings = warnings.clone();
+
+                async move {
+                    let adv = match advisory {
+                        Ok(adv) => adv,
+                        Err(err) => {
+                            let name = err.url().to_string();
+                            errors.lock().unwrap().insert(name, err.to_string());
+                            return Ok::<_, anyhow::Error>(());
+                        }
+                    };
+
+                    if !adv.failures.is_empty() {
+                        let name = adv.advisory.url.to_string();
+                        warnings
+                            .lock()
+                            .unwrap()
+                            .insert(name, adv.failures.into_values().collect());
+                    }
+
+                    Ok::<_, anyhow::Error>(())
+                }
+            };
+
+            let visitor = VerifyingVisitor::new(visitor);
+            let visitor = ValidationVisitor::new(visitor).with_options(options);
+
             walk_visitor(
                 progress,
                 self.client,
                 self.discover,
                 self.runner,
                 move |source| async move {
-                    let visitor = {
-                        RetrievingVisitor::new(
-                            source.clone(),
-                            ValidationVisitor::new(
-                                move |advisory: Result<ValidatedAdvisory, ValidationError>| {
-                                    let errors = errors.clone();
-                                    async move {
-                                        let name = match &advisory {
-                                            Ok(adv) => adv.url.to_string(),
-                                            Err(adv) => adv.url().to_string(),
-                                        };
-                                        if let Err(err) = Self::inspect(advisory) {
-                                            errors.lock().unwrap().insert(name, err.to_string());
-                                        }
-
-                                        Ok::<_, anyhow::Error>(())
-                                    }
-                                },
-                            )
-                            .with_options(options),
-                        )
-                    };
+                    let visitor = { RetrievingVisitor::new(source.clone(), visitor) };
 
                     Ok(DetectDuplicatesVisitor {
                         duplicates,
@@ -117,6 +133,7 @@ impl Report {
             ReportResult {
                 duplicates: &duplicates.lock().unwrap(),
                 errors: &errors.lock().unwrap(),
+                warnings: &warnings.lock().unwrap(),
             },
         )?;
 
