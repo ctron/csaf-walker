@@ -12,12 +12,12 @@ use std::time::SystemTime;
 use time::format_description::well_known::Rfc2822;
 use time::OffsetDateTime;
 use url::{ParseError, Url};
-use walker_common::validate::source::{Key, KeySource, KeySourceError};
 use walker_common::{
     changes::{self, ChangeSource},
     fetcher::{self, DataProcessor, Fetcher, Json},
     retrieve::{RetrievedDigest, RetrievingDigest},
     utils::openpgp::PublicKey,
+    validate::source::{Key, KeySource, KeySourceError},
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

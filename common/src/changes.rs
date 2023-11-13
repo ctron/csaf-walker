@@ -35,7 +35,7 @@ impl ChangeSource {
             .fetch::<Option<String>>(base_url.join("changes.csv")?)
             .await?;
 
-        log::info!("Found 'changes.txt', loading data");
+        log::info!("Found 'changes.csv', loading data");
 
         let map = if let Some(changes) = changes {
             let reader = csv::ReaderBuilder::new()
