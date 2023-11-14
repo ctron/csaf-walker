@@ -27,9 +27,13 @@ default = [
 
 [package.metadata.cargo-all-features]
 always_include_features = [
-    "sequoia-openpgp/crypto-nettle",
+    "csaf-walker/crypto-nettle",
+    "sbom-walker/crypto-nettle",
 ]
 
 [package.metadata.release]
-enable-features = ["sequoia-openpgp/crypto-nettle"]
+enable-features = [
+    "csaf-walker/crypto-nettle",
+    "sbom-walker/crypto-nettle",
+]
 tag = true
