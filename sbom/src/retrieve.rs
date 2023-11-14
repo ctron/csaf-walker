@@ -1,7 +1,9 @@
 //! Retrieval
 
-use crate::discover::{DiscoveredContext, DiscoveredSbom, DiscoveredVisitor};
-use crate::source::Source;
+use crate::{
+    discover::{DiscoveredContext, DiscoveredSbom, DiscoveredVisitor},
+    source::Source,
+};
 use async_trait::async_trait;
 use bytes::Bytes;
 use reqwest::StatusCode;
@@ -11,8 +13,11 @@ use std::future::Future;
 use std::ops::{Deref, DerefMut};
 use time::OffsetDateTime;
 use url::Url;
-use walker_common::validate::source::{KeySource, KeySourceError};
-use walker_common::{retrieve::RetrievedDigest, utils::openpgp::PublicKey};
+use walker_common::{
+    retrieve::RetrievedDigest,
+    utils::{openpgp::PublicKey, url::Urlify},
+    validate::source::{KeySource, KeySourceError},
+};
 
 /// A retrieved (but unverified) SBOM
 #[derive(Clone, Debug)]
@@ -32,6 +37,12 @@ pub struct RetrievedSbom {
 
     /// Metadata from the retrieval process
     pub metadata: RetrievalMetadata,
+}
+
+impl Urlify for RetrievedSbom {
+    fn url(&self) -> &Url {
+        &self.url
+    }
 }
 
 /// Metadata of the retrieval process.
@@ -66,8 +77,8 @@ pub enum RetrievalError {
     },
 }
 
-impl RetrievalError {
-    pub fn url(&self) -> &Url {
+impl Urlify for RetrievalError {
+    fn url(&self) -> &Url {
         match self {
             Self::InvalidResponse { discovered, .. } => &discovered.url,
         }

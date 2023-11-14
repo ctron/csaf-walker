@@ -9,12 +9,25 @@ use std::ops::{Deref, DerefMut};
 use url::Url;
 use walker_common::retrieve::RetrievedDigest;
 use walker_common::utils::openpgp::PublicKey;
+use walker_common::utils::url::Urlify;
 use walker_common::validate::{openpgp, ValidationOptions};
 
+/// A validated CSAF document
+///
+/// This includes
+/// * The document could be retrieved
+/// * The digest matches or was absent
+/// * The signature was valid
 #[derive(Clone, Debug)]
 pub struct ValidatedAdvisory {
     /// The discovered advisory
     pub retrieved: RetrievedAdvisory,
+}
+
+impl Urlify for ValidatedAdvisory {
+    fn url(&self) -> &Url {
+        &self.url
+    }
 }
 
 impl Deref for ValidatedAdvisory {
@@ -45,8 +58,8 @@ pub enum ValidationError {
     },
 }
 
-impl ValidationError {
-    pub fn url(&self) -> &Url {
+impl Urlify for ValidationError {
+    fn url(&self) -> &Url {
         match self {
             Self::Retrieval(err) => err.url(),
             Self::DigestMismatch { retrieved, .. } => &retrieved.url,

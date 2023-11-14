@@ -6,6 +6,7 @@ use std::fmt::Debug;
 use std::future::Future;
 use std::time::SystemTime;
 use url::Url;
+use walker_common::utils::url::Urlify;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DiscoveredAdvisory {
@@ -13,6 +14,12 @@ pub struct DiscoveredAdvisory {
     pub url: Url,
     /// The "last changed" date from the change information, if there was some.
     pub modified: Option<SystemTime>,
+}
+
+impl Urlify for DiscoveredAdvisory {
+    fn url(&self) -> &Url {
+        &self.url
+    }
 }
 
 #[derive(Debug)]

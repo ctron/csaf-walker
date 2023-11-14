@@ -2,11 +2,10 @@ mod render;
 
 use crate::{cmd::DiscoverArguments, common::walk_visitor};
 use reqwest::Url;
-use sbom_walker::discover::DiscoveredSbom;
-use sbom_walker::retrieve::RetrievedSbom;
 use sbom_walker::{
+    discover::DiscoveredSbom,
     model::sbom::ParseAnyError,
-    retrieve::RetrievingVisitor,
+    retrieve::{RetrievedSbom, RetrievingVisitor},
     validation::{ValidatedSbom, ValidationError, ValidationVisitor},
     Sbom,
 };
@@ -21,6 +20,7 @@ use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
     compression::decompress,
     progress::Progress,
+    utils::url::Urlify,
     validate::ValidationOptions,
 };
 

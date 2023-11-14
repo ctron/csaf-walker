@@ -11,6 +11,7 @@ use std::future::Future;
 use std::ops::{Deref, DerefMut};
 use time::OffsetDateTime;
 use url::Url;
+use walker_common::utils::url::Urlify;
 use walker_common::validate::source::{KeySource, KeySourceError};
 use walker_common::{retrieve::RetrievedDigest, utils::openpgp::PublicKey};
 
@@ -32,6 +33,12 @@ pub struct RetrievedAdvisory {
 
     /// Metadata from the retrieval process
     pub metadata: RetrievalMetadata,
+}
+
+impl Urlify for RetrievedAdvisory {
+    fn url(&self) -> &Url {
+        &self.url
+    }
 }
 
 /// Metadata of the retrieval process.
@@ -66,8 +73,8 @@ pub enum RetrievalError {
     },
 }
 
-impl RetrievalError {
-    pub fn url(&self) -> &Url {
+impl Urlify for RetrievalError {
+    fn url(&self) -> &Url {
         match self {
             Self::InvalidResponse { discovered, .. } => &discovered.url,
         }

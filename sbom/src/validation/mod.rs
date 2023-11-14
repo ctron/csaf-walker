@@ -7,6 +7,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::future::Future;
 use std::ops::{Deref, DerefMut};
 use url::Url;
+use walker_common::utils::url::Urlify;
 use walker_common::{
     retrieve::RetrievedDigest,
     utils::openpgp::PublicKey,
@@ -17,6 +18,12 @@ use walker_common::{
 pub struct ValidatedSbom {
     /// The discovered advisory
     pub retrieved: RetrievedSbom,
+}
+
+impl Urlify for ValidatedSbom {
+    fn url(&self) -> &Url {
+        &self.url
+    }
 }
 
 impl Deref for ValidatedSbom {
@@ -47,8 +54,8 @@ pub enum ValidationError {
     },
 }
 
-impl ValidationError {
-    pub fn url(&self) -> &Url {
+impl Urlify for ValidationError {
+    fn url(&self) -> &Url {
         match self {
             Self::Retrieval(err) => err.url(),
             Self::DigestMismatch { retrieved, .. } => &retrieved.url,

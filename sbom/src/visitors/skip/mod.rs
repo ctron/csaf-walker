@@ -5,6 +5,7 @@ use std::fmt::{Debug, Display};
 use std::path::PathBuf;
 use std::time::SystemTime;
 use tokio::fs;
+use walker_common::utils::url::Urlify;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error<VE: Display + Debug> {

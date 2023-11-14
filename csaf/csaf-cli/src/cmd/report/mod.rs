@@ -15,10 +15,11 @@ use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
 };
-use walker_common::validate::ValidationOptions;
 use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
     progress::Progress,
+    utils::url::Urlify,
+    validate::ValidationOptions,
 };
 
 /// Analyze (and report) the state of the data.
