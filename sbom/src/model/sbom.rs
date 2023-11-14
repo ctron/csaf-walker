@@ -18,21 +18,6 @@ pub enum Sbom {
     CycloneDx(cyclonedx_bom::prelude::Bom),
 }
 
-impl Sbom {
-    pub fn name(&self) -> Option<&str> {
-        match self {
-            #[cfg(feature = "spdx-rs")]
-            Self::Spdx(sbom) => Some(&sbom.document_creation_information.document_name),
-            #[cfg(feature = "cyclonedx-bom")]
-            Self::CycloneDx(sbom) => sbom
-                .metadata
-                .as_ref()
-                .and_then(|meta| meta.component.as_ref())
-                .map(|comp| comp.name.as_ref()),
-        }
-    }
-}
-
 impl Debug for Sbom {
     fn fmt(&self, #[allow(unused)] f: &mut Formatter<'_>) -> std::fmt::Result {
         #[cfg(any(feature = "spdx-rs", feature = "cyclonedx-bom"))]
