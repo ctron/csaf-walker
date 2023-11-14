@@ -1,0 +1,35 @@
+[package]
+name = "walker-extras"
+description = "Additional functionality for SBOM and CSAF walker"
+version = "0.5.4"
+edition = "2021"
+authors = ["Jens Reimann <ctron@dentrassi.de>"]
+license = "Apache-2.0"
+repository = "https://github.com/ctron/csaf-walker"
+categories = ["data-structures"]
+keywords = ["csaf", "sbom"]
+readme = "../README.md"
+# based on clap
+rust-version = "1.70"
+
+[dependencies]
+async-trait = "0.1"
+walker-common = { version = "0.5.4", path = "../common" }
+
+csaf-walker = { version = "0.5.4", path = "../csaf", optional = true }
+sbom-walker = { version = "0.5.4", path = "../sbom", optional = true }
+
+[features]
+default = [
+    "csaf-walker",
+    "sbom-walker"
+]
+
+[package.metadata.cargo-all-features]
+always_include_features = [
+    "sequoia-openpgp/crypto-nettle",
+]
+
+[package.metadata.release]
+enable-features = ["sequoia-openpgp/crypto-nettle"]
+tag = true
