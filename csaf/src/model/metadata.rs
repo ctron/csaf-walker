@@ -55,5 +55,21 @@ pub struct ProviderMetadata {
 
     pub publisher: Publisher,
 
-    pub role: String,
+    /// Contains the role of the issuing party according to section 7 in the CSAF standard.
+    #[serde(default = "default_role")]
+    pub role: Role,
+}
+
+const fn default_role() -> Role {
+    Role::Provider
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
+pub enum Role {
+    #[serde(rename = "csaf_publisher")]
+    Publisher,
+    #[serde(rename = "csaf_provider")]
+    Provider,
+    #[serde(rename = "csaf_trusted_provider")]
+    TrustedProvider,
 }
