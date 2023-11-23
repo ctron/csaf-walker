@@ -6,11 +6,10 @@ use crate::retrieve::{
     AsRetrieved, RetrievalContext, RetrievalError, RetrievedAdvisory, RetrievedVisitor,
 };
 use crate::validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, ValidationError};
-use crate::verification::check::Check;
+use crate::verification::check::{Check, CheckError};
 use async_trait::async_trait;
 use csaf::Csaf;
-use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Display};
 use std::future::Future;
 use std::hash::Hash;
@@ -29,7 +28,8 @@ where
 {
     pub advisory: A,
     pub csaf: Csaf,
-    pub failures: HashMap<I, Cow<'static, str>>,
+    pub failures: HashMap<I, Vec<CheckError>>,
+    pub successes: HashSet<I>,
 }
 
 impl<A, I> Deref for VerifiedAdvisory<A, I>
@@ -71,26 +71,13 @@ where
 
 impl<UE, A> Urlify for VerificationError<UE, A>
 where
-    A: Urlify + Debug,
+    A: AsRetrieved + Debug,
     UE: Urlify + Display + Debug,
 {
     fn url(&self) -> &Url {
         match self {
             Self::Upstream(err) => err.url(),
-            Self::Parsing { advisory, .. } => advisory.url(),
-        }
-    }
-}
-
-impl<UE, A> VerificationError<UE, A>
-where
-    A: AsRetrieved,
-    UE: Urlify + Display + Debug,
-{
-    pub fn url(&self) -> &Url {
-        match self {
-            Self::Upstream(err) => err.url(),
-            Self::Parsing { advisory, .. } => &advisory.as_retrieved().url,
+            Self::Parsing { advisory, .. } => advisory.as_retrieved().url(),
         }
     }
 }
@@ -177,10 +164,14 @@ where
         };
 
         let mut failures = HashMap::new();
+        let mut successes = HashSet::new();
 
         for (index, check) in &self.checks {
-            if let Err(err) = check.as_ref().check(&csaf).await {
-                failures.insert(index.clone(), err);
+            let result = check.as_ref().check(&csaf).await;
+            if !result.is_empty() {
+                failures.insert(index.clone(), result);
+            } else {
+                successes.insert(index.clone());
             }
         }
 
@@ -188,6 +179,7 @@ where
             advisory,
             csaf,
             failures,
+            successes,
         })
     }
 }
@@ -269,9 +261,10 @@ where
 }
 
 #[async_trait(?Send)]
-impl<F, E, Fut, A, I> VerifiedVisitor<A, E, I> for F
+impl<F, E, Fut, A, I, UE> VerifiedVisitor<A, UE, I> for F
 where
-    F: Fn(Result<VerifiedAdvisory<A, I>, VerificationError<E, A>>) -> Fut,
+    UE: Debug + Display + 'static,
+    F: Fn(Result<VerifiedAdvisory<A, I>, VerificationError<UE, A>>) -> Fut,
     Fut: Future<Output = Result<(), E>>,
     E: Display + Debug + 'static,
     A: AsRetrieved + 'static,
@@ -290,7 +283,7 @@ where
     async fn visit_advisory(
         &self,
         _ctx: &Self::Context,
-        outcome: Result<VerifiedAdvisory<A, I>, VerificationError<E, A>>,
+        outcome: Result<VerifiedAdvisory<A, I>, VerificationError<UE, A>>,
     ) -> Result<(), Self::Error> {
         self(outcome).await
     }

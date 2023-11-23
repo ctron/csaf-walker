@@ -1,9 +1,8 @@
 mod render;
 
 use crate::{cmd::DiscoverArguments, common::walk_visitor};
-use anyhow::anyhow;
 use async_trait::async_trait;
-use csaf::Csaf;
+use csaf_walker::verification::check::CheckError;
 use csaf_walker::{
     discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor},
     retrieve::RetrievingVisitor,
@@ -20,6 +19,7 @@ use std::{
 use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
     progress::Progress,
+    utils::url::Urlify,
     validate::ValidationOptions,
 };
 
@@ -72,7 +72,7 @@ impl Report {
 
         let duplicates: Arc<Mutex<Duplicates>> = Default::default();
         let errors: Arc<Mutex<BTreeMap<String, String>>> = Default::default();
-        let warnings: Arc<Mutex<BTreeMap<String, Vec<Cow<'static, str>>>>> = Default::default();
+        let warnings: Arc<Mutex<BTreeMap<String, Vec<CheckError>>>> = Default::default();
 
         {
             let duplicates = duplicates.clone();
@@ -80,8 +80,8 @@ impl Report {
             let warnings = warnings.clone();
 
             let visitor = move |advisory: Result<
-                VerifiedAdvisory<ValidatedAdvisory, _>,
-                VerificationError<ValidationError, _>,
+                VerifiedAdvisory<ValidatedAdvisory, &'static str>,
+                VerificationError<ValidationError, ValidatedAdvisory>,
             >| {
                 let errors = errors.clone();
                 let warnings = warnings.clone();
@@ -101,7 +101,9 @@ impl Report {
                         warnings
                             .lock()
                             .unwrap()
-                            .insert(name, adv.failures.into_values().collect());
+                            .entry(name)
+                            .or_default()
+                            .extend(adv.failures.into_values().flatten());
                     }
 
                     Ok::<_, anyhow::Error>(())
@@ -143,15 +145,6 @@ impl Report {
     fn render(render: RenderOptions, report: ReportResult) -> anyhow::Result<()> {
         let mut out = std::fs::File::create(&render.output)?;
         render::render_to_html(&mut out, &report, &render)?;
-
-        Ok(())
-    }
-
-    fn inspect(advisory: Result<ValidatedAdvisory, ValidationError>) -> Result<(), anyhow::Error> {
-        let advisory = advisory?;
-
-        serde_json::from_slice::<Csaf>(&advisory.data)
-            .map_err(|err| anyhow!("Failed decoding CSAF document: {err}"))?;
 
         Ok(())
     }
