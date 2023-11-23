@@ -4,14 +4,17 @@ use async_trait::async_trait;
 use std::collections::HashSet;
 use walker_common::utils::url::Urlify;
 
+#[cfg(feature = "sbom-walker")]
 pub(crate) mod sbom {
     pub use sbom_walker::discover::{DiscoveredContext, DiscoveredSbom, DiscoveredVisitor};
 }
 
+#[cfg(feature = "csaf-walker")]
 pub(crate) mod csaf {
     pub use csaf_walker::discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor};
 }
 
+/// A visitor which can ignore discovered content.
 pub struct Ignore<'s, V> {
     visitor: V,
     only: HashSet<&'s str>,
@@ -39,6 +42,7 @@ impl<'s, V> Ignore<'s, V> {
     }
 }
 
+#[cfg(feature = "sbom-walker")]
 #[async_trait(?Send)]
 impl<'s, V: sbom::DiscoveredVisitor> sbom::DiscoveredVisitor for Ignore<'s, V> {
     type Error = V::Error;
@@ -64,6 +68,7 @@ impl<'s, V: sbom::DiscoveredVisitor> sbom::DiscoveredVisitor for Ignore<'s, V> {
     }
 }
 
+#[cfg(feature = "csaf-walker")]
 #[async_trait(?Send)]
 impl<'s, V: csaf::DiscoveredVisitor> csaf::DiscoveredVisitor for Ignore<'s, V> {
     type Error = V::Error;
