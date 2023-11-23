@@ -33,7 +33,7 @@ time = "0.3.20"
 tokio = { version = "1", features = ["full"] }
 
 walker-common = { version = "0.5.4", path = "../../common" }
-csaf-walker = { version = "0.5.4", path = "..", default-features = false }
+csaf-walker = { version = "0.5.4", path = "..", default-features = false, features = ["csaf"] }
 
 # just there for the feature
 openssl = { version = "0.10", optional = true }
