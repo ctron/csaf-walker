@@ -2,12 +2,11 @@ mod render;
 
 use crate::{cmd::DiscoverArguments, common::walk_visitor};
 use async_trait::async_trait;
-use csaf_walker::verification::check::CheckError;
 use csaf_walker::{
     discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor},
     retrieve::RetrievingVisitor,
     validation::{ValidatedAdvisory, ValidationError, ValidationVisitor},
-    verification::{VerificationError, VerifiedAdvisory, VerifyingVisitor},
+    verification::{check::CheckError, VerificationError, VerifiedAdvisory, VerifyingVisitor},
 };
 use reqwest::Url;
 use std::{
