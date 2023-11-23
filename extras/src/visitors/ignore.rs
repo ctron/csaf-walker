@@ -6,12 +6,12 @@ use walker_common::utils::url::Urlify;
 
 #[cfg(feature = "sbom-walker")]
 pub(crate) mod sbom {
-    pub use sbom_walker::discover::{DiscoveredContext, DiscoveredSbom, DiscoveredVisitor};
+    pub use crate::sbom::discover::{DiscoveredContext, DiscoveredSbom, DiscoveredVisitor};
 }
 
 #[cfg(feature = "csaf-walker")]
 pub(crate) mod csaf {
-    pub use csaf_walker::discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor};
+    pub use crate::csaf::discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor};
 }
 
 /// A visitor which can ignore discovered content.
