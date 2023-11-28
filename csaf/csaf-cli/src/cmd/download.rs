@@ -66,6 +66,8 @@ impl Download {
         )
         .await?;
 
+        since.store()?;
+
         Ok(())
     }
 }
