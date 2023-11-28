@@ -60,7 +60,7 @@ impl Download {
                 Ok(SkipExistingVisitor {
                     visitor,
                     output: base,
-                    since: *since,
+                    since: since.since,
                 })
             },
         )
