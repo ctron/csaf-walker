@@ -75,10 +75,10 @@ impl<S: Source> Walker<S> {
                 .load_index(&distribution)
                 .await
                 .map_err(Error::Source)?;
-
-            let progress = self.progress.start(index.len());
+            let progress = self.progress.start(1);
 
             for advisory in index {
+                if(advisory.url.as_str() == "https://access.redhat.com/security/data/csaf/v2/advisories/2001/rhsa-2001_058.json"){
                 log::debug!("  Discovered advisory: {advisory:?}");
                 progress.set_message(
                     advisory
@@ -95,6 +95,7 @@ impl<S: Source> Walker<S> {
                     .await
                     .map_err(Error::Visitor)?;
                 progress.tick();
+            }
             }
         }
 
