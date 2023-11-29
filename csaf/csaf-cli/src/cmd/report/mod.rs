@@ -2,6 +2,11 @@ mod render;
 
 use crate::{cmd::DiscoverArguments, common::walk_visitor};
 use async_trait::async_trait;
+use csaf_walker::verification::check::{
+    check_all_products_v11ies_exits_in_product_tree, check_csaf_vex, check_history,
+    check_vulnerabilities_cve_ids, check_vulnerabilities_product_status,
+    check_vulnerabilities_size, init_vex_fmt_verifying_visitor,
+};
 use csaf_walker::{
     discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor},
     retrieve::RetrievingVisitor,
@@ -108,8 +113,7 @@ impl Report {
                     Ok::<_, anyhow::Error>(())
                 }
             };
-
-            let visitor = VerifyingVisitor::new(visitor);
+            let visitor = VerifyingVisitor::with_checks(visitor, init_vex_fmt_verifying_visitor());
             let visitor = ValidationVisitor::new(visitor).with_options(options);
 
             walk_visitor(
