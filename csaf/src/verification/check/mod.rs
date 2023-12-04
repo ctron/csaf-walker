@@ -1,9 +1,10 @@
 use async_trait::async_trait;
-use csaf::definitions::ProductIdT;
+use csaf::definitions::{BranchesT, ProductIdT};
 use csaf::document::Category;
 use csaf::product_tree::ProductTree;
 use csaf::Csaf;
 use std::borrow::Cow;
+use std::collections::HashSet;
 
 pub type CheckError = Cow<'static, str>;
 
@@ -151,18 +152,48 @@ pub fn check_vulnerabilities_cve_ids(csaf: &Csaf) -> Vec<CheckError> {
     check_erroies
 }
 
-// fn get_all_product_id_from_product_tree (branches :&BranchesT, products: &mut Vec<String>){
-//     for branch  in &branches.0 {
-//         if let Some(product) = &branch.product {
-//             let id = &product.product_id;
-//             products.push(id.clone().0);
-//         }
-//         if let Some(bs) = &branch.branches{
-//             get_all_product_id_from_product_tree(&bs, products);
-//         }
-//     }
-//
-// }
+fn get_all_product_id_from_product_tree_branches(
+    branches: &BranchesT,
+    products: &mut HashSet<String>,
+) {
+    for branch in &branches.0 {
+        if let Some(product) = &branch.product {
+            let id = &product.product_id;
+            products.insert(id.clone().0);
+        }
+        if let Some(bs) = &branch.branches {
+            get_all_product_id_from_product_tree_branches(&bs, products);
+        }
+    }
+}
+
+/// Verify product match within branches and relationships
+pub fn check_branches_relationships_product_match(csaf: &Csaf) -> Vec<CheckError> {
+    let mut result: Vec<CheckError> = vec![];
+    if let Some(products_tree) = &csaf.product_tree {
+        let mut names = HashSet::new();
+        if let Some(branches) = &products_tree.branches {
+            get_all_product_id_from_product_tree_branches(&branches, &mut names);
+        }
+        if let Some(relationships) = &products_tree.relationships {
+            for r in relationships {
+                result.extend(
+                    Checking::new()
+                        .require(
+                            format!(
+                        "There is no match for product {:?}  within branches and relationships.",
+                        r.full_product_name.product_id
+                    ),
+                            names.contains(&r.product_reference.0)
+                                && names.contains(&r.relates_to_product_reference.0),
+                        )
+                        .done(),
+                );
+            }
+        }
+    }
+    result
+}
 
 fn get_all_product_names(product_tree: &ProductTree, products: &mut Vec<String>) {
     if let Some(relationships) = &product_tree.relationships {
@@ -305,13 +336,18 @@ pub fn init_vex_fmt_verifying_visitor() -> Vec<(&'static str, Box<dyn Check>)> {
         ),
         ("check_history", Box::new(check_history)),
         ("check_csaf_vex", Box::new(check_csaf_vex)),
+        (
+            "check_branches_relationships_product_match",
+            Box::new(check_branches_relationships_product_match),
+        ),
     ]
 }
 
 #[cfg(test)]
 mod tests {
     use crate::verification::check::{
-        check_all_products_v11ies_exits_in_product_tree, check_csaf_vex, check_history,
+        check_all_products_v11ies_exits_in_product_tree,
+        check_branches_relationships_product_match, check_csaf_vex, check_history,
         check_vulnerabilities_cve_ids, check_vulnerabilities_product_status,
         check_vulnerabilities_size,
     };
@@ -373,5 +409,21 @@ mod tests {
         let csaf: Csaf =
             serde_json::from_str(include_str!("../../../test-data/rhsa-2023_3408.json")).unwrap();
         assert_eq!(check_vulnerabilities_size(&csaf).len(), 1);
+    }
+
+    /// Verify product do not match in branches and relationships
+    #[tokio::test]
+    async fn test_branches_relationships_product_match() {
+        let csaf: Csaf =
+            serde_json::from_str(include_str!("../../../test-data/rhsa-2023_4378.json")).unwrap();
+        assert_eq!(
+            check_branches_relationships_product_match(&csaf)
+                .first()
+                .unwrap()
+                .contains(
+                    "notmatch-NFV-9.2.0.Z.MAIN.EUS:kernel-rt-0:5.14.0-284.25.1.rt14.310.el9_2.src"
+                ),
+            true
+        );
     }
 }
