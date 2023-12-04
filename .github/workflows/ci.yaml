@@ -16,7 +16,7 @@ jobs:
   fmt:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Check formatting
         run: |
@@ -25,7 +25,7 @@ jobs:
   check-all:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/cache@v3
         with:
@@ -55,6 +55,9 @@ jobs:
         run: |
           cargo check-all-features
 
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
   check:
 
     strategy:
@@ -79,7 +82,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/cache@v3
         with:
