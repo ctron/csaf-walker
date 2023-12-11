@@ -4,7 +4,7 @@
       "namespace": "https://access.redhat.com/security/updates/classification/",
       "text": "Important"
     },
-    "category": "csaf_vex_wrong",
+    "category": "csaf_vex",
     "csaf_version": "2.0",
     "distribution": {
       "text": "Copyright \u00a9 2023 Red Hat, Inc. All rights reserved.",
@@ -35,7 +35,7 @@
       "category": "vendor",
       "contact_details": "https://access.redhat.com/security/team/contact/",
       "issuing_authority": "Red Hat Product Security is responsible for vulnerability handling across all Red Hat offerings.",
-      "name": "",
+      "name": "Red Hat Product Security",
       "namespace": "https://www.redhat.com"
     },
     "references": [
@@ -55,7 +55,7 @@
         "url": "https://access.redhat.com/security/data/csaf/v2/advisories/2021/rhsa-2021_3029.json"
       }
     ],
-    "title": "",
+    "title": "Red Hat Security Advisory: microcode_ctl security, bug fix and enhancement update",
     "tracking": {
       "current_release_date": "2021-08-10T16:13:00Z",
       "generator": {
@@ -65,13 +65,13 @@
           "version": "3.12.2"
         }
       },
-      "id": "",
+      "id": "RHSA-2021:3029",
       "initial_release_date": "2021-08-10T16:13:00Z",
       "revision_history": [
         {
           "date": "2021-08-10T16:13:00Z",
           "number": "1",
-          "summary": ""
+          "summary": "Current version"
         }
       ],
       "status": "final",
