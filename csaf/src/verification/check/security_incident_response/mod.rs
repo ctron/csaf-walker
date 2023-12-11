@@ -11,13 +11,13 @@ pub fn check_csaf_document_notes(csaf: &Csaf) -> Vec<CheckError> {
         for note in notes {
             let mut is_invalid_note = false;
             match note.category {
-                NoteCategory::Description => is_invalid_note = is_invalid_note | true,
-                NoteCategory::Details => is_invalid_note = is_invalid_note | true,
-                NoteCategory::Summary => is_invalid_note = is_invalid_note | true,
-                NoteCategory::General => is_invalid_note = is_invalid_note | true,
-                _ => is_invalid_note = is_invalid_note | false,
+                NoteCategory::Description => is_invalid_note |= true,
+                NoteCategory::Details => is_invalid_note |= true,
+                NoteCategory::Summary => is_invalid_note |= true,
+                NoteCategory::General => is_invalid_note |= true,
+                _ => is_invalid_note |= false,
             }
-            result = result | is_invalid_note;
+            result |= is_invalid_note;
         }
     }
     Checking::new().require("The document note  with at least one item which has a category of description, details, general or summary", result).done()
@@ -32,8 +32,8 @@ pub fn check_csaf_document_references(csaf: &Csaf) -> Vec<CheckError> {
         for reference in references {
             if let Some(category) = &reference.category {
                 match category {
-                    ReferenceCategory::External => result = result | true,
-                    ReferenceCategory::RefSelf => result = result | false,
+                    ReferenceCategory::External => result |= true,
+                    ReferenceCategory::RefSelf => result |= false,
                 }
             }
         }
