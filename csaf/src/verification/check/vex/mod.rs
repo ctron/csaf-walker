@@ -84,12 +84,12 @@ pub fn check_vulnerabilities_cve_ids(csaf: &Csaf) -> Vec<CheckError> {
     if let Some(vulns) = &csaf.vulnerabilities {
         for vuln in vulns {
             if let Some(ids) = &vuln.ids {
-                result = ids.len() > 0;
+                result = !ids.is_empty();
             } else {
                 result = false;
             }
 
-            result = &vuln.cve.is_some() | result;
+            result |= &vuln.cve.is_some();
 
             if !result {
                 if let Some(cwe) = &vuln.cwe {
@@ -108,7 +108,7 @@ pub fn check_vulnerabilities_cve_ids(csaf: &Csaf) -> Vec<CheckError> {
                     check_erroies.extend(
                         Checking::new()
                             .require(
-                                format!("The csaf file have a  vulnerability"),
+                                "The csaf file have a  vulnerability",
                                 vuln.cve.is_none() | vuln.ids.is_none(),
                             )
                             .done(),
@@ -130,7 +130,7 @@ fn get_all_product_id_from_product_tree_branches(
             products.insert(id.clone().0);
         }
         if let Some(bs) = &branch.branches {
-            get_all_product_id_from_product_tree_branches(&bs, products);
+            get_all_product_id_from_product_tree_branches(bs, products);
         }
     }
 }
@@ -144,7 +144,7 @@ pub fn check_branches_relationships_product_match(csaf: &Csaf) -> Vec<CheckError
     if let Some(products_tree) = &csaf.product_tree {
         let mut names = HashSet::new();
         if let Some(branches) = &products_tree.branches {
-            get_all_product_id_from_product_tree_branches(&branches, &mut names);
+            get_all_product_id_from_product_tree_branches(branches, &mut names);
         }
         if let Some(relationships) = &products_tree.relationships {
             for r in relationships {
@@ -176,7 +176,7 @@ fn get_all_product_names(product_tree: &ProductTree, products: &mut Vec<String>)
 }
 
 fn check_product(
-    product_names: &mut Vec<String>,
+    product_names: &mut [String],
     product_id_t: &ProductIdT,
     erroies: &mut Vec<CheckError>,
 ) {
@@ -225,7 +225,7 @@ pub fn check_all_products_v11ies_exits_in_product_tree(csaf: &Csaf) -> Vec<Check
                     }
                     if let Some(product_its) = &product_status.first_affected {
                         for product in product_its {
-                            check_product(&mut product_names, product.into(), &mut results);
+                            check_product(&mut product_names, product, &mut results);
                         }
                     }
                     if let Some(product_its) = &product_status.last_affected {
@@ -287,11 +287,7 @@ pub fn check_csaf_vex(csaf: &Csaf) -> Vec<CheckError> {
     if !is_vex(csaf) {
         return vec![];
     }
-    let result;
-    match csaf.document.category {
-        Category::Vex => result = true,
-        _ => result = false,
-    };
+    let result = matches!(csaf.document.category, Category::Vex);
 
     Checking::new()
         .require("The document's category must be csaf_vex", result)
@@ -299,21 +295,11 @@ pub fn check_csaf_vex(csaf: &Csaf) -> Vec<CheckError> {
 }
 
 fn is_vex(csaf: &Csaf) -> bool {
-    let result;
-    match csaf.document.category {
-        Category::Vex => result = true,
-        _ => result = false,
-    }
-    result
+    matches!(csaf.document.category, Category::Vex)
 }
 
 fn is_security_advisory(csaf: &Csaf) -> bool {
-    let result;
-    match csaf.document.category {
-        Category::SecurityAdvisory => result = true,
-        _ => result = false,
-    }
-    result
+    matches!(csaf.document.category, Category::SecurityAdvisory)
 }
 
 pub fn init_vex_fmt_verifying_visitor() -> Vec<(&'static str, Box<dyn Check>)> {
@@ -359,13 +345,10 @@ mod tests {
         let csaf: Csaf =
             serde_json::from_str(include_str!("../../../../test-data/rhsa-2021_3029.json"))
                 .unwrap();
-        assert_eq!(
-            check_all_products_v11ies_exits_in_product_tree(&csaf)
-                .first()
-                .unwrap()
-                .contains("notexits"),
-            true
-        )
+        assert!(check_all_products_v11ies_exits_in_product_tree(&csaf)
+            .first()
+            .unwrap()
+            .contains("notexits"))
     }
 
     #[tokio::test]
@@ -399,13 +382,10 @@ mod tests {
         let csaf: Csaf =
             serde_json::from_str(include_str!("../../../../test-data/rhsa-2023_1441.json"))
                 .unwrap();
-        assert_eq!(
-            check_vulnerabilities_cve_ids(&csaf)
-                .first()
-                .unwrap()
-                .contains("CWE-704"),
-            true
-        );
+        assert!(check_vulnerabilities_cve_ids(&csaf)
+            .first()
+            .unwrap()
+            .contains("CWE-704"));
     }
 
     /// Verify the csaf file does not have any vulnerabilities
@@ -423,14 +403,11 @@ mod tests {
         let csaf: Csaf =
             serde_json::from_str(include_str!("../../../../test-data/rhsa-2023_4378.json"))
                 .unwrap();
-        assert_eq!(
-            check_branches_relationships_product_match(&csaf)
-                .first()
-                .unwrap()
-                .contains(
-                    "notmatch-NFV-9.2.0.Z.MAIN.EUS:kernel-rt-0:5.14.0-284.25.1.rt14.310.el9_2.src"
-                ),
-            true
-        );
+        assert!(check_branches_relationships_product_match(&csaf)
+            .first()
+            .unwrap()
+            .contains(
+                "notmatch-NFV-9.2.0.Z.MAIN.EUS:kernel-rt-0:5.14.0-284.25.1.rt14.310.el9_2.src"
+            ));
     }
 }
