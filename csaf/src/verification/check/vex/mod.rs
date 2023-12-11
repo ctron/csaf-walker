@@ -7,6 +7,9 @@ use std::collections::HashSet;
 
 /// /vulnerabilities needs to be more than one vulnerability listed
 pub fn check_vulnerabilities_size(csaf: &Csaf) -> Vec<CheckError> {
+    if !is_vex(csaf) {
+        return vec![];
+    }
     let result;
     if let Some(vs) = &csaf.vulnerabilities {
         result = vs.is_empty();
@@ -24,6 +27,9 @@ pub fn check_vulnerabilities_size(csaf: &Csaf) -> Vec<CheckError> {
 /// /vulnerabilities[]/product_status/known_not_affected
 /// /vulnerabilities[]/product_status/under_investigation
 pub fn check_vulnerabilities_product_status(csaf: &Csaf) -> Vec<CheckError> {
+    if !is_vex(csaf) {
+        return vec![];
+    }
     let mut result = false;
     let checking = Checking::new();
     if let Some(vulns) = &csaf.vulnerabilities {
@@ -70,6 +76,9 @@ pub fn check_vulnerabilities_product_status(csaf: &Csaf) -> Vec<CheckError> {
 /// /vulnerabilities[]/cve
 /// /vulnerabilities[]/ids
 pub fn check_vulnerabilities_cve_ids(csaf: &Csaf) -> Vec<CheckError> {
+    if !is_vex(csaf) {
+        return vec![];
+    }
     let mut result;
     let mut check_erroies = vec![];
     if let Some(vulns) = &csaf.vulnerabilities {
@@ -128,6 +137,9 @@ fn get_all_product_id_from_product_tree_branches(
 
 /// Verify product match within branches and relationships
 pub fn check_branches_relationships_product_match(csaf: &Csaf) -> Vec<CheckError> {
+    if !is_vex(csaf) {
+        return vec![];
+    }
     let mut result: Vec<CheckError> = vec![];
     if let Some(products_tree) = &csaf.product_tree {
         let mut names = HashSet::new();
@@ -180,6 +192,10 @@ fn check_product(
 
 /// Verify that all vulnerabilities present in /vulnerabilities are also contained within product tree.
 pub fn check_all_products_v11ies_exits_in_product_tree(csaf: &Csaf) -> Vec<CheckError> {
+    if !is_vex(csaf) && !is_security_advisory(csaf) {
+        return vec![];
+    }
+
     let mut results = vec![];
     if let Some(products_tree) = &csaf.product_tree {
         let mut product_names = vec![];
@@ -255,6 +271,9 @@ pub fn check_all_products_v11ies_exits_in_product_tree(csaf: &Csaf) -> Vec<Check
 
 /// Check revision history
 pub fn check_history(csaf: &Csaf) -> Vec<CheckError> {
+    if !is_vex(csaf) {
+        return vec![];
+    }
     Checking::new()
         .require(
             "Revision history must not be empty",
@@ -265,6 +284,9 @@ pub fn check_history(csaf: &Csaf) -> Vec<CheckError> {
 
 /// Verify VEX cattegory
 pub fn check_csaf_vex(csaf: &Csaf) -> Vec<CheckError> {
+    if !is_vex(csaf) {
+        return vec![];
+    }
     let result;
     match csaf.document.category {
         Category::Vex => result = true,
@@ -274,6 +296,24 @@ pub fn check_csaf_vex(csaf: &Csaf) -> Vec<CheckError> {
     Checking::new()
         .require("The document's category must be csaf_vex", result)
         .done()
+}
+
+fn is_vex(csaf: &Csaf) -> bool {
+    let result;
+    match csaf.document.category {
+        Category::Vex => result = true,
+        _ => result = false,
+    }
+    result
+}
+
+fn is_security_advisory(csaf: &Csaf) -> bool {
+    let result;
+    match csaf.document.category {
+        Category::SecurityAdvisory => result = true,
+        _ => result = false,
+    }
+    result
 }
 
 pub fn init_vex_fmt_verifying_visitor() -> Vec<(&'static str, Box<dyn Check>)> {
@@ -333,7 +373,7 @@ mod tests {
         let csaf: Csaf =
             serde_json::from_str(include_str!("../../../../test-data/rhsa-2021_3029.json"))
                 .unwrap();
-        assert_eq!(check_csaf_vex(&csaf).len(), 1);
+        assert_eq!(check_csaf_vex(&csaf).len(), 0);
     }
 
     #[tokio::test]
@@ -374,7 +414,7 @@ mod tests {
         let csaf: Csaf =
             serde_json::from_str(include_str!("../../../../test-data/rhsa-2023_3408.json"))
                 .unwrap();
-        assert_eq!(check_vulnerabilities_size(&csaf).len(), 1);
+        assert_eq!(check_vulnerabilities_size(&csaf).len(), 0);
     }
 
     /// Verify product do not match in branches and relationships
