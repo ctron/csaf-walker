@@ -3,7 +3,7 @@ use csaf::definitions::{NoteCategory, ReferenceCategory};
 use csaf::Csaf;
 
 pub fn check_csaf_document_notes(csaf: &Csaf) -> Vec<CheckError> {
-    if !is_security_incident_response(csaf) && is_security_informational_advisory(csaf) {
+    if !is_security_incident_response(csaf) && !is_security_informational_advisory(csaf) {
         return vec![];
     }
     let mut result = false;
@@ -24,7 +24,7 @@ pub fn check_csaf_document_notes(csaf: &Csaf) -> Vec<CheckError> {
 }
 
 pub fn check_csaf_document_references(csaf: &Csaf) -> Vec<CheckError> {
-    if !is_security_incident_response(csaf) && is_security_informational_advisory(csaf) {
+    if !is_security_incident_response(csaf) && !is_security_informational_advisory(csaf) {
         return vec![];
     }
     let mut result = false;
