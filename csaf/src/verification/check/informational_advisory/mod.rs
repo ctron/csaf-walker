@@ -10,7 +10,7 @@ pub fn check_vulnerabilities_not_exits(csaf: &Csaf) -> Vec<CheckError> {
     }
     Checking::new()
         .require(
-            "The casf file should not related to a vulnerability ",
+            "The csaf file should not related to a vulnerability ",
             csaf.vulnerabilities.is_some(),
         )
         .done()

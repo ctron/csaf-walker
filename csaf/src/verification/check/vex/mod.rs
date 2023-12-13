@@ -17,7 +17,7 @@ pub fn check_vulnerabilities_size(csaf: &Csaf) -> Vec<CheckError> {
         result = false;
     }
     Checking::new()
-        .require("The csaf file's Vulnerabilities is empty", result)
+        .require("The csaf file's Vulnerabilities is empty", !result)
         .done()
 }
 
@@ -166,17 +166,17 @@ pub fn check_branches_relationships_product_match(csaf: &Csaf) -> Vec<CheckError
     result
 }
 
-fn get_all_product_names(product_tree: &ProductTree, products: &mut Vec<String>) {
+fn get_all_product_names(product_tree: &ProductTree, products: &mut HashSet<String>) {
     if let Some(relationships) = &product_tree.relationships {
         for r in relationships {
             let id = &r.full_product_name.product_id;
-            products.push(id.clone().0);
+            products.insert(id.clone().0);
         }
     }
 }
 
 fn check_product(
-    product_names: &mut [String],
+    product_names: &mut HashSet<String>,
     product_id_t: &ProductIdT,
     erroies: &mut Vec<CheckError>,
 ) {
@@ -195,11 +195,16 @@ pub fn check_all_products_v11ies_exits_in_product_tree(csaf: &Csaf) -> Vec<Check
     if !is_vex(csaf) && !is_security_advisory(csaf) {
         return vec![];
     }
-
     let mut results = vec![];
     if let Some(products_tree) = &csaf.product_tree {
-        let mut product_names = vec![];
-        get_all_product_names(products_tree, &mut product_names);
+        let mut product_names = HashSet::new();
+        if products_tree.relationships.is_none() {
+            if let Some(branches) = &products_tree.branches {
+                get_all_product_id_from_product_tree_branches(branches, &mut product_names);
+            }
+        } else {
+            get_all_product_names(products_tree, &mut product_names)
+        }
         if let Some(v11y) = &csaf.vulnerabilities {
             for v in v11y {
                 if let Some(product_status) = &v.product_status {
@@ -392,8 +397,7 @@ mod tests {
     #[tokio::test]
     async fn test_check_vulnerabilities_size() {
         let csaf: Csaf =
-            serde_json::from_str(include_str!("../../../../test-data/rhsa-2023_3408.json"))
-                .unwrap();
+            serde_json::from_str(include_str!("../../../../test-data/rhsa-2023_3408.json")).unwrap();
         assert_eq!(check_vulnerabilities_size(&csaf).len(), 0);
     }
 
