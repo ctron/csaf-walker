@@ -39,33 +39,8 @@ struct HtmlReport<'r>(&'r ReportResult<'r>, &'r RenderOptions);
 
 impl HtmlReport<'_> {
     fn render_duplicates(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Self::title(f, "Duplicates", self.0.duplicates.duplicates.len())?;
-
-        if !self.0.duplicates.duplicates.is_empty() {
-            let num = self.0.duplicates.duplicates.len();
-            let total: usize = self.0.duplicates.duplicates.values().sum();
-            writeln!(
-                f,
-                "<p>{num} duplicates URLs found, totalling {total} redundant entries</p>",
-            )?;
-
-            writeln!(f, "<p>The following URLs have duplicate entries:</p>")?;
-
-            writeln!(
-                f,
-                r#"
-    <table class="table">
-        <thead>
-            <tr>
-                <th scope="col">File</th>
-                <th scope="col"># Duplicates</th>
-            </tr>
-        </thead>
-        
-        <tbody>
-"#
-            )?;
-
+        let count = self.0.duplicates.duplicates.len();
+        let data = |f: &mut Formatter<'_>| {
             for (k, v) in &self.0.duplicates.duplicates {
                 writeln!(
                     f,
@@ -78,45 +53,29 @@ impl HtmlReport<'_> {
                     k = html_escape::encode_text(&k),
                 )?;
             }
+            Ok(())
+        };
+        if !self.0.duplicates.duplicates.is_empty() {
+            let total: usize = self.0.duplicates.duplicates.values().sum();
 
-            writeln!(
+            Self::render_table(
                 f,
-                r#"
-        <tbody>
-    </table>
-"#
+                count,
+                "Duplicates",
+                format!(
+                    "{:?} duplicates URLs found, totalling {:?} redundant entries",
+                    count, total
+                )
+                .as_str(),
+                data,
             )?;
         }
-
         Ok(())
     }
 
     fn render_errors(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Self::title(f, "Errors", self.0.errors.len())?;
-
-        if !self.0.errors.is_empty() {
-            let num = self.0.errors.len();
-            let s = match num {
-                1 => "",
-                _ => "s",
-            };
-            writeln!(f, "<p>{num} error{s} detected</p>")?;
-
-            writeln!(
-                f,
-                r#"
-    <table class="table">
-        <thead>
-            <tr>
-                <th scope="col">File</th>
-                <th scope="col">Error</th>
-            </tr>
-        </thead>
-        
-        <tbody>
-"#
-            )?;
-
+        let count = self.0.errors.len();
+        let data = |f: &mut Formatter<'_>| {
             for (k, v) in self.0.errors {
                 let k: Cow<str> = match (&self.1.base_url, Url::parse(k)) {
                     (Some(base_url), Ok(url)) => match base_url.make_relative(&url) {
@@ -138,15 +97,46 @@ impl HtmlReport<'_> {
                     v = html_escape::encode_text(&v),
                 )?;
             }
+            Ok(())
+        };
+        Self::render_table(
+            f,
+            count,
+            "Error",
+            format!("{:?} error(s) detected", count).as_str(),
+            data,
+        )?;
+        Ok(())
+    }
 
-            writeln!(
-                f,
-                r#"
+    fn render_table<F>(
+        f: &mut Formatter<'_>,
+        count: usize,
+        title: &str,
+        sub_title: &str,
+        data: F,
+    ) -> std::fmt::Result
+    where
+        F: Fn(&mut Formatter<'_>) -> std::fmt::Result,
+    {
+        Self::title(f, title, count)?;
+        writeln!(f, "<p>{sub_title}</p>")?;
+        writeln!(
+            f,
+            r#"
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col">File</th>
+                <th scope="col">{title}</th>
+            </tr>
+        </thead>
+
         <tbody>
-    </table>
 "#
-            )?;
-        }
+        )?;
+        data(f)?;
+        writeln!(f, "</tbody></table>")?;
 
         Ok(())
     }
@@ -157,30 +147,7 @@ impl HtmlReport<'_> {
             count += errors.len();
         }
 
-        Self::title(f, "Warnings", count)?;
-
-        if !self.0.warnings.is_empty() {
-            let s = match count {
-                1 => "",
-                _ => "s",
-            };
-            writeln!(f, "<p>{count} warnings{s} detected</p>")?;
-
-            writeln!(
-                f,
-                r#"
-    <table class="table">
-        <thead>
-            <tr>
-                <th scope="col">File</th>
-                <th scope="col">Error</th>
-            </tr>
-        </thead>
-
-        <tbody>
-"#
-            )?;
-
+        let data = |f: &mut Formatter<'_>| {
             for (k, v) in self.0.warnings {
                 let k: Cow<str> = match (&self.1.base_url, Url::parse(k)) {
                     (Some(base_url), Ok(url)) => match base_url.make_relative(&url) {
@@ -204,16 +171,15 @@ impl HtmlReport<'_> {
                     )?;
                 }
             }
-
-            writeln!(
-                f,
-                r#"
-        <tbody>
-    </table>
-"#
-            )?;
-        }
-
+            Ok(())
+        };
+        Self::render_table(
+            f,
+            count,
+            "Warning",
+            format!("{:?} warning(s) detected", count).as_str(),
+            data,
+        )?;
         Ok(())
     }
 

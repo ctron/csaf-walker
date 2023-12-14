@@ -108,7 +108,7 @@ pub fn check_vulnerabilities_cve_ids(csaf: &Csaf) -> Vec<CheckError> {
                     check_erroies.extend(
                         Checking::new()
                             .require(
-                                "The csaf file have a  vulnerability",
+                                "The csaf file have a vulnerability",
                                 vuln.cve.is_none() | vuln.ids.is_none(),
                             )
                             .done(),
@@ -183,7 +183,7 @@ fn check_product(
     erroies.extend(
         Checking::new()
             .require(
-                format!("product {:?} does not exits in product tree", &product_id_t),
+                format!("The product under the 'product status' section of the vulnerabilities division, identified as {:?}, is missing from the product tree.", &product_id_t),
                 product_names.contains(&product_id_t.0),
             )
             .done(),
@@ -198,13 +198,12 @@ pub fn check_all_products_v11ies_exits_in_product_tree(csaf: &Csaf) -> Vec<Check
     let mut results = vec![];
     if let Some(products_tree) = &csaf.product_tree {
         let mut product_names = HashSet::new();
-        if products_tree.relationships.is_none() {
-            if let Some(branches) = &products_tree.branches {
-                get_all_product_id_from_product_tree_branches(branches, &mut product_names);
-            }
-        } else {
-            get_all_product_names(products_tree, &mut product_names)
+
+        if let Some(branches) = &products_tree.branches {
+            get_all_product_id_from_product_tree_branches(branches, &mut product_names);
         }
+
+        get_all_product_names(products_tree, &mut product_names);
         if let Some(v11y) = &csaf.vulnerabilities {
             for v in v11y {
                 if let Some(product_status) = &v.product_status {
@@ -257,7 +256,7 @@ pub fn check_all_products_v11ies_exits_in_product_tree(csaf: &Csaf) -> Vec<Check
                                     Checking::new()
                                         .require(
                                             format!(
-                                                "product {:?} does not exits in product tree",
+                                                "The product under the 'remediation' section of the vulnerabilities division, identified as {:?}, is missing from the product tree.",
                                                 product_id.clone().0
                                             ),
                                             product_names.contains(&product_id.0),
@@ -397,8 +396,9 @@ mod tests {
     #[tokio::test]
     async fn test_check_vulnerabilities_size() {
         let csaf: Csaf =
-            serde_json::from_str(include_str!("../../../../test-data/rhsa-2023_3408.json")).unwrap();
-        assert_eq!(check_vulnerabilities_size(&csaf).len(), 0);
+            serde_json::from_str(include_str!("../../../../test-data/rhsa-2023_3408.json"))
+                .unwrap();
+        assert_eq!(check_vulnerabilities_size(&csaf).len(), 1);
     }
 
     /// Verify product do not match in branches and relationships
