@@ -33,6 +33,23 @@ pub fn render_to_html<W: std::io::Write>(
     Ok(())
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum Title {
+    Duplicates,
+    Warnings,
+    Errors,
+}
+
+impl Display for Title {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Duplicates => f.write_str("Duplicates"),
+            Self::Warnings => f.write_str("Warnings"),
+            Self::Errors => f.write_str("Errors"),
+        }
+    }
+}
+
 struct HtmlReport<'r>(&'r ReportResult<'r>, &'r RenderOptions);
 
 impl HtmlReport<'_> {
@@ -61,7 +78,7 @@ impl HtmlReport<'_> {
             Self::render_table(
                 f,
                 count,
-                "Duplicates",
+                Title::Duplicates,
                 format!(
                     "{:?} duplicates URLs found, totalling {:?} redundant entries",
                     count, total
@@ -83,7 +100,7 @@ impl HtmlReport<'_> {
                     f,
                     r#"
             <tr>
-                <td><a href="{url}" target="_blank">{label}</a></td>
+                <td><a href="{url}" target="_blank" style="white-space: nowrap;">{label}</a></td>
                 <td><code>{v}</code></td>
             </tr>
             "#,
@@ -97,7 +114,7 @@ impl HtmlReport<'_> {
         Self::render_table(
             f,
             count,
-            "Error",
+            Title::Errors,
             format!("{:?} error(s) detected", count).as_str(),
             data,
         )?;
@@ -107,7 +124,7 @@ impl HtmlReport<'_> {
     fn render_table<F>(
         f: &mut Formatter<'_>,
         count: usize,
-        title: &str,
+        title: Title,
         sub_title: &str,
         data: F,
     ) -> std::fmt::Result
@@ -146,27 +163,45 @@ impl HtmlReport<'_> {
             for (k, v) in self.0.warnings {
                 let (url, label) = self.link_document(&k);
 
+                writeln!(
+                    f,
+                    r#"
+            <tr>
+                <td><a href="{url}" target="_blank" style="white-space: nowrap;">{label}</a></td>
+                <td><ul>
+"#,
+                    url = html_escape::encode_quoted_attribute(&url),
+                    label = html_escape::encode_text(&label),
+                )?;
+
                 for text in v {
                     writeln!(
                         f,
                         r#"
-            <tr>
-                <td><a href="{url}" target="_blank">{label}</a></td>
-                <td><code>{v}</code></td>
-            </tr>
+            <li>
+                <code>{v}</code>
+            </li>
             "#,
-                        url = html_escape::encode_quoted_attribute(&url),
-                        label = html_escape::encode_text(&label),
                         v = html_escape::encode_text(&text),
                     )?;
                 }
+
+                writeln!(
+                    f,
+                    r#"
+                    </ul>
+                </td>
+            </tr>
+"#
+                )?;
             }
+
             Ok(())
         };
         Self::render_table(
             f,
             count,
-            "Warning",
+            Title::Warnings,
             format!("{:?} warning(s) detected", count).as_str(),
             data,
         )?;
@@ -195,11 +230,17 @@ impl HtmlReport<'_> {
             .unwrap_or_else(|| (key.url.clone(), key.url.clone()))
     }
 
-    fn title(f: &mut Formatter<'_>, title: &str, count: usize) -> std::fmt::Result {
+    fn title(f: &mut Formatter<'_>, title: Title, count: usize) -> std::fmt::Result {
         write!(f, "<h2>{title}")?;
 
         let (class, text) = if count > 0 {
-            ("text-bg-danger", count.to_string())
+            (
+                match title {
+                    Title::Warnings => "text-bg-warning",
+                    _ => "text-bg-danger",
+                },
+                count.to_string(),
+            )
         } else {
             ("text-bg-light", "None".to_string())
         };
