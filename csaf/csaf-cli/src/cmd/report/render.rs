@@ -161,7 +161,7 @@ impl HtmlReport<'_> {
 
         let data = |f: &mut Formatter<'_>| {
             for (k, v) in self.0.warnings {
-                let (url, label) = self.link_document(&k);
+                let (url, label) = self.link_document(k);
 
                 writeln!(
                     f,
