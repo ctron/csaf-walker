@@ -1,7 +1,5 @@
 use super::{DocumentKey, ReportResult};
 use crate::cmd::report::RenderOptions;
-use reqwest::Url;
-use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
 use std::time::SystemTime;
 
