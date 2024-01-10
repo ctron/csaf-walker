@@ -93,7 +93,7 @@ pub enum RetrievalError {
 impl RetrievalError {
     pub fn discovered(&self) -> &DiscoveredAdvisory {
         match self {
-            Self::InvalidResponse { discovered, .. } => &discovered,
+            Self::InvalidResponse { discovered, .. } => discovered,
         }
     }
 }

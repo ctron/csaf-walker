@@ -79,8 +79,8 @@ impl AsDiscovered for ValidationError {
     fn as_discovered(&self) -> &DiscoveredAdvisory {
         match self {
             Self::Retrieval(err) => err.discovered(),
-            Self::DigestMismatch { retrieved, .. } => &retrieved.as_discovered(),
-            Self::Signature { retrieved, .. } => &retrieved.as_discovered(),
+            Self::DigestMismatch { retrieved, .. } => retrieved.as_discovered(),
+            Self::Signature { retrieved, .. } => retrieved.as_discovered(),
         }
     }
 }
