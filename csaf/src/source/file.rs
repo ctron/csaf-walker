@@ -137,7 +137,7 @@ impl Source for FileSource {
         metadata.public_openpgp_keys = self.scan_keys().await?;
 
         for dist in &mut metadata.distributions {
-            let distribution_base = distribution_base(&self.base, &dist);
+            let distribution_base = distribution_base(&self.base, dist);
             let directory_url = Url::from_directory_path(&distribution_base).map_err(|()| {
                 anyhow!(
                     "Failed to convert directory into URL: {}",
@@ -187,7 +187,7 @@ impl Source for FileSource {
                 }
             }
 
-            let url = Url::from_file_path(&path)
+            let url = Url::from_file_path(path)
                 .map_err(|()| anyhow!("Failed to convert to URL: {}", path.display()))?;
 
             let modified = path.metadata()?.modified()?;

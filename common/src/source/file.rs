@@ -46,7 +46,7 @@ pub async fn read_sig_and_digests(
         .and_then(|expected| expected.split(' ').next().map(ToString::to_string))
         .map(|expected| {
             let mut actual = Sha256::new();
-            actual.update(&data);
+            actual.update(data);
             RetrievedDigest::<Sha256> {
                 expected,
                 actual: actual.finalize(),
@@ -58,7 +58,7 @@ pub async fn read_sig_and_digests(
         .and_then(|expected| expected.split(' ').next().map(ToString::to_string))
         .map(|expected| {
             let mut actual = Sha512::new();
-            actual.update(&data);
+            actual.update(data);
             RetrievedDigest::<Sha512> {
                 expected,
                 actual: actual.finalize(),

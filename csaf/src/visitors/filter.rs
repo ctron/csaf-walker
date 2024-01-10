@@ -17,7 +17,7 @@ pub struct FilterConfig {
 }
 
 #[async_trait(?Send)]
-impl<'c, V: DiscoveredVisitor> DiscoveredVisitor for FilteringVisitor<V> {
+impl<V: DiscoveredVisitor> DiscoveredVisitor for FilteringVisitor<V> {
     type Error = V::Error;
     type Context = V::Context;
 

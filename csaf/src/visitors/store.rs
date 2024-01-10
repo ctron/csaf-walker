@@ -61,7 +61,7 @@ pub enum StoreValidatedError {
 }
 
 #[async_trait(?Send)]
-impl<'a> RetrievedVisitor for StoreVisitor {
+impl RetrievedVisitor for StoreVisitor {
     type Error = StoreRetrievedError;
     type Context = Rc<ProviderMetadata>;
 
@@ -70,7 +70,7 @@ impl<'a> RetrievedVisitor for StoreVisitor {
         context: &RetrievalContext,
     ) -> Result<Self::Context, Self::Error> {
         self.store_provider_metadata(context.metadata).await?;
-        self.prepare_distributions(&context.metadata).await?;
+        self.prepare_distributions(context.metadata).await?;
         self.store_keys(context.keys).await?;
 
         Ok(Rc::new(context.metadata.clone()))
@@ -96,7 +96,7 @@ impl ValidatedVisitor for StoreVisitor {
         context: &ValidationContext,
     ) -> Result<Self::Context, Self::Error> {
         self.store_provider_metadata(context.metadata).await?;
-        self.prepare_distributions(&context.metadata).await?;
+        self.prepare_distributions(context.metadata).await?;
         self.store_keys(context.retrieval.keys).await?;
         Ok(())
     }
@@ -114,7 +114,7 @@ impl ValidatedVisitor for StoreVisitor {
 impl StoreVisitor {
     async fn prepare_distributions(&self, metadata: &ProviderMetadata) -> Result<(), StoreError> {
         for dist in &metadata.distributions {
-            let base = distribution_base(&self.base, &dist);
+            let base = distribution_base(&self.base, dist);
             log::debug!("Creating base distribution directory: {}", base.display());
 
             fs::create_dir_all(&base)

@@ -6,19 +6,14 @@ use crate::visitors::store::DIR_METADATA;
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use bytes::Bytes;
-use digest::Digest;
-use futures::try_join;
-use sha2::{Sha256, Sha512};
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 use time::OffsetDateTime;
 use url::Url;
-use walker_common::source::file::read_sig_and_digests;
 use walker_common::{
-    retrieve::RetrievedDigest,
-    source::file::{read_optional, to_path},
+    source::file::{read_sig_and_digests, to_path},
     utils::{self, openpgp::PublicKey},
     validate::source::{Key, KeySource, KeySourceError},
 };

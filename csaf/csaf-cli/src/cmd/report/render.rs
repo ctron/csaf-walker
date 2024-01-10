@@ -42,7 +42,7 @@ impl HtmlReport<'_> {
         let count = self.0.duplicates.duplicates.len();
         let data = |f: &mut Formatter<'_>| {
             for (k, v) in &self.0.duplicates.duplicates {
-                let (_url, label) = self.link_document(&k);
+                let (_url, label) = self.link_document(k);
                 writeln!(
                     f,
                     r#"
@@ -79,7 +79,7 @@ impl HtmlReport<'_> {
         let count = self.0.errors.len();
         let data = |f: &mut Formatter<'_>| {
             for (k, v) in self.0.errors {
-                let (url, label) = self.link_document(&k);
+                let (url, label) = self.link_document(k);
 
                 writeln!(
                     f,
