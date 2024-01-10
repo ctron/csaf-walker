@@ -43,6 +43,7 @@ bzip2-rs = { version = "0.1", optional = true, features = ["rustc_1_51"] }
 
 [features]
 default = ["bzip2"]
+_crypto-nettle = ["sequoia-openpgp/crypto-nettle"]
 
 [package.metadata.cargo-all-features]
 always_include_features = [
