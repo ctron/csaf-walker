@@ -22,10 +22,7 @@ impl Discover {
                 println!(
                     "{} ({})",
                     discovered.url,
-                    discovered
-                        .modified
-                        .map(|s| humantime::format_rfc3339(s).to_string())
-                        .unwrap_or_else(|| "n/a".to_string())
+                    humantime::format_rfc3339(discovered.modified),
                 );
 
                 Ok::<_, Infallible>(())

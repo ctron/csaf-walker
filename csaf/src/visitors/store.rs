@@ -1,4 +1,5 @@
 use crate::model::metadata::ProviderMetadata;
+use crate::model::store::distribution_base;
 use crate::retrieve::{RetrievalContext, RetrievalError, RetrievedAdvisory, RetrievedVisitor};
 use crate::validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, ValidationError};
 use anyhow::Context;
@@ -8,6 +9,7 @@ use sequoia_openpgp::serialize::SerializeInto;
 use sequoia_openpgp::Cert;
 use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 use std::time::SystemTime;
 use tokio::fs;
 use walker_common::utils::openpgp::PublicKey;
@@ -59,17 +61,19 @@ pub enum StoreValidatedError {
 }
 
 #[async_trait(?Send)]
-impl RetrievedVisitor for StoreVisitor {
+impl<'a> RetrievedVisitor for StoreVisitor {
     type Error = StoreRetrievedError;
-    type Context = ();
+    type Context = Rc<ProviderMetadata>;
 
     async fn visit_context(
         &self,
         context: &RetrievalContext,
     ) -> Result<Self::Context, Self::Error> {
         self.store_provider_metadata(context.metadata).await?;
+        self.prepare_distributions(&context.metadata).await?;
         self.store_keys(context.keys).await?;
-        Ok(())
+
+        Ok(Rc::new(context.metadata.clone()))
     }
 
     async fn visit_advisory(
@@ -92,6 +96,7 @@ impl ValidatedVisitor for StoreVisitor {
         context: &ValidationContext,
     ) -> Result<Self::Context, Self::Error> {
         self.store_provider_metadata(context.metadata).await?;
+        self.prepare_distributions(&context.metadata).await?;
         self.store_keys(context.retrieval.keys).await?;
         Ok(())
     }
@@ -107,6 +112,25 @@ impl ValidatedVisitor for StoreVisitor {
 }
 
 impl StoreVisitor {
+    async fn prepare_distributions(&self, metadata: &ProviderMetadata) -> Result<(), StoreError> {
+        for dist in &metadata.distributions {
+            let base = distribution_base(&self.base, &dist);
+            log::debug!("Creating base distribution directory: {}", base.display());
+
+            fs::create_dir_all(&base)
+                .await
+                .with_context(|| {
+                    format!(
+                        "Unable to create distribution directory: {}",
+                        base.display()
+                    )
+                })
+                .map_err(StoreError::Io)?;
+        }
+
+        Ok(())
+    }
+
     async fn store_provider_metadata(&self, metadata: &ProviderMetadata) -> Result<(), StoreError> {
         let metadir = self.base.join(DIR_METADATA);
 
@@ -183,24 +207,41 @@ impl StoreVisitor {
             advisory.metadata.last_modification
         );
 
-        let file = PathBuf::from(advisory.url.path())
-            .file_name()
-            .map(|file| self.base.join(file))
-            .ok_or_else(|| StoreError::Filename(advisory.url.to_string()))?;
+        let name = match advisory
+            .distribution
+            .directory_url
+            .make_relative(&advisory.url)
+        {
+            Some(name) => name,
+            None => return Err(StoreError::Filename(advisory.url.to_string())),
+        };
+
+        // create a distribution base
+        let distribution_base = distribution_base(&self.base, &advisory.distribution);
+
+        // put the file there
+        let file = distribution_base.join(name);
 
         log::debug!("Writing {}", file.display());
 
-        if let (Some(reported_modified), Some(stored_modified)) =
+        if let (reported_modified, Some(stored_modified)) =
             (advisory.modified, advisory.metadata.last_modification)
         {
             if reported_modified != stored_modified {
                 log::warn!(
-                    "{}: Modification timestamp discrepancy - changes: {}, retrieved: {}",
+                    "{}: Modification timestamp discrepancy - reported: {}, retrieved: {}",
                     file.display(),
                     humantime::Timestamp::from(reported_modified),
                     humantime::Timestamp::from(SystemTime::from(stored_modified)),
                 );
             }
+        }
+
+        if let Some(parent) = file.parent() {
+            fs::create_dir_all(parent)
+                .await
+                .with_context(|| format!("Failed to create parent directory: {}", parent.display()))
+                .map_err(StoreError::Io)?;
         }
 
         fs::write(&file, &advisory.data)
@@ -223,25 +264,23 @@ impl StoreVisitor {
                 .map_err(StoreError::Io)?;
         }
         if let Some(sig) = &advisory.signature {
-            fs::write(format!("{}.asc", file.display()), &sig)
+            let file = format!("{}.asc", file.display());
+            fs::write(&file, &sig)
                 .await
-                .with_context(|| format!("Failed to write signature: {}", file.display()))
+                .with_context(|| format!("Failed to write signature: {file}"))
                 .map_err(StoreError::Io)?;
         }
 
         if !self.no_timestamps {
-            if let Some(time) = advisory.metadata.last_modification {
-                // if we have the last modification time, set the file timestamp to it
-                let time: SystemTime = time.into();
-                filetime::set_file_mtime(&file, time.into())
-                    .with_context(|| {
-                        format!(
-                            "Failed to set last modification timestamp: {}",
-                            file.display()
-                        )
-                    })
-                    .map_err(StoreError::Io)?;
-            }
+            // if we have the last modification time, set the file timestamp to it
+            filetime::set_file_mtime(&file, advisory.modified.into())
+                .with_context(|| {
+                    format!(
+                        "Failed to set last modification timestamp: {}",
+                        file.display()
+                    )
+                })
+                .map_err(StoreError::Io)?;
         }
 
         #[cfg(any(target_os = "linux", target_os = "macos"))]

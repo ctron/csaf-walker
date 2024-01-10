@@ -1,5 +1,6 @@
 //! Validation
 
+use crate::discover::{AsDiscovered, DiscoveredAdvisory};
 use crate::retrieve::{
     AsRetrieved, RetrievalContext, RetrievalError, RetrievedAdvisory, RetrievedVisitor,
 };
@@ -48,6 +49,12 @@ impl DerefMut for ValidatedAdvisory {
     }
 }
 
+impl AsDiscovered for ValidatedAdvisory {
+    fn as_discovered(&self) -> &DiscoveredAdvisory {
+        &self.discovered
+    }
+}
+
 impl AsRetrieved for ValidatedAdvisory {
     fn as_retrieved(&self) -> &RetrievedAdvisory {
         &self.retrieved
@@ -68,6 +75,16 @@ pub enum ValidationError {
     },
 }
 
+impl AsDiscovered for ValidationError {
+    fn as_discovered(&self) -> &DiscoveredAdvisory {
+        match self {
+            Self::Retrieval(err) => err.discovered(),
+            Self::DigestMismatch { retrieved, .. } => &retrieved.as_discovered(),
+            Self::Signature { retrieved, .. } => &retrieved.as_discovered(),
+        }
+    }
+}
+
 impl Urlify for ValidationError {
     fn url(&self) -> &Url {
         match self {
@@ -85,14 +102,16 @@ impl Display for ValidationError {
             Self::DigestMismatch {
                 expected,
                 actual,
-                retrieved,
+                retrieved: _,
             } => write!(
                 f,
-                "Digest mismatch - expected: {expected}, actual: {actual} ({})",
-                retrieved.url
+                "Digest mismatch - expected: {expected}, actual: {actual}",
             ),
-            Self::Signature { error, retrieved } => {
-                write!(f, "Invalid signature: {error} ({})", retrieved.url)
+            Self::Signature {
+                error,
+                retrieved: _,
+            } => {
+                write!(f, "Invalid signature: {error}",)
             }
         }
     }

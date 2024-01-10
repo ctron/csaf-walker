@@ -15,9 +15,13 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 use time::OffsetDateTime;
 use url::Url;
-use walker_common::retrieve::RetrievedDigest;
-use walker_common::utils::{self, openpgp::PublicKey};
-use walker_common::validate::source::{Key, KeySource, KeySourceError};
+use walker_common::source::file::read_sig_and_digests;
+use walker_common::{
+    retrieve::RetrievedDigest,
+    source::file::{read_optional, to_path},
+    utils::{self, openpgp::PublicKey},
+    validate::source::{Key, KeySource, KeySourceError},
+};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct FileOptions {
@@ -138,10 +142,7 @@ impl Source for FileSource {
 
             let modified = path.metadata()?.modified()?;
 
-            result.push(DiscoveredSbom {
-                url,
-                modified: Some(modified),
-            })
+            result.push(DiscoveredSbom { url, modified })
         }
 
         Ok(result)
@@ -155,34 +156,7 @@ impl Source for FileSource {
 
         let data = Bytes::from(tokio::fs::read(&path).await?);
 
-        let (signature, sha256, sha512) = try_join!(
-            read_optional(format!("{}.asc", path.display())),
-            read_optional(format!("{}.sha256", path.display())),
-            read_optional(format!("{}.sha512", path.display())),
-        )?;
-
-        let sha256 = sha256
-            // take the first "word" from the line
-            .and_then(|expected| expected.split(' ').next().map(ToString::to_string))
-            .map(|expected| {
-                let mut actual = Sha256::new();
-                actual.update(&data);
-                RetrievedDigest::<Sha256> {
-                    expected,
-                    actual: actual.finalize(),
-                }
-            });
-        let sha512 = sha512
-            // take the first "word" from the line
-            .and_then(|expected| expected.split(' ').next().map(ToString::to_string))
-            .map(|expected| {
-                let mut actual = Sha512::new();
-                actual.update(&data);
-                RetrievedDigest::<Sha512> {
-                    expected,
-                    actual: actual.finalize(),
-                }
-            });
+        let (signature, sha256, sha512) = read_sig_and_digests(&path, &data).await?;
 
         let last_modification = path
             .metadata()
@@ -202,19 +176,6 @@ impl Source for FileSource {
             },
         })
     }
-}
-
-async fn read_optional(path: impl AsRef<Path>) -> Result<Option<String>, anyhow::Error> {
-    match tokio::fs::read_to_string(path).await {
-        Ok(data) => Ok(Some(data)),
-        Err(err) if err.kind() == ErrorKind::NotFound => Ok(None),
-        Err(err) => Err(err.into()),
-    }
-}
-
-fn to_path(url: &Url) -> Result<PathBuf, anyhow::Error> {
-    url.to_file_path()
-        .map_err(|()| anyhow!("Failed to convert URL to path: {url}"))
 }
 
 #[async_trait(?Send)]

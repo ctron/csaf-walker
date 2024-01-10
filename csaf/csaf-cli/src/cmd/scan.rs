@@ -1,4 +1,7 @@
-use crate::{cmd::DiscoverArguments, common::walk_standard};
+use crate::{
+    cmd::{DiscoverArguments, FilterArguments},
+    common::walk_standard,
+};
 use csaf::Csaf;
 use csaf_walker::validation::{ValidatedAdvisory, ValidationError};
 use walker_common::{
@@ -19,6 +22,9 @@ pub struct Scan {
     discover: DiscoverArguments,
 
     #[command(flatten)]
+    filter: FilterArguments,
+
+    #[command(flatten)]
     validation: ValidationArguments,
 }
 
@@ -29,6 +35,7 @@ impl Scan {
             self.client,
             self.runner,
             self.discover,
+            self.filter,
             self.validation,
             |advisory: Result<ValidatedAdvisory, ValidationError>| async move {
                 match advisory {

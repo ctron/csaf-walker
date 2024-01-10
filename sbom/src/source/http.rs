@@ -12,7 +12,7 @@ use std::time::SystemTime;
 use time::{format_description::well_known::Rfc2822, OffsetDateTime};
 use url::{ParseError, Url};
 use walker_common::{
-    changes::{self, ChangeSource},
+    changes::{self, ChangeEntry, ChangeSource},
     fetcher::{self, DataProcessor, Fetcher},
     retrieve::{RetrievedDigest, RetrievingDigest},
     utils::openpgp::PublicKey,
@@ -52,13 +52,6 @@ impl From<changes::Error> for HttpSourceError {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize)]
-struct ChangeEntry {
-    file: String,
-    #[serde(with = "time::serde::iso8601")]
-    timestamp: OffsetDateTime,
-}
-
 #[async_trait(?Send)]
 impl Source for HttpSource {
     type Error = HttpSourceError;
@@ -77,26 +70,18 @@ impl Source for HttpSource {
 
         let changes = ChangeSource::retrieve(&self.fetcher, &base).await?;
 
-        Ok(self
-            .fetcher
-            .fetch::<String>(base.join("index.txt")?)
-            .await?
-            .lines()
-            .map(|line| {
-                let modified = changes.modified(line);
-                let url = base.join(line)?;
+        Ok(changes
+            .entries
+            .into_iter()
+            .map(|ChangeEntry { file, timestamp }| {
+                let modified = timestamp.into();
+                let url = base.join(&file)?;
 
                 Ok::<_, ParseError>(DiscoveredSbom { url, modified })
             })
             // filter out advisories based in since, but only if we can be sure
             .filter(|advisory| match (advisory, &self.options.since) {
-                (
-                    Ok(DiscoveredSbom {
-                        url: _,
-                        modified: Some(modified),
-                    }),
-                    Some(since),
-                ) => modified >= since,
+                (Ok(DiscoveredSbom { url: _, modified }), Some(since)) => modified >= since,
                 _ => true,
             })
             .collect::<Result<_, _>>()?)

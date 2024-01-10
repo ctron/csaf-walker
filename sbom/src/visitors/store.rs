@@ -167,26 +167,26 @@ impl StoreVisitor {
         Ok(writer.finalize()?)
     }
 
-    async fn store(&self, advisory: &RetrievedSbom) -> Result<(), StoreError> {
+    async fn store(&self, sbom: &RetrievedSbom) -> Result<(), StoreError> {
         log::info!(
             "Storing: {} (modified: {:?})",
-            advisory.url,
-            advisory.metadata.last_modification
+            sbom.url,
+            sbom.metadata.last_modification
         );
 
-        let file = PathBuf::from(advisory.url.path())
+        let file = PathBuf::from(sbom.url.path())
             .file_name()
             .map(|file| self.base.join(file))
-            .ok_or_else(|| StoreError::Filename(advisory.url.to_string()))?;
+            .ok_or_else(|| StoreError::Filename(sbom.url.to_string()))?;
 
         log::debug!("Writing {}", file.display());
 
-        if let (Some(reported_modified), Some(stored_modified)) =
-            (advisory.modified, advisory.metadata.last_modification)
+        if let (reported_modified, Some(stored_modified)) =
+            (sbom.modified, sbom.metadata.last_modification)
         {
             if reported_modified != stored_modified {
                 log::warn!(
-                    "{}: Modification timestamp discrepancy - changes: {}, retrieved: {}",
+                    "{}: Modification timestamp discrepancy - reported: {}, retrieved: {}",
                     file.display(),
                     humantime::Timestamp::from(reported_modified),
                     humantime::Timestamp::from(SystemTime::from(stored_modified)),
@@ -194,45 +194,42 @@ impl StoreVisitor {
             }
         }
 
-        fs::write(&file, &advisory.data)
+        fs::write(&file, &sbom.data)
             .await
             .with_context(|| format!("Failed to write advisory: {}", file.display()))
             .map_err(StoreError::Io)?;
 
-        if let Some(sha256) = &advisory.sha256 {
+        if let Some(sha256) = &sbom.sha256 {
             let file = format!("{}.sha256", file.display());
             fs::write(&file, &sha256.expected)
                 .await
                 .with_context(|| format!("Failed to write checksum: {file}"))
                 .map_err(StoreError::Io)?;
         }
-        if let Some(sha512) = &advisory.sha512 {
+        if let Some(sha512) = &sbom.sha512 {
             let file = format!("{}.sha512", file.display());
             fs::write(&file, &sha512.expected)
                 .await
                 .with_context(|| format!("Failed to write checksum: {file}"))
                 .map_err(StoreError::Io)?;
         }
-        if let Some(sig) = &advisory.signature {
-            fs::write(format!("{}.asc", file.display()), &sig)
+        if let Some(sig) = &sbom.signature {
+            let file = format!("{}.asc", file.display());
+            fs::write(&file, &sig)
                 .await
-                .with_context(|| format!("Failed to write signature: {}", file.display()))
+                .with_context(|| format!("Failed to write signature: {file}"))
                 .map_err(StoreError::Io)?;
         }
 
         if !self.no_timestamps {
-            if let Some(time) = advisory.metadata.last_modification {
-                // if we have the last modification time, set the file timestamp to it
-                let time: SystemTime = time.into();
-                filetime::set_file_mtime(&file, time.into())
-                    .with_context(|| {
-                        format!(
-                            "Failed to set last modification timestamp: {}",
-                            file.display()
-                        )
-                    })
-                    .map_err(StoreError::Io)?;
-            }
+            filetime::set_file_mtime(&file, sbom.modified.into())
+                .with_context(|| {
+                    format!(
+                        "Failed to set last modification timestamp: {}",
+                        file.display()
+                    )
+                })
+                .map_err(StoreError::Io)?;
         }
 
         Ok(())

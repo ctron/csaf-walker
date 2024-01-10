@@ -4,6 +4,7 @@ use csaf_walker::{
     retrieve::RetrievingVisitor,
     source::{DispatchSource, FileOptions, FileSource, HttpOptions, HttpSource},
     validation::{ValidatedVisitor, ValidationVisitor},
+    visitors::filter::{FilterConfig, FilteringVisitor},
     walker::Walker,
 };
 use reqwest::Url;
@@ -20,6 +21,7 @@ pub async fn walk_standard<V>(
     client: ClientArguments,
     runner: RunnerArguments,
     discover: impl Into<DiscoverConfig>,
+    filter: impl Into<FilterConfig>,
     validation: ValidationArguments,
     visitor: V,
 ) -> anyhow::Result<()>
@@ -33,6 +35,7 @@ where
         progress,
         client,
         discover,
+        filter,
         runner,
         move |source| async move {
             Ok(RetrievingVisitor::new(
@@ -115,10 +118,22 @@ pub async fn new_source(
     }
 }
 
+/// Create a [`FilteringVisitor`] from a [`FilterConfig`].
+pub fn filter<V>(filter: impl Into<FilterConfig>, visitor: V) -> FilteringVisitor<V>
+where
+    V: DiscoveredVisitor,
+{
+    FilteringVisitor {
+        visitor,
+        config: filter.into(),
+    }
+}
+
 pub async fn walk_visitor<F, Fut, V>(
     progress: Progress,
     client: ClientArguments,
     discover: impl Into<DiscoverConfig>,
+    filter: impl Into<FilterConfig>,
     runner: RunnerArguments,
     f: F,
 ) -> anyhow::Result<()>
@@ -130,12 +145,13 @@ where
 {
     let source = new_source(discover, client).await?;
 
-    walk_source(progress, source, runner, f).await
+    walk_source(progress, source, filter, runner, f).await
 }
 
 pub async fn walk_source<F, Fut, V>(
     progress: Progress,
     source: DispatchSource,
+    filter_config: impl Into<FilterConfig>,
     runner: RunnerArguments,
     f: F,
 ) -> anyhow::Result<()>
@@ -150,10 +166,12 @@ where
 
     match runner.workers {
         1 => {
-            walker.walk(visitor).await?;
+            walker.walk(filter(filter_config, visitor)).await?;
         }
         n => {
-            walker.walk_parallel(n, visitor).await?;
+            walker
+                .walk_parallel(n, filter(filter_config, visitor))
+                .await?;
         }
     }
 

@@ -1,6 +1,6 @@
 //! Retrieval
 
-use crate::discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor};
+use crate::discover::{AsDiscovered, DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor};
 use crate::source::Source;
 use async_trait::async_trait;
 use bytes::Bytes;
@@ -46,6 +46,12 @@ pub trait AsRetrieved: Debug {
     fn as_retrieved(&self) -> &RetrievedAdvisory;
 }
 
+impl AsDiscovered for RetrievedAdvisory {
+    fn as_discovered(&self) -> &DiscoveredAdvisory {
+        &self.discovered
+    }
+}
+
 impl AsRetrieved for RetrievedAdvisory {
     fn as_retrieved(&self) -> &RetrievedAdvisory {
         self
@@ -82,6 +88,14 @@ pub enum RetrievalError {
         code: StatusCode,
         discovered: DiscoveredAdvisory,
     },
+}
+
+impl RetrievalError {
+    pub fn discovered(&self) -> &DiscoveredAdvisory {
+        match self {
+            Self::InvalidResponse { discovered, .. } => &discovered,
+        }
+    }
 }
 
 impl Urlify for RetrievalError {

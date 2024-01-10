@@ -1,26 +1,30 @@
-use crate::discover::DiscoveredAdvisory;
-use crate::model::metadata::{self, Distribution, ProviderMetadata};
-use crate::retrieve::{RetrievalMetadata, RetrievedAdvisory};
-use crate::source::Source;
-use crate::visitors::store::DIR_METADATA;
+use crate::{
+    discover::DiscoveredAdvisory,
+    model::{
+        metadata::{self, Distribution, ProviderMetadata},
+        store::distribution_base,
+    },
+    retrieve::{RetrievalMetadata, RetrievedAdvisory},
+    source::Source,
+    visitors::store::{ATTR_ETAG, DIR_METADATA},
+};
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use bytes::Bytes;
-use digest::Digest;
-use futures::try_join;
-use sha2::{Sha256, Sha512};
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::time::SystemTime;
 use time::OffsetDateTime;
+use tokio::sync::mpsc;
 use url::Url;
-use walker_common::retrieve::RetrievedDigest;
-use walker_common::utils::{self, openpgp::PublicKey};
-use walker_common::validate::source::{Key, KeySource, KeySourceError};
-
-#[cfg(any(target_os = "linux", target_os = "macos"))]
-use crate::visitors::store::ATTR_ETAG;
+use walkdir::WalkDir;
+use walker_common::{
+    source::file::{read_sig_and_digests, to_path},
+    utils::{self, openpgp::PublicKey},
+    validate::source::{Key, KeySource, KeySourceError},
+};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct FileOptions {
@@ -84,6 +88,38 @@ impl FileSource {
 
         Ok(result)
     }
+
+    /// walk a distribution directory
+    fn walk_distribution(
+        &self,
+        distribution: &Distribution,
+    ) -> Result<mpsc::Receiver<walkdir::Result<walkdir::DirEntry>>, anyhow::Error> {
+        let (tx, rx) = mpsc::channel(8);
+
+        let path = distribution.directory_url.to_file_path().map_err(|()| {
+            anyhow!(
+                "Failed to convert into path: {}",
+                distribution.directory_url
+            )
+        })?;
+
+        tokio::task::spawn_blocking(move || {
+            for entry in WalkDir::new(path).into_iter().filter_entry(|entry| {
+                // if it's a file but doesn't end with .json -> skip it
+                !entry.file_type().is_file()
+                    || entry.file_name().to_string_lossy().ends_with(".json")
+            }) {
+                if let Err(err) = tx.blocking_send(entry) {
+                    // channel closed, abort
+                    log::debug!("Send error: {err}");
+                    return;
+                }
+            }
+            log::debug!("Finished walking files");
+        });
+
+        Ok(rx)
+    }
 }
 
 #[async_trait(?Send)]
@@ -98,38 +134,38 @@ impl Source for FileSource {
         let mut metadata: ProviderMetadata =
             serde_json::from_reader(&file).context("Failed to read stored provider metadata")?;
 
-        let base = Url::from_directory_path(&self.base).map_err(|()| {
-            anyhow!(
-                "Failed to convert directory into URL: {}",
-                self.base.display(),
-            )
-        })?;
-
         metadata.public_openpgp_keys = self.scan_keys().await?;
-        metadata.distributions = vec![Distribution {
-            directory_url: base,
-        }];
+
+        for dist in &mut metadata.distributions {
+            let distribution_base = distribution_base(&self.base, &dist);
+            let directory_url = Url::from_directory_path(&distribution_base).map_err(|()| {
+                anyhow!(
+                    "Failed to convert directory into URL: {}",
+                    self.base.display(),
+                )
+            })?;
+
+            dist.directory_url = directory_url;
+        }
+
+        // return result
 
         Ok(metadata)
     }
 
     async fn load_index(
         &self,
-        distribution: &Distribution,
+        distribution: Distribution,
     ) -> Result<Vec<DiscoveredAdvisory>, Self::Error> {
         log::info!("Loading index - since: {:?}", self.options.since);
 
-        let path = &distribution.directory_url.to_file_path().map_err(|()| {
-            anyhow!(
-                "Failed to convert into path: {}",
-                distribution.directory_url
-            )
-        })?;
+        let distribution = Arc::new(distribution);
 
-        let mut entries = tokio::fs::read_dir(path).await?;
+        let mut entries = self.walk_distribution(&distribution)?;
         let mut result = vec![];
 
-        while let Some(entry) = entries.next_entry().await? {
+        while let Some(entry) = entries.recv().await {
+            let entry = entry?;
             let path = entry.path();
             if !path.is_file() {
                 continue;
@@ -158,7 +194,8 @@ impl Source for FileSource {
 
             result.push(DiscoveredAdvisory {
                 url,
-                modified: Some(modified),
+                modified,
+                distribution: distribution.clone(),
             })
         }
 
@@ -176,34 +213,7 @@ impl Source for FileSource {
 
         let data = Bytes::from(tokio::fs::read(&path).await?);
 
-        let (signature, sha256, sha512) = try_join!(
-            read_optional(format!("{}.asc", path.display())),
-            read_optional(format!("{}.sha256", path.display())),
-            read_optional(format!("{}.sha512", path.display())),
-        )?;
-
-        let sha256 = sha256
-            // take the first "word" from the line
-            .and_then(|expected| expected.split(' ').next().map(ToString::to_string))
-            .map(|expected| {
-                let mut actual = Sha256::new();
-                actual.update(&data);
-                RetrievedDigest::<Sha256> {
-                    expected,
-                    actual: actual.finalize(),
-                }
-            });
-        let sha512 = sha512
-            // take the first "word" from the line
-            .and_then(|expected| expected.split(' ').next().map(ToString::to_string))
-            .map(|expected| {
-                let mut actual = Sha512::new();
-                actual.update(&data);
-                RetrievedDigest::<Sha512> {
-                    expected,
-                    actual: actual.finalize(),
-                }
-            });
+        let (signature, sha256, sha512) = read_sig_and_digests(&path, &data).await?;
 
         let last_modification = path
             .metadata()
@@ -231,19 +241,6 @@ impl Source for FileSource {
             },
         })
     }
-}
-
-async fn read_optional(path: impl AsRef<Path>) -> Result<Option<String>, anyhow::Error> {
-    match tokio::fs::read_to_string(path).await {
-        Ok(data) => Ok(Some(data)),
-        Err(err) if err.kind() == ErrorKind::NotFound => Ok(None),
-        Err(err) => Err(err.into()),
-    }
-}
-
-fn to_path(url: &Url) -> Result<PathBuf, anyhow::Error> {
-    url.to_file_path()
-        .map_err(|()| anyhow!("Failed to convert URL to path: {url}"))
 }
 
 #[async_trait(?Send)]

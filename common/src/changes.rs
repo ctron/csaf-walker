@@ -1,6 +1,4 @@
 use crate::fetcher::{self, Fetcher};
-use std::collections::HashMap;
-use std::time::SystemTime;
 use time::OffsetDateTime;
 use url::{ParseError, Url};
 
@@ -15,42 +13,33 @@ pub enum Error {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize)]
-struct ChangeEntry {
-    file: String,
+pub struct ChangeEntry {
+    pub file: String,
     #[serde(with = "time::serde::iso8601")]
-    timestamp: OffsetDateTime,
+    pub timestamp: OffsetDateTime,
 }
 
 pub struct ChangeSource {
-    map: HashMap<String, SystemTime>,
+    pub entries: Vec<ChangeEntry>,
 }
 
 impl ChangeSource {
-    pub fn modified(&self, file: &str) -> Option<SystemTime> {
-        self.map.get(file).copied()
-    }
-
     pub async fn retrieve(fetcher: &Fetcher, base_url: &Url) -> Result<Self, Error> {
         let changes = fetcher
-            .fetch::<Option<String>>(base_url.join("changes.csv")?)
+            .fetch::<String>(base_url.join("changes.csv")?)
             .await?;
 
-        log::info!("Found 'changes.csv', loading data");
+        log::info!("Found 'changes.csv', processing data");
 
-        let map = if let Some(changes) = changes {
-            let reader = csv::ReaderBuilder::new()
-                .delimiter(b',')
-                .has_headers(false)
-                .from_reader(changes.as_bytes());
+        let reader = csv::ReaderBuilder::new()
+            .delimiter(b',')
+            .has_headers(false)
+            .from_reader(changes.as_bytes());
 
-            reader
-                .into_deserialize::<ChangeEntry>()
-                .map(|entry| entry.map(|entry| (entry.file, entry.timestamp.into())))
-                .collect::<Result<HashMap<_, _>, _>>()?
-        } else {
-            HashMap::new()
-        };
+        let entries = reader
+            .into_deserialize::<ChangeEntry>()
+            .collect::<Result<Vec<_>, _>>()?;
 
-        Ok(Self { map })
+        Ok(Self { entries })
     }
 }

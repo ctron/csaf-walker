@@ -22,7 +22,7 @@ pub trait Source: Clone {
     async fn load_metadata(&self) -> Result<ProviderMetadata, Self::Error>;
     async fn load_index(
         &self,
-        distribution: &Distribution,
+        distribution: Distribution,
     ) -> Result<Vec<DiscoveredAdvisory>, Self::Error>;
     async fn load_advisory(
         &self,
