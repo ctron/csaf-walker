@@ -6,7 +6,7 @@ use crate::{
     },
     retrieve::{RetrievalMetadata, RetrievedAdvisory},
     source::Source,
-    visitors::store::{ATTR_ETAG, DIR_METADATA},
+    visitors::store::DIR_METADATA,
 };
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
@@ -222,7 +222,7 @@ impl Source for FileSource {
             .map(OffsetDateTime::from);
 
         #[cfg(any(target_os = "linux", target_os = "macos"))]
-        let etag = xattr::get(&path, ATTR_ETAG)
+        let etag = xattr::get(&path, crate::visitors::store::ATTR_ETAG)
             .transpose()
             .and_then(|r| r.ok())
             .and_then(|s| String::from_utf8(s).ok());
