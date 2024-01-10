@@ -1,5 +1,5 @@
 use crate::{
-    cmd::{DiscoverArguments, SkipArguments, StoreArguments},
+    cmd::{DiscoverArguments, FilterArguments, SkipArguments, StoreArguments},
     common::{walk_visitor, DiscoverConfig},
 };
 use csaf_walker::{
@@ -20,6 +20,9 @@ pub struct Download {
 
     #[command(flatten)]
     discover: DiscoverArguments,
+
+    #[command(flatten)]
+    filter: FilterArguments,
 
     #[command(flatten)]
     runner: RunnerArguments,
@@ -52,6 +55,7 @@ impl Download {
             progress,
             self.client,
             DiscoverConfig::from(self.discover).with_since(since.since),
+            self.filter,
             self.runner,
             move |source| async move {
                 let base = base.clone();

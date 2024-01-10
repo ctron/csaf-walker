@@ -1,4 +1,5 @@
 use crate::discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor};
+use crate::model::store::distribution_base;
 use crate::validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, ValidationError};
 use async_trait::async_trait;
 use std::fmt::{Debug, Display};
@@ -47,38 +48,38 @@ impl<V: DiscoveredVisitor> DiscoveredVisitor for SkipExistingVisitor<V> {
         context: &Self::Context,
         advisory: DiscoveredAdvisory,
     ) -> Result<(), Self::Error> {
-        let name = PathBuf::from(advisory.url.path());
-        let name = name.file_name().ok_or(Error::Name)?;
+        let name = match advisory
+            .distribution
+            .directory_url
+            .make_relative(&advisory.url)
+        {
+            Some(name) => name,
+            None => return Err(Error::Name),
+        };
 
-        let path = self.output.join(name);
+        let path = distribution_base(&self.output, &advisory.distribution).join(&name);
 
         if fs::try_exists(&path).await? {
-            if let Some(modified) = advisory.modified {
-                // if we have a "since", we use it as the file modification timestamp
-                let file_modified = match self.since {
-                    Some(since) => since,
-                    None => fs::metadata(&path).await?.modified()?,
-                };
+            // if we have a "since", we use it as the file modification timestamp
+            let file_modified = match self.since {
+                Some(since) => since,
+                None => fs::metadata(&path).await?.modified()?,
+            };
 
-                log::debug!(
-                    "Advisory modified: {}, file ({}) modified: {} ({:?})",
-                    humantime::Timestamp::from(modified),
-                    name.to_string_lossy(),
-                    humantime::Timestamp::from(file_modified),
-                    self.since.map(humantime::Timestamp::from)
-                );
+            log::debug!(
+                "Advisory modified: {}, file ({}) modified: {} ({:?})",
+                humantime::Timestamp::from(advisory.modified),
+                name,
+                humantime::Timestamp::from(file_modified),
+                self.since.map(humantime::Timestamp::from)
+            );
 
-                if file_modified >= modified {
-                    // the file was modified after the change date, skip it
-                    return Ok(());
-                }
-            } else {
-                log::debug!(
-                    "Skipping file ({}), exists but was never modified",
-                    name.to_string_lossy()
-                );
+            if file_modified >= advisory.modified {
+                // the file was modified after the change date, skip it
                 return Ok(());
             }
+        } else {
+            log::debug!("File did not exist: {}", path.display());
         }
 
         self.visitor

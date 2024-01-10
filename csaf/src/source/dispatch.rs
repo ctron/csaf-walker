@@ -47,7 +47,7 @@ impl Source for DispatchSource {
 
     async fn load_index(
         &self,
-        distribution: &Distribution,
+        distribution: Distribution,
     ) -> Result<Vec<DiscoveredAdvisory>, Self::Error> {
         match self {
             Self::File(source) => source.load_index(distribution).await,

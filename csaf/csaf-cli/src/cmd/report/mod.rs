@@ -1,20 +1,28 @@
 mod render;
 
-use crate::{cmd::DiscoverArguments, common::walk_visitor};
+use crate::{
+    cmd::{DiscoverArguments, FilterArguments},
+    common::walk_visitor,
+};
 use async_trait::async_trait;
-use csaf_walker::verification::check::init_verifying_visitor;
 use csaf_walker::{
-    discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor},
+    discover::{AsDiscovered, DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor},
     retrieve::RetrievingVisitor,
     validation::{ValidatedAdvisory, ValidationError, ValidationVisitor},
-    verification::{check::CheckError, VerificationError, VerifiedAdvisory, VerifyingVisitor},
+    verification::{
+        check::{init_verifying_visitor, CheckError},
+        VerificationError, VerifiedAdvisory, VerifyingVisitor,
+    },
 };
 use reqwest::Url;
 use std::{
     borrow::Cow,
     collections::{BTreeMap, HashSet},
     path::PathBuf,
-    sync::{Arc, Mutex},
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc, Mutex,
+    },
 };
 use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
@@ -36,6 +44,9 @@ pub struct Report {
     discover: DiscoverArguments,
 
     #[command(flatten)]
+    filter: FilterArguments,
+
+    #[command(flatten)]
     validation: ValidationArguments,
 
     #[command(flatten)]
@@ -53,28 +64,48 @@ pub struct RenderOptions {
     base_url: Option<Url>,
 }
 
-#[derive(Clone, Debug, serde::Serialize)]
+#[derive(Clone, Debug)]
 pub struct ReportResult<'d> {
+    pub total: usize,
     pub duplicates: &'d Duplicates,
-    pub errors: &'d BTreeMap<String, String>,
-    pub warnings: &'d BTreeMap<String, Vec<Cow<'static, str>>>,
+    pub errors: &'d BTreeMap<DocumentKey, String>,
+    pub warnings: &'d BTreeMap<DocumentKey, Vec<Cow<'static, str>>>,
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct Duplicates {
-    pub duplicates: BTreeMap<String, usize>,
-    pub known: HashSet<String>,
+    pub duplicates: BTreeMap<DocumentKey, usize>,
+    pub known: HashSet<DocumentKey>,
+}
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub struct DocumentKey {
+    /// the URL to the distribution folder
+    pub distribution_url: Url,
+    /// the URL to the document, relative to the `distribution_url`.
+    pub url: String,
+}
+
+impl DocumentKey {
+    pub fn for_document(advisory: &DiscoveredAdvisory) -> Self {
+        Self {
+            distribution_url: advisory.distribution.directory_url.clone(),
+            url: advisory.possibly_relative_url(),
+        }
+    }
 }
 
 impl Report {
     pub async fn run(self, progress: Progress) -> anyhow::Result<()> {
         let options: ValidationOptions = self.validation.into();
 
+        let total = Arc::new(AtomicUsize::default());
         let duplicates: Arc<Mutex<Duplicates>> = Default::default();
-        let errors: Arc<Mutex<BTreeMap<String, String>>> = Default::default();
-        let warnings: Arc<Mutex<BTreeMap<String, Vec<CheckError>>>> = Default::default();
+        let errors: Arc<Mutex<BTreeMap<DocumentKey, String>>> = Default::default();
+        let warnings: Arc<Mutex<BTreeMap<DocumentKey, Vec<CheckError>>>> = Default::default();
 
         {
+            let total = total.clone();
             let duplicates = duplicates.clone();
             let errors = errors.clone();
             let warnings = warnings.clone();
@@ -83,6 +114,8 @@ impl Report {
                 VerifiedAdvisory<ValidatedAdvisory, &'static str>,
                 VerificationError<ValidationError, ValidatedAdvisory>,
             >| {
+                (*total).fetch_add(1, Ordering::Release);
+
                 let errors = errors.clone();
                 let warnings = warnings.clone();
 
@@ -90,14 +123,26 @@ impl Report {
                     let adv = match advisory {
                         Ok(adv) => adv,
                         Err(err) => {
-                            let name = err.url().to_string();
+                            let name = match err.as_discovered().relative_base_and_url() {
+                                Some((base, relative)) => DocumentKey {
+                                    distribution_url: base.clone(),
+                                    url: relative,
+                                },
+                                None => DocumentKey {
+                                    distribution_url: err.url().clone(),
+                                    url: Default::default(),
+                                },
+                            };
+
+                            // let name = err.url().to_string();
+
                             errors.lock().unwrap().insert(name, err.to_string());
                             return Ok::<_, anyhow::Error>(());
                         }
                     };
 
                     if !adv.failures.is_empty() {
-                        let name = adv.advisory.url.to_string();
+                        let name = DocumentKey::for_document(&adv);
                         warnings
                             .lock()
                             .unwrap()
@@ -116,6 +161,7 @@ impl Report {
                 progress,
                 self.client,
                 self.discover,
+                self.filter,
                 self.runner,
                 move |source| async move {
                     let visitor = { RetrievingVisitor::new(source.clone(), visitor) };
@@ -129,9 +175,12 @@ impl Report {
             .await?;
         }
 
+        let total = (*total).load(Ordering::Acquire);
+
         Self::render(
             self.render,
             ReportResult {
+                total,
                 duplicates: &duplicates.lock().unwrap(),
                 errors: &errors.lock().unwrap(),
                 warnings: &warnings.lock().unwrap(),
@@ -172,12 +221,12 @@ impl<V: DiscoveredVisitor> DiscoveredVisitor for DetectDuplicatesVisitor<V> {
         advisory: DiscoveredAdvisory,
     ) -> Result<(), Self::Error> {
         {
-            if let Some(name) = advisory.url.path().split('/').last() {
-                let mut duplicates = self.duplicates.lock().unwrap();
-                if !duplicates.known.insert(name.to_string()) {
-                    // add or get and increment by one
-                    *duplicates.duplicates.entry(name.to_string()).or_default() += 1;
-                }
+            let key = DocumentKey::for_document(&advisory);
+
+            let mut duplicates = self.duplicates.lock().unwrap();
+            if !duplicates.known.insert(key.clone()) {
+                // add or get and increment by one
+                *duplicates.duplicates.entry(key).or_default() += 1;
             }
         }
 

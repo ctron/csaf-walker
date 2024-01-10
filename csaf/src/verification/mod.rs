@@ -2,6 +2,7 @@
 //!
 //! Checks to ensure conformity with the specification.
 
+use crate::discover::{AsDiscovered, DiscoveredAdvisory};
 use crate::retrieve::{
     AsRetrieved, RetrievalContext, RetrievalError, RetrievedAdvisory, RetrievedVisitor,
 };
@@ -67,6 +68,19 @@ where
         advisory: A,
         error: serde_json::Error,
     },
+}
+
+impl<A, UE> AsDiscovered for VerificationError<UE, A>
+where
+    A: AsDiscovered + Debug,
+    UE: AsDiscovered + Display + Debug,
+{
+    fn as_discovered(&self) -> &DiscoveredAdvisory {
+        match self {
+            Self::Upstream(err) => err.as_discovered(),
+            Self::Parsing { advisory, .. } => advisory.as_discovered(),
+        }
+    }
 }
 
 impl<UE, A> Urlify for VerificationError<UE, A>

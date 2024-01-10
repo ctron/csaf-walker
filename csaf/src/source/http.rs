@@ -8,12 +8,13 @@ use digest::Digest;
 use futures::try_join;
 use reqwest::Response;
 use sha2::{Sha256, Sha512};
+use std::sync::Arc;
 use std::time::SystemTime;
 use time::format_description::well_known::Rfc2822;
 use time::OffsetDateTime;
 use url::{ParseError, Url};
 use walker_common::{
-    changes::{self, ChangeSource},
+    changes::{self, ChangeEntry, ChangeSource},
     fetcher::{self, DataProcessor, Fetcher, Json},
     retrieve::{RetrievedDigest, RetrievingDigest},
     utils::openpgp::PublicKey,
@@ -66,7 +67,7 @@ impl Source for HttpSource {
 
     async fn load_index(
         &self,
-        distribution: &Distribution,
+        distribution: Distribution,
     ) -> Result<Vec<DiscoveredAdvisory>, Self::Error> {
         let base = distribution.directory_url.to_string();
         let has_slash = base.ends_with('/');
@@ -78,25 +79,31 @@ impl Source for HttpSource {
             Url::parse(&format!("{}{s}", base))
         };
 
+        let distribution = Arc::new(distribution);
+
+        // TODO: need to handle ROLIE source too
         let changes = ChangeSource::retrieve(&self.fetcher, &distribution.directory_url).await?;
 
-        Ok(self
-            .fetcher
-            .fetch::<String>(distribution.directory_url.join("index.txt")?)
-            .await?
-            .lines()
-            .map(|line| {
-                let modified = changes.modified(line);
-                let url = join_url(line)?;
+        Ok(changes
+            .entries
+            .into_iter()
+            .map(|ChangeEntry { file, timestamp }| {
+                let modified = timestamp.into();
+                let url = join_url(&file)?;
 
-                Ok::<_, ParseError>(DiscoveredAdvisory { url, modified })
+                Ok::<_, ParseError>(DiscoveredAdvisory {
+                    distribution: distribution.clone(),
+                    url,
+                    modified,
+                })
             })
             // filter out advisories based in since, but only if we can be sure
             .filter(|advisory| match (advisory, &self.options.since) {
                 (
                     Ok(DiscoveredAdvisory {
                         url: _,
-                        modified: Some(modified),
+                        distribution: _,
+                        modified,
                     }),
                     Some(since),
                 ) => modified >= since,

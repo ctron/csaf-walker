@@ -72,7 +72,7 @@ impl<S: Source> Walker<S> {
             log::debug!("Walking: {}", distribution.directory_url);
             let index = self
                 .source
-                .load_index(&distribution)
+                .load_index(distribution)
                 .await
                 .map_err(Error::Source)?;
 
@@ -159,7 +159,7 @@ fn collect_sources<'s, V: DiscoveredVisitor, S: Source>(
         log::debug!("Walking: {}", distribution.directory_url);
         Ok(stream::iter(
             source
-                .load_index(&distribution)
+                .load_index(distribution)
                 .await
                 .map_err(Error::Source)?,
         ))

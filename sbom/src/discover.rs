@@ -12,8 +12,8 @@ use walker_common::utils::url::Urlify;
 pub struct DiscoveredSbom {
     /// The URL of the SBOM
     pub url: Url,
-    /// The "last changed" date from the change information, if there was some.
-    pub modified: Option<SystemTime>,
+    /// The "last changed" date from the change information
+    pub modified: SystemTime,
 }
 
 impl Urlify for DiscoveredSbom {

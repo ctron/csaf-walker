@@ -1,12 +1,10 @@
 use anyhow::Context;
-use csaf_walker::visitors::send::SendVisitor;
-use csaf_walker::visitors::store::StoreVisitor;
+use csaf_walker::visitors::{filter::FilterConfig, send::SendVisitor, store::StoreVisitor};
 use flexible_time::timestamp::StartTimestamp;
 use reqwest::Url;
+use std::collections::HashSet;
 use std::path::PathBuf;
-use walker_common::sender;
-use walker_common::sender::provider::OpenIdTokenProviderConfigArguments;
-use walker_common::sender::HttpSender;
+use walker_common::sender::{self, provider::OpenIdTokenProviderConfigArguments, HttpSender};
 
 pub mod discover;
 pub mod download;
@@ -21,9 +19,36 @@ pub mod sync;
 pub struct DiscoverArguments {
     /// Source to scan from, will be suffixed with "/.well-known/csaf/provider-metadata.json" unless "--full" is used.
     pub source: String,
+
     #[arg(long)]
     /// Treat the "source" as a full URL to the metadata.
     pub full: bool,
+}
+
+#[derive(Debug, clap::Parser)]
+#[command(next_help_heading = "Filters")]
+pub struct FilterArguments {
+    #[arg(long)]
+    /// Distributions to ignore
+    pub ignore_distribution: Vec<String>,
+
+    #[arg(long)]
+    /// Prefix to ignore
+    pub ignore_prefix: Vec<String>,
+
+    #[arg(long)]
+    /// Ignore all non-matching prefixes
+    pub only_prefix: Vec<String>,
+}
+
+impl From<FilterArguments> for FilterConfig {
+    fn from(filter: FilterArguments) -> Self {
+        Self {
+            ignored_distributions: HashSet::from_iter(filter.ignore_distribution),
+            ignored_prefixes: filter.ignore_prefix,
+            only_prefixes: filter.only_prefix,
+        }
+    }
 }
 
 #[derive(Debug, clap::Parser)]

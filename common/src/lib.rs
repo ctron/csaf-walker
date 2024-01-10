@@ -6,5 +6,6 @@ pub mod progress;
 pub mod retrieve;
 pub mod sender;
 pub mod since;
+pub mod source;
 pub mod utils;
 pub mod validate;

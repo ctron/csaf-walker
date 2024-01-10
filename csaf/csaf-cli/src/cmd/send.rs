@@ -1,5 +1,5 @@
 use crate::{
-    cmd::{DiscoverArguments, SendArguments, SkipArguments},
+    cmd::{DiscoverArguments, FilterArguments, SendArguments, SkipArguments},
     common::{walk_visitor, DiscoverConfig},
 };
 use csaf_walker::validation::ValidationVisitor;
@@ -24,6 +24,9 @@ pub struct Send {
 
     #[command(flatten)]
     discover: DiscoverArguments,
+
+    #[command(flatten)]
+    filter: FilterArguments,
 
     #[command(flatten)]
     validation: ValidationArguments,
@@ -61,6 +64,7 @@ impl Send {
             progress,
             self.client,
             DiscoverConfig::from(self.discover).with_since(since.since),
+            self.filter,
             self.runner,
             move |source| async move {
                 let visitor = {

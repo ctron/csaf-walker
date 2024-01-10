@@ -1,4 +1,4 @@
-use super::ReportResult;
+use super::{DocumentKey, ReportResult};
 use crate::cmd::report::RenderOptions;
 use reqwest::Url;
 use std::borrow::Cow;
@@ -42,19 +42,21 @@ impl HtmlReport<'_> {
         let count = self.0.duplicates.duplicates.len();
         let data = |f: &mut Formatter<'_>| {
             for (k, v) in &self.0.duplicates.duplicates {
+                let (_url, label) = self.link_document(&k);
                 writeln!(
                     f,
                     r#"
             <tr>
-                <td><code>{k}<code></td>
+                <td><code>{label}<code></td>
                 <td class="text-right">{v}</td>
             </tr>
             "#,
-                    k = html_escape::encode_text(&k),
+                    label = html_escape::encode_text(&label),
                 )?;
             }
             Ok(())
         };
+
         if !self.0.duplicates.duplicates.is_empty() {
             let total: usize = self.0.duplicates.duplicates.values().sum();
 
@@ -77,23 +79,18 @@ impl HtmlReport<'_> {
         let count = self.0.errors.len();
         let data = |f: &mut Formatter<'_>| {
             for (k, v) in self.0.errors {
-                let k: Cow<str> = match (&self.1.base_url, Url::parse(k)) {
-                    (Some(base_url), Ok(url)) => match base_url.make_relative(&url) {
-                        Some(url) => Cow::Owned(url),
-                        None => Cow::Borrowed(k),
-                    },
-                    _ => Cow::Borrowed(k),
-                };
+                let (url, label) = self.link_document(&k);
 
                 writeln!(
                     f,
                     r#"
             <tr>
-                <td><a href="{k}" target="_blank">{k}</a></td>
+                <td><a href="{url}" target="_blank">{label}</a></td>
                 <td><code>{v}</code></td>
             </tr>
             "#,
-                    k = html_escape::encode_quoted_attribute(&k),
+                    url = html_escape::encode_quoted_attribute(&url),
+                    label = html_escape::encode_text(&label),
                     v = html_escape::encode_text(&v),
                 )?;
             }
@@ -143,30 +140,25 @@ impl HtmlReport<'_> {
 
     fn render_warnings(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut count = 0;
-        for errors in self.0.warnings.values() {
-            count += errors.len();
+        for warnings in self.0.warnings.values() {
+            count += warnings.len();
         }
 
         let data = |f: &mut Formatter<'_>| {
             for (k, v) in self.0.warnings {
-                let k: Cow<str> = match (&self.1.base_url, Url::parse(k)) {
-                    (Some(base_url), Ok(url)) => match base_url.make_relative(&url) {
-                        Some(url) => Cow::Owned(url),
-                        None => Cow::Borrowed(k),
-                    },
-                    _ => Cow::Borrowed(k),
-                };
+                let (url, label) = self.link_document(&k);
 
                 for text in v {
                     writeln!(
                         f,
                         r#"
             <tr>
-                <td><a href="{k}" target="_blank">{k}</a></td>
+                <td><a href="{url}" target="_blank">{label}</a></td>
                 <td><code>{v}</code></td>
             </tr>
             "#,
-                        k = html_escape::encode_quoted_attribute(&k),
+                        url = html_escape::encode_quoted_attribute(&url),
+                        label = html_escape::encode_text(&label),
                         v = html_escape::encode_text(&text),
                     )?;
                 }
@@ -181,6 +173,28 @@ impl HtmlReport<'_> {
             data,
         )?;
         Ok(())
+    }
+
+    fn gen_link(&self, key: &DocumentKey) -> Option<(String, String)> {
+        let label = key.url.clone();
+
+        // the full URL of the document
+        let url = key.distribution_url.join(&key.url).ok()?;
+
+        let url = match &self.1.base_url {
+            Some(base_url) => base_url
+                .make_relative(&url)
+                .unwrap_or_else(|| url.to_string()),
+            None => url.to_string(),
+        };
+
+        Some((url, label))
+    }
+
+    /// create a link towards a document, returning url and label
+    fn link_document(&self, key: &DocumentKey) -> (String, String) {
+        self.gen_link(key)
+            .unwrap_or_else(|| (key.url.clone(), key.url.clone()))
     }
 
     fn title(f: &mut Formatter<'_>, title: &str, count: usize) -> std::fmt::Result {
@@ -201,6 +215,20 @@ impl HtmlReport<'_> {
 
         Ok(())
     }
+
+    fn render_total(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(
+            f,
+            r#"
+<h2>Summary</h2>
+<dl class="row">
+    <dt class="col-sm-2">Total</dt>
+    <dd class="col-sm-10">{total}</dd>
+</dl>
+"#,
+            total = self.0.total
+        )
+    }
 }
 
 impl<'r> Display for HtmlReport<'r> {
@@ -214,9 +242,38 @@ impl<'r> Display for HtmlReport<'r> {
 "#
         )?;
 
+        self.render_total(f)?;
         self.render_duplicates(f)?;
         self.render_errors(f)?;
         self.render_warnings(f)?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use reqwest::Url;
+
+    #[test]
+    fn test_link() {
+        let details = ReportResult {
+            total: 0,
+            duplicates: &Default::default(),
+            errors: &Default::default(),
+            warnings: &Default::default(),
+        };
+        let opts = RenderOptions {
+            output: Default::default(),
+            base_url: Some(Url::parse("file:///foo/bar/").unwrap()),
+        };
+        let report = HtmlReport(&details, &opts);
+
+        let (url, _label) = report.link_document(&DocumentKey {
+            distribution_url: Url::parse("file:///foo/bar/distribution/").unwrap(),
+            url: "2023/cve.json".to_string(),
+        });
+
+        assert_eq!(url, "distribution/2023/cve.json");
     }
 }
