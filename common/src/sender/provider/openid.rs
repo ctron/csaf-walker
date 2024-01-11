@@ -8,34 +8,41 @@ use url::Url;
 
 #[derive(Clone, Debug, PartialEq, Eq, clap::Args)]
 pub struct OpenIdTokenProviderConfigArguments {
+    /// The client ID for using Open ID connect
     #[arg(
         id = "oidc_client_id",
         long = "oidc-client-id",
-        env = "OIDC_PROVIDER_CLIENT_ID",
         requires("OpenIdTokenProviderConfigArguments")
     )]
     pub client_id: Option<String>,
+    /// The client secret for using Open ID connect
     #[arg(
         id = "oidc_client_secret",
         long = "oidc-client-secret",
-        env = "OIDC_PROVIDER_CLIENT_SECRET",
         requires("OpenIdTokenProviderConfigArguments")
     )]
     pub client_secret: Option<String>,
+    /// The issuer URL for using Open ID connect
     #[arg(
         id = "oidc_issuer_url",
         long = "oidc-issuer-url",
-        env = "OIDC_PROVIDER_ISSUER_URL",
         requires("OpenIdTokenProviderConfigArguments")
     )]
     pub issuer_url: Option<String>,
+    /// The time a token must be valid before refreshing it
     #[arg(
         id = "oidc_refresh_before",
         long = "oidc-refresh-before",
-        env = "OIDC_PROVIDER_REFRESH_BEFORE",
         default_value = "30s"
     )]
     pub refresh_before: humantime::Duration,
+    /// Allows to use TLS in an insecure more (DANGER!)
+    #[arg(
+        id = "oidc_tls_insecure",
+        long = "oidc-tls-insecure",
+        default_value = "false"
+    )]
+    pub tls_insecure: bool,
 }
 
 impl OpenIdTokenProviderConfigArguments {
@@ -50,6 +57,7 @@ pub struct OpenIdTokenProviderConfig {
     pub client_secret: String,
     pub issuer_url: String,
     pub refresh_before: humantime::Duration,
+    pub tls_insecure: bool,
 }
 
 impl OpenIdTokenProviderConfig {
@@ -72,6 +80,7 @@ impl OpenIdTokenProviderConfig {
                     client_secret,
                     issuer_url,
                     refresh_before: arguments.refresh_before,
+                    tls_insecure: arguments.tls_insecure,
                 })
             }
             _ => None,
@@ -117,9 +126,26 @@ impl OpenIdTokenProvider {
 
     pub async fn with_config(config: OpenIdTokenProviderConfig) -> anyhow::Result<Self> {
         let issuer = Url::parse(&config.issuer_url).context("Parse issuer URL")?;
-        let client = openid::Client::discover(config.client_id, config.client_secret, None, issuer)
-            .await
-            .context("Discover OIDC client")?;
+
+        let mut client = reqwest::ClientBuilder::new();
+
+        if config.tls_insecure {
+            log::warn!("Using insecure TLS when communicating with the OIDC issuer");
+            client = client
+                .danger_accept_invalid_hostnames(true)
+                .danger_accept_invalid_certs(true);
+        }
+
+        let client = openid::Client::discover_with_client(
+            client.build()?,
+            config.client_id,
+            config.client_secret,
+            None,
+            issuer,
+        )
+        .await
+        .context("Discover OIDC client")?;
+
         Ok(Self::new(
             client,
             time::Duration::try_from(<_ as Into<std::time::Duration>>::into(
