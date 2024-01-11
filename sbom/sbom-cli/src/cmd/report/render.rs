@@ -70,7 +70,7 @@ impl HtmlReport<'_> {
                     f,
                     r#"
             <tr>
-                <td><a href="{k}" target="_blank">{k}</a></td>
+                <td><a href="{k}" target="_blank" style="white-space: nowrap;">{k}</a></td>
                 <td><code>{v}</code></td>
             </tr>
             "#,
