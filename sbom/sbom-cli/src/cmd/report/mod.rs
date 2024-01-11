@@ -74,12 +74,12 @@ impl Report {
     pub async fn run(self, progress: Progress) -> anyhow::Result<()> {
         let options: ValidationOptions = self.validation.into();
 
-        let errors: Arc<Mutex<BTreeMap<String, SbomError>>> = Default::default();
         let total: Arc<AtomicUsize> = Default::default();
+        let errors: Arc<Mutex<BTreeMap<String, SbomError>>> = Default::default();
 
         {
-            let errors = errors.clone();
             let total = total.clone();
+            let errors = errors.clone();
             walk_visitor(
                 progress,
                 self.client,

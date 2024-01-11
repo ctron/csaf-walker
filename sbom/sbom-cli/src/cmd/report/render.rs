@@ -91,6 +91,20 @@ impl HtmlReport<'_> {
         Ok(())
     }
 
+    fn render_total(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(
+            f,
+            r#"
+<h2>Summary</h2>
+<dl class="row">
+    <dt class="col-sm-2">Total</dt>
+    <dd class="col-sm-10">{total}</dd>
+</dl>
+"#,
+            total = self.0.total
+        )
+    }
+
     fn title(f: &mut Formatter<'_>, title: &str, count: usize) -> std::fmt::Result {
         write!(f, "<h2>{title}")?;
 
@@ -118,11 +132,11 @@ impl<'r> Display for HtmlReport<'r> {
         writeln!(
             f,
             r#"
-<h1>SBOM Report <span class="badge bg-secondary">{date}</span> <span class="badge bg-secondary rounded-pill">{}</span></h1>
+<h1>SBOM Report <span class="badge bg-secondary">{date}</span></h1>
 "#,
-            self.0.total
         )?;
 
+        self.render_total(f)?;
         self.render_errors(f)?;
 
         Ok(())
