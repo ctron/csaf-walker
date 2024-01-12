@@ -2,8 +2,7 @@ use crate::discover::DiscoveredSbom;
 use crate::retrieve::{RetrievalContext, RetrievalError, RetrievedSbom, RetrievedVisitor};
 use crate::validation::{ValidatedSbom, ValidatedVisitor, ValidationContext, ValidationError};
 use async_trait::async_trait;
-use http::header;
-use reqwest::{Body, Method, StatusCode};
+use reqwest::{header, Body, Method, StatusCode};
 use url::Url;
 use walker_common::sender::{self, HttpSender};
 
