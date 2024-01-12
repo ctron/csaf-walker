@@ -16,7 +16,7 @@ rust-version = "1.70"
 anyhow = "1"
 async-trait = "0.1"
 clap = { version = "4", features = ["derive", "color"] }
-comrak = { version = "0.18.0" }
+comrak = { version = "0.20.0" }
 csaf = { version = "0.5.0", default-features = false }
 env_logger = "0.10.0"
 flexible-time = "0.1.1"
