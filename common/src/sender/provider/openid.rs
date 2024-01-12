@@ -36,13 +36,6 @@ pub struct OpenIdTokenProviderConfigArguments {
         default_value = "30s"
     )]
     pub refresh_before: humantime::Duration,
-    /// Allows to use TLS in an insecure more (DANGER!)
-    #[arg(
-        id = "oidc_tls_insecure",
-        long = "oidc-tls-insecure",
-        default_value = "false"
-    )]
-    pub tls_insecure: bool,
 }
 
 impl OpenIdTokenProviderConfigArguments {
@@ -57,7 +50,6 @@ pub struct OpenIdTokenProviderConfig {
     pub client_secret: String,
     pub issuer_url: String,
     pub refresh_before: humantime::Duration,
-    pub tls_insecure: bool,
 }
 
 impl OpenIdTokenProviderConfig {
@@ -80,7 +72,6 @@ impl OpenIdTokenProviderConfig {
                     client_secret,
                     issuer_url,
                     refresh_before: arguments.refresh_before,
-                    tls_insecure: arguments.tls_insecure,
                 })
             }
             _ => None,
@@ -126,26 +117,9 @@ impl OpenIdTokenProvider {
 
     pub async fn with_config(config: OpenIdTokenProviderConfig) -> anyhow::Result<Self> {
         let issuer = Url::parse(&config.issuer_url).context("Parse issuer URL")?;
-
-        let mut client = reqwest::ClientBuilder::new();
-
-        if config.tls_insecure {
-            log::warn!("Using insecure TLS when communicating with the OIDC issuer");
-            client = client
-                .danger_accept_invalid_hostnames(true)
-                .danger_accept_invalid_certs(true);
-        }
-
-        let client = openid::Client::discover_with_client(
-            client.build()?,
-            config.client_id,
-            config.client_secret,
-            None,
-            issuer,
-        )
-        .await
-        .context("Discover OIDC client")?;
-
+        let client = openid::Client::discover(config.client_id, config.client_secret, None, issuer)
+            .await
+            .context("Discover OIDC client")?;
         Ok(Self::new(
             client,
             time::Duration::try_from(<_ as Into<std::time::Duration>>::into(
