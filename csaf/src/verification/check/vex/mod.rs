@@ -183,7 +183,7 @@ fn check_product(
     erroies.extend(
         Checking::new()
             .require(
-                format!("The product under the 'product status' section of the vulnerabilities division, identified as {:?}, is missing from the product tree.", &product_id_t),
+                format!("The product under the 'product status' section of the vulnerabilities division, identified as {}, is missing from the product tree.", &product_id_t.0),
                 product_names.contains(&product_id_t.0),
             )
             .done(),
