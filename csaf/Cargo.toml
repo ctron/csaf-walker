@@ -42,6 +42,9 @@ sequoia-openpgp = { version = "1", default-features = false }
 csaf = { version = "0.5", default-features = false, optional = true }
 html-escape = "0.2.13"
 
+# for csaf-validator-lib
+deno_core = { version = "0.246.0", optional = true }
+
 [features]
 default = ["crypto-nettle", "csaf"]
 crypto-cng = ["sequoia-openpgp/crypto-cng"]
@@ -49,6 +52,10 @@ crypto-nettle = ["sequoia-openpgp/crypto-nettle"]
 crypto-openssl = ["sequoia-openpgp/crypto-openssl"]
 crypto-botan = ["sequoia-openpgp/crypto-botan"]
 crypto-rust = ["sequoia-openpgp/crypto-rust"]
+
+csaf-validator-lib = [
+    "deno_core"
+]
 
 # workaround until xattr fixes its win32 compilation issues.
 [target.'cfg(any(unix, macos))'.dependencies]

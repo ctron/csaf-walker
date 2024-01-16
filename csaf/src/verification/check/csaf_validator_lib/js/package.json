@@ -1,0 +1,29 @@
+{
+  "private": true,
+  "scripts": {
+    "build": "npx rollup --config rollup.config.mjs"
+  },
+
+  "x-comment":  "copied over from csaf-validator-lib/package.json",
+  "dependencies": {
+    "@js-joda/core": "^5.6.1",
+    "@js-joda/timezone": "^2.18.2",
+    "ajv": "^8.11.2",
+    "ajv-formats": "^2.1.1",
+    "bcp47": "^1.1.2",
+    "cvss2js": "^1.1.0",
+    "json-pointer": "^0.6.1",
+    "lodash": "^4.17.21",
+    "packageurl-js": "^1.1.1",
+    "semver": "^7.5.4",
+    "undici": "^5.27.0"
+  },
+
+  "devDependencies": {
+    "rollup": "^4.9.5",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-terser": "^0.4.4"
+  }
+}
