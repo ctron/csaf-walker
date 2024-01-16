@@ -22,6 +22,7 @@ csv = "1"
 digest = "0.10.7"
 flexible-time = "0.1"
 futures-util = "0.3"
+html-escape = "0.2"
 humantime = "2"
 indicatif = "0.17.6"
 log = "0.4"
@@ -31,7 +32,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10.7"
 thiserror = "1"
-time = { version = "0.3", features = ["serde"] }
+time = { version = "0.3", features = ["serde", "formatting", "local-offset"] }
 tokio = { version = "1", features = ["sync", "fs"] }
 tracing = "0.1"
 url = "2"

@@ -1,35 +1,20 @@
 use super::{DocumentKey, ReportResult};
 use crate::cmd::report::RenderOptions;
 use std::fmt::{Display, Formatter};
-use std::time::SystemTime;
+use walker_common::report;
 
 pub fn render_to_html<W: std::io::Write>(
     out: &mut W,
     report: &ReportResult,
     render: &RenderOptions,
 ) -> anyhow::Result<()> {
-    write!(
+    report::render(
         out,
-        r#"
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>CSAF Report</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
-  </head>
-  <body>
-    <div class="container">
-    {report}
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
-  </body>
-</html>
-
-"#,
-        report = HtmlReport(report, render)
+        "CSAF Report",
+        HtmlReport(report, render),
+        &Default::default(),
     )?;
+
     Ok(())
 }
 
@@ -272,15 +257,6 @@ impl HtmlReport<'_> {
 
 impl<'r> Display for HtmlReport<'r> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let date = humantime::Timestamp::from(SystemTime::now());
-
-        writeln!(
-            f,
-            r#"
-<h1>CSAF Report <span class="badge bg-secondary">{date}</span></h1>
-"#
-        )?;
-
         self.render_total(f)?;
         self.render_duplicates(f)?;
         self.render_errors(f)?;
