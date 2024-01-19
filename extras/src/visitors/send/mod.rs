@@ -17,7 +17,7 @@ pub use csaf::*;
 #[cfg(feature = "clap")]
 mod clap;
 #[cfg(feature = "clap")]
-pub use clap::*;
+pub use self::clap::*;
 
 #[derive(Debug, thiserror::Error)]
 pub enum SendError {
