@@ -13,7 +13,7 @@ use walker_common::{
 };
 use walker_extras::visitors::SendVisitor;
 
-/// Sync only what changed, send to a remote endpoint
+/// Walk a source and send validated/retrieved documents to a sink.
 #[derive(clap::Args, Debug)]
 pub struct Send {
     #[command(flatten)]
@@ -37,19 +37,15 @@ pub struct Send {
     #[command(flatten)]
     send: SendArguments,
 
-    /// Disable validation of digest and signatures (DANGER!)
+    /// Skip (with a warning) documents which failed processing
     #[arg(long)]
-    disable_validation: bool,
+    skip_failures: bool,
 }
 
 impl Send {
     pub async fn run(self, progress: Progress) -> anyhow::Result<()> {
         let options: ValidationOptions = self.validation.into();
         let send: SendVisitor = self.send.into_visitor().await?;
-
-        if self.disable_validation {
-            log::warn!("Validation is disabled");
-        }
 
         let since = Since::new(
             self.skip.since,
@@ -70,7 +66,7 @@ impl Send {
                 let visitor = {
                     RetrievingVisitor::new(source.clone(), {
                         ValidationVisitor::new(SkipFailedVisitor {
-                            skip_failures: self.disable_validation,
+                            skip_failures: self.skip_failures,
                             visitor: send,
                         })
                         .with_options(options)
