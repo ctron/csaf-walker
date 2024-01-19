@@ -1,9 +1,10 @@
 use anyhow::Context;
 use flexible_time::timestamp::StartTimestamp;
 use reqwest::Url;
-use sbom_walker::visitors::{send::SendVisitor, store::StoreVisitor};
+use sbom_walker::visitors::store::StoreVisitor;
 use std::path::PathBuf;
 use walker_common::sender::{self, provider::OpenIdTokenProviderConfigArguments, HttpSender};
+use walker_extras::visitors::SendVisitor;
 
 pub mod discover;
 pub mod download;

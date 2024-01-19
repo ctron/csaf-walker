@@ -2,9 +2,8 @@ use crate::{
     cmd::{DiscoverArguments, FilterArguments, SendArguments, SkipArguments},
     common::{walk_visitor, DiscoverConfig},
 };
-use csaf_walker::validation::ValidationVisitor;
 use csaf_walker::{
-    retrieve::RetrievingVisitor, visitors::send::SendVisitor, visitors::skip::SkipFailedVisitor,
+    retrieve::RetrievingVisitor, validation::ValidationVisitor, visitors::skip::SkipFailedVisitor,
 };
 use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
@@ -12,6 +11,7 @@ use walker_common::{
     since::Since,
     validate::ValidationOptions,
 };
+use walker_extras::visitors::SendVisitor;
 
 /// Sync only what changed, send to a remote endpoint
 #[derive(clap::Args, Debug)]

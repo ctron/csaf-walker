@@ -1,10 +1,11 @@
 use anyhow::Context;
-use csaf_walker::visitors::{filter::FilterConfig, send::SendVisitor, store::StoreVisitor};
+use csaf_walker::visitors::{filter::FilterConfig, store::StoreVisitor};
 use flexible_time::timestamp::StartTimestamp;
 use reqwest::Url;
 use std::collections::HashSet;
 use std::path::PathBuf;
 use walker_common::sender::{self, provider::OpenIdTokenProviderConfigArguments, HttpSender};
+use walker_extras::visitors::SendVisitor;
 
 pub mod discover;
 pub mod download;

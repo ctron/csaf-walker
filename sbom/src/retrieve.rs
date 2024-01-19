@@ -43,6 +43,10 @@ impl Urlify for RetrievedSbom {
     fn url(&self) -> &Url {
         &self.url
     }
+
+    fn relative_base_and_url(&self) -> Option<(&Url, String)> {
+        self.discovered.relative_base_and_url()
+    }
 }
 
 /// Metadata of the retrieval process.

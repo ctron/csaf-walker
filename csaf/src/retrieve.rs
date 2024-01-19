@@ -39,6 +39,10 @@ impl Urlify for RetrievedAdvisory {
     fn url(&self) -> &Url {
         &self.url
     }
+
+    fn relative_base_and_url(&self) -> Option<(&Url, String)> {
+        self.discovered.relative_base_and_url()
+    }
 }
 
 /// Get a document as [`RetrievedAdvisory`]

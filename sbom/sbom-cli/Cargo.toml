@@ -34,6 +34,7 @@ tokio = { version = "1", features = ["full"] }
 bzip2-rs = { version = "0.1", features = ["rustc_1_37"] }
 
 walker-common = { version = "0.6.0-alpha.2", path = "../../common" }
+walker-extras = { version = "0.6.0-alpha.2", path = "../../extras"}
 sbom-walker = { version = "0.6.0-alpha.2", path = "..", default-features = false, features = ["cyclonedx-bom", "spdx-rs"] }
 
 # just there for the feature

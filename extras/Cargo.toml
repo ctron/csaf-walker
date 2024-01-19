@@ -14,6 +14,11 @@ rust-version = "1.70"
 
 [dependencies]
 async-trait = "0.1"
+bytes = "1"
+log = "0.4"
+thiserror = "1"
+reqwest = "0.11"
+
 walker-common = { version = "0.6.0-alpha.2", path = "../common" }
 
 csaf-walker = { version = "0.6.0-alpha.2", path = "../csaf", optional = true }

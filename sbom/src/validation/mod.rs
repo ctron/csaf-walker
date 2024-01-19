@@ -24,6 +24,10 @@ impl Urlify for ValidatedSbom {
     fn url(&self) -> &Url {
         &self.url
     }
+
+    fn relative_base_and_url(&self) -> Option<(&Url, String)> {
+        self.retrieved.relative_base_and_url()
+    }
 }
 
 impl Deref for ValidatedSbom {
