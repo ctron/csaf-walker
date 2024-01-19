@@ -105,10 +105,10 @@ jobs:
         run: ${{ matrix.install }}
 
       - name: Tree
-        run: cargo +${{ matrix.rust }} tree --all ${{ matrix.args }}
+        run: cargo +${{ matrix.rust }} tree --workspace ${{ matrix.args }}
 
       - name: Check
-        run: cargo +${{ matrix.rust }} check --all ${{ matrix.args }}
+        run: cargo +${{ matrix.rust }} check --workspace ${{ matrix.args }}
 
       - name: Test
-        run: cargo +${{ matrix.rust }} test --all ${{ matrix.args }} -- --nocapture
+        run: cargo +${{ matrix.rust }} test --workspace ${{ matrix.args }} -- --nocapture
