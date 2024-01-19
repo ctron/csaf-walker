@@ -104,6 +104,9 @@ jobs:
       - name: Install dependencies
         run: ${{ matrix.install }}
 
+      - name: Tree
+        run: cargo +${{ matrix.rust }} tree --all ${{ matrix.args }}
+
       - name: Check
         run: cargo +${{ matrix.rust }} check --all ${{ matrix.args }}
 
