@@ -216,7 +216,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           push: true
-          file: ./Containerfile
+          file: ./csaf-walker/csaf-walker/Containerfile
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
