@@ -1,5 +1,5 @@
 use crate::{
-    cmd::{DiscoverArguments, SendArguments, SkipArguments},
+    cmd::{DiscoverArguments, SkipArguments},
     common::{walk_visitor, DiscoverConfig},
 };
 use sbom_walker::{
@@ -11,7 +11,7 @@ use walker_common::{
     since::Since,
     validate::ValidationOptions,
 };
-use walker_extras::visitors::SendVisitor;
+use walker_extras::visitors::{SendArguments, SendVisitor};
 
 /// Walk a source and send validated/retrieved documents to a sink.
 #[derive(clap::Args, Debug)]

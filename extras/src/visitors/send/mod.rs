@@ -14,6 +14,11 @@ mod csaf;
 #[cfg(feature = "csaf-walker")]
 pub use csaf::*;
 
+#[cfg(feature = "clap")]
+mod clap;
+#[cfg(feature = "clap")]
+pub use clap::*;
+
 #[derive(Debug, thiserror::Error)]
 pub enum SendError {
     #[error(transparent)]
