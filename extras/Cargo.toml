@@ -26,8 +26,8 @@ clap = { version = "4", features = ["derive"], optional = true }
 
 walker-common = { version = "0.6.0-alpha.2", path = "../common" }
 
-csaf-walker = { version = "0.6.0-alpha.2", path = "../csaf", optional = true }
-sbom-walker = { version = "0.6.0-alpha.2", path = "../sbom", optional = true }
+csaf-walker = { version = "0.6.0-alpha.2", path = "../csaf", optional = true, default-features = false }
+sbom-walker = { version = "0.6.0-alpha.2", path = "../sbom", optional = true, default-features = false }
 
 [features]
 default = [
