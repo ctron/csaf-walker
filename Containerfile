@@ -1,7 +1,7 @@
 FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi9/ubi-minimal:latest AS collect
 
 RUN mkdir /download
-COPY download /download/
+COPY download/* /download/
 WORKDIR /download
 RUN \
     mkdir -p linux/aarch64 && \
