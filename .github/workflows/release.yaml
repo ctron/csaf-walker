@@ -212,6 +212,10 @@ jobs:
         with:
           path: ~/download
 
+      - name: Move files
+        run: |
+          mv ~/download .
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
