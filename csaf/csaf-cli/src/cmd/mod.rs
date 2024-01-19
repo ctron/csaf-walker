@@ -101,6 +101,14 @@ pub struct SendArguments {
     #[arg(id = "sender-timeout", long, default_value = "5m")]
     pub timeout: humantime::Duration,
 
+    /// Number of retries in case of temporary failures
+    #[arg(id = "retries", long, default_value = "0")]
+    pub retries: usize,
+
+    /// Delay between retries
+    #[arg(id = "retry-delay", long, default_value = "5s")]
+    pub retry_delay: humantime::Duration,
+
     #[command(flatten)]
     pub oidc: OpenIdTokenProviderConfigArguments,
 }
@@ -120,6 +128,8 @@ impl SendArguments {
         Ok(SendVisitor {
             url: self.target,
             sender,
+            retries: self.retries,
+            retry_delay: Some(self.retry_delay.into()),
         })
     }
 }
