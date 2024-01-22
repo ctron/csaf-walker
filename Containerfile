@@ -5,10 +5,10 @@ COPY download/* /download/
 WORKDIR /download
 RUN \
     ls -lR && \
-    mkdir -p linux/aarch64 && \
+    mkdir -p linux/arm64 && \
     mkdir -p linux/amd64 && \
-    mv csaf-aarch64-unknown-linux-gnu linux/aarch64/csaf && \
-    mv sbom-aarch64-unknown-linux-gnu linux/aarch64/sbom && \
+    mv csaf-aarch64-unknown-linux-gnu linux/arm64/csaf && \
+    mv sbom-aarch64-unknown-linux-gnu linux/arm64/sbom && \
     mv csaf-x86_64-unknown-linux-gnu linux/amd64/csaf && \
     mv sbom-x86_64-unknown-linux-gnu linux/amd64/sbom
 
