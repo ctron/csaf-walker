@@ -4,7 +4,7 @@ RUN mkdir /download
 COPY download/* /download/
 WORKDIR /download
 RUN \
-    find && \
+    ls -lR && \
     mkdir -p linux/aarch64 && \
     mkdir -p linux/amd64 && \
     mv csaf-aarch64-unknown-linux-gnu/csaf-aarch64-unknown-linux-gnu linux/aarch64/csaf && \
