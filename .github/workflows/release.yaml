@@ -90,7 +90,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/bin/
@@ -168,13 +168,13 @@ jobs:
           cp -pv "${SRC_SBOM}" upload/sbom-${{ matrix.target }}${{ matrix.exe }}
 
       - name: Upload binary (csaf)
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: csaf-${{ matrix.target }}
           path: upload/csaf-${{ matrix.target }}${{ matrix.exe }}
           if-no-files-found: error
       - name: Upload binary (sbom)
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sbom-${{ matrix.target }}
           path: upload/sbom-${{ matrix.target }}${{ matrix.exe }}
@@ -211,7 +211,7 @@ jobs:
             type=semver,pattern={{major}}
             type=sha
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           path: ~/download
 
@@ -250,7 +250,7 @@ jobs:
         run: |
           convco changelog -s --max-majors=1 --max-minors=1 --max-patches=1 > /tmp/changelog.md
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           path: ~/download
 
