@@ -74,6 +74,9 @@ impl SendVisitor {
             ..
         } = advisory;
 
-        self.send(url.as_str(), data, |r| r).await
+        self.send(url.as_str(), data, |request| {
+            request.header(header::CONTENT_TYPE, "application/json")
+        })
+        .await
     }
 }

@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use bytes::Bytes;
-use reqwest::{Body, Method, StatusCode, Url};
+use reqwest::{header, Body, Method, StatusCode, Url};
 use std::time::Duration;
 use walker_common::sender::{self, HttpSender};
 

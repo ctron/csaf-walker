@@ -87,7 +87,9 @@ impl SendVisitor {
         let bzip2 = name.ends_with(".bz2");
 
         self.send(url.as_str(), data, |mut request| {
-            request = request.query(&[("id", name)]);
+            request = request
+                .query(&[("id", name)])
+                .header(header::CONTENT_TYPE, "application/json");
             if bzip2 {
                 request.header(header::CONTENT_ENCODING, "bzip2")
             } else {
