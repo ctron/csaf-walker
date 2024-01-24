@@ -51,6 +51,8 @@ impl<V: DiscoveredVisitor> DiscoveredVisitor for SkipExistingVisitor<V> {
         let name = match advisory
             .distribution
             .directory_url
+            .clone()
+            .unwrap()
             .make_relative(&advisory.url)
         {
             Some(name) => name,

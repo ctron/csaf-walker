@@ -69,7 +69,7 @@ impl<S: Source> Walker<S> {
                     continue;
                 }
             }
-            log::debug!("Walking: {}", distribution.directory_url);
+            log::debug!("Walking: {}", distribution.directory_url.clone().unwrap());
             let index = self
                 .source
                 .load_index(distribution)
@@ -156,7 +156,7 @@ fn collect_sources<'s, V: DiscoveredVisitor, S: Source>(
 ) -> impl TryStream<Ok = impl Stream<Item = DiscoveredAdvisory>, Error = Error<V::Error, S::Error>> + 's
 {
     stream::iter(distributions).then(move |distribution| async move {
-        log::debug!("Walking: {}", distribution.directory_url);
+        log::debug!("Walking: {}", distribution.directory_url.clone().unwrap());
         Ok(stream::iter(
             source
                 .load_index(distribution)

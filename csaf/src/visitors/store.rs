@@ -210,6 +210,8 @@ impl StoreVisitor {
         let name = match advisory
             .distribution
             .directory_url
+            .clone()
+            .unwrap()
             .make_relative(&advisory.url)
         {
             Some(name) => name,

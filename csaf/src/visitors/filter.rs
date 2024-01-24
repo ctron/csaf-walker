@@ -35,11 +35,14 @@ impl<V: DiscoveredVisitor> DiscoveredVisitor for FilteringVisitor<V> {
     ) -> Result<(), Self::Error> {
         // ignore distributions
 
-        if self
-            .config
-            .ignored_distributions
-            .contains(advisory.distribution.directory_url.as_str())
-        {
+        if self.config.ignored_distributions.contains(
+            advisory
+                .distribution
+                .directory_url
+                .clone()
+                .unwrap()
+                .as_str(),
+        ) {
             return Ok(());
         }
 

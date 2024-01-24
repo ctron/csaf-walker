@@ -86,10 +86,19 @@ pub struct DocumentKey {
     pub url: String,
 }
 
+impl Default for DocumentKey {
+    fn default() -> Self {
+        Self {
+            distribution_url: Url::parse("https://example.net").unwrap(),
+            url: "".to_string(),
+        }
+    }
+}
+
 impl DocumentKey {
     pub fn for_document(advisory: &DiscoveredAdvisory) -> Self {
         Self {
-            distribution_url: advisory.distribution.directory_url.clone(),
+            distribution_url: advisory.distribution.directory_url.clone().unwrap(),
             url: advisory.possibly_relative_url(),
         }
     }
@@ -123,18 +132,8 @@ impl Report {
                     let adv = match advisory {
                         Ok(adv) => adv,
                         Err(err) => {
-                            let name = match err.as_discovered().relative_base_and_url() {
-                                Some((base, relative)) => DocumentKey {
-                                    distribution_url: base.clone(),
-                                    url: relative,
-                                },
-                                None => DocumentKey {
-                                    distribution_url: err.url().clone(),
-                                    url: Default::default(),
-                                },
-                            };
-
-                            // let name = err.url().to_string();
+                            let mut name: DocumentKey = DocumentKey::default();
+                            Self::get_documentKey_name(&err.as_discovered(), &mut name);
 
                             errors.lock().unwrap().insert(name, err.to_string());
                             return Ok::<_, anyhow::Error>(());
@@ -142,7 +141,8 @@ impl Report {
                     };
 
                     if !adv.failures.is_empty() {
-                        let name = DocumentKey::for_document(&adv);
+                        let mut name: DocumentKey = DocumentKey::default();
+                        Self::get_documentKey_name(&adv.as_discovered(), &mut name);
                         warnings
                             .lock()
                             .unwrap()
@@ -150,7 +150,6 @@ impl Report {
                             .or_default()
                             .extend(adv.failures.into_values().flatten());
                     }
-
                     Ok::<_, anyhow::Error>(())
                 }
             };
@@ -188,6 +187,22 @@ impl Report {
         )?;
 
         Ok(())
+    }
+
+    fn get_documentKey_name(da: &DiscoveredAdvisory, documentKey: &mut DocumentKey) {
+        let segments = da
+            .url()
+            .path_segments()
+            .map(|c| c.collect::<Vec<_>>())
+            .unwrap();
+        let file_name = segments.last().unwrap_or(&"");
+
+        let name = DocumentKey {
+            distribution_url: da.url().clone(),
+            url: file_name.to_string(),
+        };
+
+        documentKey.clone_from(&name);
     }
 
     fn render(render: RenderOptions, report: ReportResult) -> anyhow::Result<()> {
