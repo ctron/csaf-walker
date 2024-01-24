@@ -3,7 +3,28 @@ use url::Url;
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct Distribution {
-    pub directory_url: Url,
+    pub directory_url: Option<Url>,
+    pub rolie: Option<Rolie>,
+}
+#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+pub struct Rolie {
+    pub categories: Vec<Url>,
+    pub feeds: Vec<Feed>,
+    pub services: Vec<Url>,
+}
+#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+pub struct Feed {
+    pub summary: String,
+    pub tip_label: Tlp_label,
+    pub url: Url,
+}
+#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+pub enum Tlp_label {
+    UNLABELED,
+    WHITE,
+    GREEN,
+    AMBER,
+    RED,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]

@@ -108,12 +108,17 @@ impl FileSource {
     ) -> Result<mpsc::Receiver<walkdir::Result<walkdir::DirEntry>>, anyhow::Error> {
         let (tx, rx) = mpsc::channel(8);
 
-        let path = distribution.directory_url.to_file_path().map_err(|()| {
-            anyhow!(
-                "Failed to convert into path: {}",
-                distribution.directory_url
-            )
-        })?;
+        let path = distribution
+            .directory_url
+            .clone()
+            .unwrap()
+            .to_file_path()
+            .map_err(|()| {
+                anyhow!(
+                    "Failed to convert into path: {:?}",
+                    distribution.directory_url.clone()
+                )
+            })?;
 
         tokio::task::spawn_blocking(move || {
             for entry in WalkDir::new(path).into_iter().filter_entry(|entry| {
@@ -157,7 +162,7 @@ impl Source for FileSource {
                 )
             })?;
 
-            dist.directory_url = directory_url;
+            dist.directory_url = Some(directory_url);
         }
 
         // return result

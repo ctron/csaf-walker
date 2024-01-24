@@ -35,12 +35,23 @@ impl Urlify for DiscoveredAdvisory {
         &self.url
     }
 
-    fn relative_base_and_url(&self) -> Option<(&Url, String)> {
-        self.distribution
-            .directory_url
-            .make_relative(&self.url)
-            .map(|relative| (&self.distribution.directory_url, relative))
-    }
+    // fn relative_base_and_url(&self) -> Option<(&Url, String)> {
+    //     // let directory_url = &self.distribution.directory_url.clone().unwrap();
+    //     // directory_url
+    //     //     .make_relative(&self.url)
+    //     //     .map(|relative| (directory_url, relative))
+    //     // if let Some(directory_url) = &self.distribution.directory_url {
+    //     //     directory_url
+    //     //         .make_relative(&self.url)
+    //     //         .map(|relative| (directory_url.clone(), relative))
+    //     // } else {
+    //     //     Option::None
+    //     // }
+    //     // self.distribution
+    //     //     .directory_url
+    //     //     .make_relative(&self.url)
+    //     //     .map(|relative| (&self.distribution.directory_url.unwrap(), relative))
+    // }
 }
 
 #[derive(Debug)]

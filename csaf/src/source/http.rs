@@ -91,7 +91,7 @@ impl Source for HttpSource {
         &self,
         distribution: Distribution,
     ) -> Result<Vec<DiscoveredAdvisory>, Self::Error> {
-        let base = distribution.directory_url.to_string();
+        let base = distribution.directory_url.clone().unwrap().to_string();
         let has_slash = base.ends_with('/');
 
         let join_url = |mut s: &str| {
@@ -104,7 +104,9 @@ impl Source for HttpSource {
         let distribution = Arc::new(distribution);
 
         // TODO: need to handle ROLIE source too
-        let changes = ChangeSource::retrieve(&self.fetcher, &distribution.directory_url).await?;
+        let changes =
+            ChangeSource::retrieve(&self.fetcher, &distribution.directory_url.clone().unwrap())
+                .await?;
 
         Ok(changes
             .entries
