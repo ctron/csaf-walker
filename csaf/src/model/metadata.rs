@@ -3,7 +3,35 @@ use url::Url;
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct Distribution {
-    pub directory_url: Url,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub directory_url: Option<Url>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rolie: Option<Rolie>,
+}
+#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+pub struct Rolie {
+    #[serde(default)]
+    pub categories: Vec<Url>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub feeds: Vec<Feed>,
+    #[serde(default)]
+    pub services: Vec<Url>,
+}
+#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+pub struct Feed {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub summary: Option<String>,
+    pub tlp_label: TlpLabel,
+    pub url: Url,
+}
+#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum TlpLabel {
+    Unlabeled,
+    White,
+    Green,
+    Amber,
+    Red,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
@@ -26,7 +54,8 @@ impl<'a> From<&'a Key> for walker_common::validate::source::Key<'a> {
 pub struct Publisher {
     pub category: String,
     pub contact_details: String,
-    pub issuing_authority: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuing_authority: Option<String>,
     pub name: String,
     pub namespace: String,
 }

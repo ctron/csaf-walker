@@ -35,7 +35,7 @@ pub struct DocumentKey {
 impl DocumentKey {
     pub fn for_document(advisory: &DiscoveredAdvisory) -> Self {
         Self {
-            distribution_url: advisory.distribution.directory_url.clone(),
+            distribution_url: advisory.url.clone(),
             url: advisory.possibly_relative_url(),
         }
     }
