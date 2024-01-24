@@ -61,5 +61,6 @@ pub mod validation;
 pub mod visitors;
 pub mod walker;
 
+mod rolie;
 #[cfg(feature = "csaf")]
 pub mod verification;

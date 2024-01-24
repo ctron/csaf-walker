@@ -1,6 +1,6 @@
 //! Discovering
 
-use crate::model::metadata::{Distribution, ProviderMetadata};
+use crate::model::metadata::ProviderMetadata;
 use async_trait::async_trait;
 use std::fmt::Debug;
 use std::future::Future;
@@ -9,10 +9,21 @@ use std::time::SystemTime;
 use url::Url;
 use walker_common::utils::url::Urlify;
 
+#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+pub enum DiscoverContextType {
+    DirectoryUrl,
+    FeedUrl,
+}
+#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+pub struct DiscoverContext {
+    pub discover_context_type: DiscoverContextType,
+    pub url: Url,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DiscoveredAdvisory {
-    /// A reference to the distribution information
-    pub distribution: Arc<Distribution>,
+    /// A reference to the distribution and rolie information
+    pub context: Arc<DiscoverContext>,
     /// The URL of the advisory
     pub url: Url,
     /// The "last changed" date from the change information
@@ -36,10 +47,10 @@ impl Urlify for DiscoveredAdvisory {
     }
 
     fn relative_base_and_url(&self) -> Option<(&Url, String)> {
-        self.distribution
-            .directory_url
+        self.context
+            .url
             .make_relative(&self.url)
-            .map(|relative| (&self.distribution.directory_url, relative))
+            .map(|relative| (&self.context.url, relative))
     }
 }
 
