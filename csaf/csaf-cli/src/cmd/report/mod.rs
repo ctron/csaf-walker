@@ -2,6 +2,7 @@ use crate::{
     cmd::{DiscoverArguments, FilterArguments},
     common::walk_visitor,
 };
+use csaf_walker::discover::DiscoveredAdvisory;
 use csaf_walker::{
     discover::AsDiscovered,
     report::{render_to_html, DocumentKey, Duplicates, ReportRenderOption, ReportResult},
@@ -91,7 +92,7 @@ impl Report {
                         Ok(adv) => adv,
                         Err(err) => {
                             let mut name: DocumentKey = DocumentKey::default();
-                            Self::get_documentKey_name(&err.as_discovered(), &mut name);
+                            Self::get_document_key_name(err.as_discovered(), &mut name);
 
                             errors.lock().unwrap().insert(name, err.to_string());
                             return Ok::<_, anyhow::Error>(());
@@ -100,7 +101,7 @@ impl Report {
 
                     if !adv.failures.is_empty() {
                         let mut name: DocumentKey = DocumentKey::default();
-                        Self::get_documentKey_name(&adv.as_discovered(), &mut name);
+                        Self::get_document_key_name(adv.as_discovered(), &mut name);
                         warnings
                             .lock()
                             .unwrap()
@@ -147,7 +148,7 @@ impl Report {
         Ok(())
     }
 
-    fn get_documentKey_name(da: &DiscoveredAdvisory, documentKey: &mut DocumentKey) {
+    fn get_document_key_name(da: &DiscoveredAdvisory, document_key: &mut DocumentKey) {
         let segments = da
             .url()
             .path_segments()
@@ -160,7 +161,7 @@ impl Report {
             url: file_name.to_string(),
         };
 
-        documentKey.clone_from(&name);
+        document_key.clone_from(&name);
     }
 
     fn render(render: RenderOptions, report: ReportResult) -> anyhow::Result<()> {

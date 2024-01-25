@@ -145,7 +145,6 @@ async fn main() -> ExitCode {
 #[cfg(test)]
 mod tests {
     use super::*;
-
     #[test]
     fn verify_cli() {
         use clap::CommandFactory;

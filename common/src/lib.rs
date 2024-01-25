@@ -5,6 +5,7 @@ pub mod fetcher;
 pub mod progress;
 pub mod report;
 pub mod retrieve;
+pub mod roliefeed;
 pub mod sender;
 pub mod since;
 pub mod source;

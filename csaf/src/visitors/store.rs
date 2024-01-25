@@ -13,6 +13,7 @@ use std::rc::Rc;
 use std::time::SystemTime;
 use tokio::fs;
 use walker_common::utils::openpgp::PublicKey;
+use walker_common::utils::url::Urlify;
 
 #[cfg(target_os = "macos")]
 pub const ATTR_ETAG: &str = "etag";
@@ -230,16 +231,27 @@ impl StoreVisitor {
             advisory.metadata.last_modification
         );
 
-        let name = match advisory
-            .distribution
-            .directory_url
-            .clone()
-            .unwrap()
-            .make_relative(&advisory.url)
-        {
-            Some(name) => name,
-            None => return Err(StoreError::Filename(advisory.url.to_string())),
-        };
+        #[warn(unused_assignments)]
+        let mut name: String = "".to_string();
+        if let Some(_directory_url) = &advisory.distribution.directory_url {
+            name = match advisory
+                .distribution
+                .directory_url
+                .clone()
+                .unwrap()
+                .make_relative(&advisory.url)
+            {
+                Some(name) => name,
+                None => return Err(StoreError::Filename(advisory.url.to_string())),
+            };
+        } else {
+            let segments = advisory
+                .url()
+                .path_segments()
+                .map(|c| c.collect::<Vec<_>>())
+                .unwrap();
+            name = segments.last().unwrap_or(&"").to_string();
+        }
 
         // create a distribution base
         let distribution_base = distribution_base(&self.base, &advisory.distribution);
