@@ -69,51 +69,87 @@ impl Source for HttpSource {
         &self,
         distribution: Distribution,
     ) -> Result<Vec<DiscoveredAdvisory>, Self::Error> {
-        let base = distribution.directory_url.clone().unwrap().to_string();
-        let has_slash = base.ends_with('/');
-
-        let join_url = |mut s: &str| {
-            if has_slash && s.ends_with('/') {
-                s = &s[1..];
-            }
-            Url::parse(&format!("{}{s}", base))
-        };
-
         let distribution = Arc::new(distribution);
 
-        // TODO: need to handle ROLIE source too
-        let changes =
-            ChangeSource::retrieve(&self.fetcher, &distribution.directory_url.clone().unwrap())
-                .await?;
+        if let Some(base) = &distribution.clone().directory_url {
+            let has_slash = base.to_string().ends_with('/');
 
-        Ok(changes
-            .entries
-            .into_iter()
-            .map(|ChangeEntry { file, timestamp }| {
-                let modified = timestamp.into();
-                let url = join_url(&file)?;
+            let join_url = |mut s: &str| {
+                if has_slash && s.ends_with('/') {
+                    s = &s[1..];
+                }
+                Url::parse(&format!("{}{s}", base))
+            };
 
-                Ok::<_, ParseError>(DiscoveredAdvisory {
-                    distribution: distribution.clone(),
-                    url,
-                    modified,
-                })
-            })
-            // filter out advisories based in since, but only if we can be sure
-            .filter(|advisory| match (advisory, &self.options.since) {
-                (
-                    Ok(DiscoveredAdvisory {
-                        url: _,
-                        distribution: _,
+            // TODO: need to handle ROLIE source too
+            let changes =
+                ChangeSource::retrieve(&self.fetcher, &distribution.directory_url.clone().unwrap())
+                    .await?;
+
+            return Ok(changes
+                .entries
+                .into_iter()
+                .map(|ChangeEntry { file, timestamp }| {
+                    let modified = timestamp.into();
+                    let url = join_url(&file)?;
+
+                    Ok::<_, ParseError>(DiscoveredAdvisory {
+                        distribution: distribution.clone(),
+                        url,
                         modified,
-                    }),
-                    Some(since),
-                ) => modified >= since,
-                _ => true,
-            })
-            .collect::<Result<_, _>>()?)
-    }
+                    })
+                })
+                // filter out advisories based in since, but only if we can be sure
+                .filter(|advisory| match (advisory, &self.options.since) {
+                    (
+                        Ok(DiscoveredAdvisory {
+                            url: _,
+                            distribution: _,
+                            modified,
+                        }),
+                        Some(since),
+                    ) => modified >= since,
+                    _ => true,
+                })
+                .collect::<Result<_, _>>()?);
+        }
+        if let Some(rolie) = &distribution.rolie {
+            let mut all_changes = ChangeSource::default();
+            for f in &rolie.feeds {
+                let mut changes =
+                    ChangeSource::retrieve_rolie(&self.fetcher, f.clone().url).await?;
+                all_changes.append(&mut changes);
+            }
 
+            let join_url = |s: &str| Url::parse(s);
+            return Ok(all_changes
+                .entries
+                .into_iter()
+                .map(|ChangeEntry { file, timestamp }| {
+                    let modified = timestamp.into();
+                    let url = join_url(&file)?;
+
+                    Ok::<_, ParseError>(DiscoveredAdvisory {
+                        distribution: distribution.clone(),
+                        url,
+                        modified,
+                    })
+                })
+                .filter(|advisory| match (advisory, &self.options.since) {
+                    (
+                        Ok(DiscoveredAdvisory {
+                            url: _,
+                            distribution: _,
+                            modified,
+                        }),
+                        Some(since),
+                    ) => modified >= since,
+                    _ => true,
+                })
+                .collect::<Result<_, _>>()?);
+        }
+        Ok(vec![])
+    }
     async fn load_advisory(
         &self,
         discovered: DiscoveredAdvisory,

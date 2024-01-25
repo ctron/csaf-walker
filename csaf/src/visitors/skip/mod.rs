@@ -48,17 +48,28 @@ impl<V: DiscoveredVisitor> DiscoveredVisitor for SkipExistingVisitor<V> {
         context: &Self::Context,
         advisory: DiscoveredAdvisory,
     ) -> Result<(), Self::Error> {
-        let name = match advisory
-            .distribution
-            .directory_url
-            .clone()
-            .unwrap()
-            .make_relative(&advisory.url)
-        {
-            Some(name) => name,
-            None => return Err(Error::Name),
-        };
+        #[warn(unused_assignments)]
+        let mut name: String = "".to_string();
 
+        if let Some(_directory_url) = &advisory.distribution.directory_url {
+            name = match advisory
+                .distribution
+                .directory_url
+                .clone()
+                .unwrap()
+                .make_relative(&advisory.url)
+            {
+                Some(name) => name,
+                None => return Err(Error::Name),
+            };
+        } else {
+            let segments = advisory
+                .url()
+                .path_segments()
+                .map(|c| c.collect::<Vec<_>>())
+                .unwrap();
+            name = segments.last().unwrap_or(&"").to_string();
+        }
         let path = distribution_base(&self.output, &advisory.distribution).join(&name);
 
         if fs::try_exists(&path).await? {

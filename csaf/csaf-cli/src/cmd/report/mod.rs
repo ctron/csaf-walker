@@ -97,9 +97,16 @@ impl Default for DocumentKey {
 
 impl DocumentKey {
     pub fn for_document(advisory: &DiscoveredAdvisory) -> Self {
-        Self {
-            distribution_url: advisory.distribution.directory_url.clone().unwrap(),
-            url: advisory.possibly_relative_url(),
+        if let Some(_directory_url) = &advisory.distribution.directory_url {
+            Self {
+                distribution_url: advisory.distribution.directory_url.clone().unwrap(),
+                url: advisory.possibly_relative_url(),
+            }
+        } else {
+            Self {
+                distribution_url: Url::parse("https://example.net").unwrap(),
+                url: advisory.possibly_relative_url(),
+            }
         }
     }
 }
@@ -133,7 +140,7 @@ impl Report {
                         Ok(adv) => adv,
                         Err(err) => {
                             let mut name: DocumentKey = DocumentKey::default();
-                            Self::get_documentKey_name(&err.as_discovered(), &mut name);
+                            Self::get_document_key_name(err.as_discovered(), &mut name);
 
                             errors.lock().unwrap().insert(name, err.to_string());
                             return Ok::<_, anyhow::Error>(());
@@ -142,7 +149,7 @@ impl Report {
 
                     if !adv.failures.is_empty() {
                         let mut name: DocumentKey = DocumentKey::default();
-                        Self::get_documentKey_name(&adv.as_discovered(), &mut name);
+                        Self::get_document_key_name(adv.as_discovered(), &mut name);
                         warnings
                             .lock()
                             .unwrap()
@@ -189,7 +196,7 @@ impl Report {
         Ok(())
     }
 
-    fn get_documentKey_name(da: &DiscoveredAdvisory, documentKey: &mut DocumentKey) {
+    fn get_document_key_name(da: &DiscoveredAdvisory, document_key: &mut DocumentKey) {
         let segments = da
             .url()
             .path_segments()
@@ -202,7 +209,7 @@ impl Report {
             url: file_name.to_string(),
         };
 
-        documentKey.clone_from(&name);
+        document_key.clone_from(&name);
     }
 
     fn render(render: RenderOptions, report: ReportResult) -> anyhow::Result<()> {
@@ -237,7 +244,6 @@ impl<V: DiscoveredVisitor> DiscoveredVisitor for DetectDuplicatesVisitor<V> {
     ) -> Result<(), Self::Error> {
         {
             let key = DocumentKey::for_document(&advisory);
-
             let mut duplicates = self.duplicates.lock().unwrap();
             if !duplicates.known.insert(key.clone()) {
                 // add or get and increment by one

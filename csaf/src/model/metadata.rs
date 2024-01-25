@@ -8,18 +8,18 @@ pub struct Distribution {
 }
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct Rolie {
-    pub categories: Vec<Url>,
+    pub categories: Option<Vec<Url>>,
     pub feeds: Vec<Feed>,
-    pub services: Vec<Url>,
+    pub services: Option<Vec<Url>>,
 }
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct Feed {
-    pub summary: String,
-    pub tip_label: Tlp_label,
+    pub summary: Option<String>,
+    pub tlp_label: Tlplabel,
     pub url: Url,
 }
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
-pub enum Tlp_label {
+pub enum Tlplabel {
     UNLABELED,
     WHITE,
     GREEN,
@@ -47,7 +47,7 @@ impl<'a> From<&'a Key> for walker_common::validate::source::Key<'a> {
 pub struct Publisher {
     pub category: String,
     pub contact_details: String,
-    pub issuing_authority: String,
+    pub issuing_authority: Option<String>,
     pub name: String,
     pub namespace: String,
 }
