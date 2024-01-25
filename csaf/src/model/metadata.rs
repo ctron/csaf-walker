@@ -15,11 +15,11 @@ pub struct Rolie {
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct Feed {
     pub summary: Option<String>,
-    pub tlp_label: Tlplabel,
+    pub tlp_label: TlpLabel,
     pub url: Url,
 }
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
-pub enum Tlplabel {
+pub enum TlpLabel {
     UNLABELED,
     WHITE,
     GREEN,

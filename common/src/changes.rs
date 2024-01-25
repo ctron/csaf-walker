@@ -31,12 +31,6 @@ pub struct ChangeSource {
     pub entries: Vec<ChangeEntry>,
 }
 
-// impl Default for ChangeSource {
-//     fn default() -> Self {
-//         Self { entries: vec![] }
-//     }
-// }
-
 impl ChangeSource {
     /// Retrieve a file using a [`Fetcher`].
     pub async fn retrieve(fetcher: &Fetcher, base_url: &Url) -> Result<Self, Error> {
