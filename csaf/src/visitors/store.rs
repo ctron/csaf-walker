@@ -208,7 +208,7 @@ impl StoreVisitor {
             advisory.metadata.last_modification
         );
 
-        #[warn(unused_assignments)]
+        #[allow(unused_assignments)]
         let mut name: String = "".to_string();
         if let Some(_directory_url) = &advisory.distribution.directory_url {
             name = match advisory

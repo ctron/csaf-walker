@@ -48,7 +48,7 @@ impl<V: DiscoveredVisitor> DiscoveredVisitor for SkipExistingVisitor<V> {
         context: &Self::Context,
         advisory: DiscoveredAdvisory,
     ) -> Result<(), Self::Error> {
-        #[warn(unused_assignments)]
+        #[allow(unused_assignments)]
         let mut name: String = "".to_string();
 
         if let Some(_directory_url) = &advisory.distribution.directory_url {

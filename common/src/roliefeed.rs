@@ -82,20 +82,23 @@ pub struct Format {
 #[derive(Serialize, Deserialize)]
 pub struct Link {
     #[serde(rename = "rel")]
-    rel: Rel,
+    rel: String,
 
     #[serde(rename = "href")]
     pub href: String,
 }
 
-#[derive(Serialize, Deserialize)]
-pub enum Rel {
-    #[serde(rename = "hash")]
-    Hash,
-
-    #[serde(rename = "self")]
-    RelSelf,
-
-    #[serde(rename = "signature")]
-    Signature,
-}
+// #[derive(Serialize, Deserialize)]
+// pub enum Rel {
+//     #[serde(rename = "hash")]
+//     Hash,
+//
+//     #[serde(rename = "self")]
+//     RelSelf,
+//
+//     #[serde(rename = "signature")]
+//     Signature,
+//
+//     #[serde(rename = "service")]
+//     Service,
+// }
