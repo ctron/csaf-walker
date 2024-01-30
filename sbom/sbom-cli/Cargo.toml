@@ -1,7 +1,7 @@
 [package]
 name = "sbom-cli"
 description = "A CLI to work with SBOM data"
-version = "0.6.0-alpha.6"
+version = "0.6.0-alpha.7"
 edition = "2021"
 authors = ["Jens Reimann <ctron@dentrassi.de>"]
 license = "Apache-2.0"
@@ -33,9 +33,9 @@ time = "0.3.20"
 tokio = { version = "1", features = ["full"] }
 bzip2-rs = { version = "0.1", features = ["rustc_1_37"] }
 
-walker-common = { version = "0.6.0-alpha.6", path = "../../common" }
-walker-extras = { version = "0.6.0-alpha.6", path = "../../extras"}
-sbom-walker = { version = "0.6.0-alpha.6", path = "..", default-features = false, features = ["cyclonedx-bom", "spdx-rs"] }
+walker-common = { version = "0.6.0-alpha.7", path = "../../common" }
+walker-extras = { version = "0.6.0-alpha.7", path = "../../extras"}
+sbom-walker = { version = "0.6.0-alpha.7", path = "..", default-features = false, features = ["cyclonedx-bom", "spdx-rs"] }
 
 # just there for the feature
 openssl = { version = "0.10", optional = true }
