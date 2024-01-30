@@ -39,6 +39,7 @@ struct Cli {
     no_progress: bool,
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(clap::Subcommand, Debug)]
 enum Command {
     Parse(Parse),
