@@ -1,5 +1,6 @@
 use crate::visitors::SendVisitor;
 use reqwest::Url;
+use std::path::PathBuf;
 use walker_common::sender::{self, provider::OpenIdTokenProviderConfigArguments, HttpSender};
 
 #[derive(Debug, clap::Parser)]
@@ -15,6 +16,10 @@ pub struct SendArguments {
     /// Sender request timeout
     #[arg(id = "sender-timeout", long, default_value = "5m")]
     pub timeout: humantime::Duration,
+
+    /// Additional root certificates
+    #[arg(id = "sender-root-certificate", long)]
+    pub additional_root_certificates: Vec<PathBuf>,
 
     /// Number of retries in case of temporary failures
     #[arg(id = "sender-retries", long, default_value = "0")]
@@ -36,6 +41,7 @@ impl SendArguments {
             sender::Options {
                 connect_timeout: Some(self.connect_timeout.into()),
                 timeout: Some(self.timeout.into()),
+                additional_root_certificates: self.additional_root_certificates,
             },
         )
         .await?;

@@ -3,9 +3,12 @@
 pub mod provider;
 
 mod error;
+
 pub use error::*;
+use std::path::PathBuf;
 
 use crate::sender::provider::{TokenInjector, TokenProvider};
+use anyhow::Context;
 use reqwest::{header, IntoUrl, Method, RequestBuilder};
 use std::sync::Arc;
 use std::time::Duration;
@@ -19,6 +22,7 @@ pub struct HttpSender {
 pub struct Options {
     pub connect_timeout: Option<Duration>,
     pub timeout: Option<Duration>,
+    pub additional_root_certificates: Vec<PathBuf>,
 }
 
 const USER_AGENT: &str = concat!("CSAF-Walker/", env!("CARGO_PKG_VERSION"));
@@ -39,6 +43,13 @@ impl HttpSender {
 
         if let Some(timeout) = options.timeout {
             client = client.timeout(timeout);
+        }
+
+        for cert in options.additional_root_certificates {
+            let cert = std::fs::read(&cert)
+                .with_context(|| format!("Reading certificate: {}", cert.display()))?;
+            let cert = reqwest::tls::Certificate::from_pem(&cert)?;
+            client = client.add_root_certificate(cert);
         }
 
         Ok(Self {
