@@ -1,7 +1,7 @@
 [package]
 name = "sbom-walker"
 description = "A library to work with SBOM data"
-version = "0.6.0-alpha.5"
+version = "0.6.0-alpha.6"
 edition = "2021"
 authors = ["Jens Reimann <ctron@dentrassi.de>"]
 license = "Apache-2.0"
@@ -33,7 +33,7 @@ time = { version = "0.3.20", features = ["formatting", "parsing", "serde"] }
 tokio = { version = "1", features = ["macros", "fs"] }
 url = { version = "2.3.1", features = ["serde"] }
 
-walker-common = { version = "0.6.0-alpha.5", path = "../common" }
+walker-common = { version = "0.6.0-alpha.6", path = "../common" }
 
 sequoia-openpgp = { version = "1", default-features = false }
 
