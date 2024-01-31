@@ -38,11 +38,10 @@ impl SendArguments {
         let provider = self.oidc.into_provider().await?;
         let sender = HttpSender::new(
             provider,
-            sender::Options {
-                connect_timeout: Some(self.connect_timeout.into()),
-                timeout: Some(self.timeout.into()),
-                additional_root_certificates: self.additional_root_certificates,
-            },
+            sender::Options::default()
+                .connect_timeout(self.connect_timeout)
+                .timeout(self.timeout)
+                .additional_root_certificates(self.additional_root_certificates),
         )
         .await?;
 

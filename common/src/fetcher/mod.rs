@@ -27,10 +27,28 @@ pub enum Error {
     Request(#[from] reqwest::Error),
 }
 
+/// Options for the [`Fetcher`]
+#[non_exhaustive]
 #[derive(Clone, Debug)]
 pub struct FetcherOptions {
     pub timeout: Duration,
     pub retries: usize,
+}
+
+impl FetcherOptions {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn timeout(mut self, timeout: impl Into<Duration>) -> Self {
+        self.timeout = timeout.into();
+        self
+    }
+
+    pub fn retries(mut self, retries: usize) -> Self {
+        self.retries = retries;
+        self
+    }
 }
 
 impl Default for FetcherOptions {

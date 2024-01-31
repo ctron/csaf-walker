@@ -18,11 +18,55 @@ pub struct HttpSender {
     provider: Arc<dyn TokenProvider>,
 }
 
+/// Options for the [`HttpSender`].
+#[non_exhaustive]
 #[derive(Clone, Debug, Default)]
 pub struct Options {
     pub connect_timeout: Option<Duration>,
     pub timeout: Option<Duration>,
     pub additional_root_certificates: Vec<PathBuf>,
+}
+
+impl Options {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn connect_timeout(mut self, connect_timeout: impl Into<Duration>) -> Self {
+        self.connect_timeout = Some(connect_timeout.into());
+        self
+    }
+
+    pub fn timeout(mut self, timeout: impl Into<Duration>) -> Self {
+        self.connect_timeout = Some(timeout.into());
+        self
+    }
+
+    pub fn additional_root_certificates<I>(mut self, additional_root_certificates: I) -> Self
+    where
+        I: IntoIterator<Item = PathBuf>,
+    {
+        self.additional_root_certificates = Vec::from_iter(additional_root_certificates);
+        self
+    }
+
+    pub fn add_additional_root_certificate(
+        mut self,
+        additional_root_certificate: impl Into<PathBuf>,
+    ) -> Self {
+        self.additional_root_certificates
+            .push(additional_root_certificate.into());
+        self
+    }
+
+    pub fn extend_additional_root_certificate<I>(mut self, additional_root_certificates: I) -> Self
+    where
+        I: IntoIterator<Item = PathBuf>,
+    {
+        self.additional_root_certificates
+            .extend(additional_root_certificates);
+        self
+    }
 }
 
 const USER_AGENT: &str = concat!("CSAF-Walker/", env!("CARGO_PKG_VERSION"));
