@@ -9,7 +9,8 @@ pub struct FilteringVisitor<V: DiscoveredVisitor> {
     pub config: FilterConfig,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+#[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct FilterConfig {
     /// A set of distributions to ignore
     ///
@@ -18,6 +19,76 @@ pub struct FilterConfig {
     pub ignored_distributions: HashSet<String>,
     pub ignored_prefixes: Vec<String>,
     pub only_prefixes: Vec<String>,
+}
+
+impl FilterConfig {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn ignored_distributions<I>(mut self, ignored_distributions: I) -> Self
+    where
+        I: IntoIterator<Item = String>,
+    {
+        self.ignored_distributions = HashSet::from_iter(ignored_distributions);
+        self
+    }
+
+    pub fn add_ignored_distribution(mut self, ignored_distribution: impl Into<String>) -> Self {
+        self.ignored_distributions
+            .insert(ignored_distribution.into());
+        self
+    }
+
+    pub fn extend_ignored_distributions<I>(mut self, ignored_distributions: I) -> Self
+    where
+        I: IntoIterator<Item = String>,
+    {
+        self.ignored_distributions.extend(ignored_distributions);
+        self
+    }
+
+    pub fn ignored_prefixes<I>(mut self, ignored_prefixes: I) -> Self
+    where
+        I: IntoIterator<Item = String>,
+    {
+        self.ignored_prefixes = Vec::from_iter(ignored_prefixes);
+        self
+    }
+
+    pub fn add_ignored_prefix(mut self, ignored_prefix: impl Into<String>) -> Self {
+        self.ignored_prefixes.push(ignored_prefix.into());
+        self
+    }
+
+    pub fn extend_ignored_prefixes<I>(mut self, ignored_prefixes: I) -> Self
+    where
+        I: IntoIterator<Item = String>,
+    {
+        self.ignored_prefixes.extend(ignored_prefixes);
+        self
+    }
+
+    pub fn only_prefixes<I>(mut self, only_prefixes: I) -> Self
+    where
+        I: IntoIterator<Item = String>,
+    {
+        self.only_prefixes = Vec::from_iter(only_prefixes);
+        self
+    }
+
+    pub fn add_only_prefix(mut self, only_prefix: impl Into<String>) -> Self {
+        self.only_prefixes.push(only_prefix.into());
+        self
+    }
+
+    pub fn extend_only_prefixes<I>(mut self, only_prefixes: I) -> Self
+    where
+        I: IntoIterator<Item = String>,
+    {
+        self.only_prefixes.extend(only_prefixes);
+        self
+    }
 }
 
 #[async_trait(?Send)]

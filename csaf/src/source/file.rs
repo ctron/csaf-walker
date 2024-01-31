@@ -26,9 +26,21 @@ use walker_common::{
     validate::source::{Key, KeySource, KeySourceError},
 };
 
+#[non_exhaustive]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct FileOptions {
     pub since: Option<SystemTime>,
+}
+
+impl FileOptions {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn since(mut self, since: impl Into<Option<SystemTime>>) -> Self {
+        self.since = since.into();
+        self
+    }
 }
 
 /// A file based source, possibly created by the [`crate::visitors::store::StoreVisitor`].

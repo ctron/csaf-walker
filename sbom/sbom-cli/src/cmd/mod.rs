@@ -45,10 +45,7 @@ impl TryFrom<StoreArguments> for StoreVisitor {
             None => std::env::current_dir().context("Get current working directory")?,
         };
 
-        Ok(Self {
-            no_timestamps: value.no_timestamps,
-            base,
-        })
+        Ok(Self::new(base).no_timestamps(value.no_timestamps))
     }
 }
 

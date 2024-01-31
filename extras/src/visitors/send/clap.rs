@@ -1,7 +1,9 @@
 use crate::visitors::SendVisitor;
 use reqwest::Url;
 use std::path::PathBuf;
-use walker_common::sender::{self, provider::OpenIdTokenProviderConfigArguments, HttpSender};
+use walker_common::sender::{
+    provider::OpenIdTokenProviderConfigArguments, HttpSender, HttpSenderOptions,
+};
 
 #[derive(Debug, clap::Parser)]
 #[command(next_help_heading = "Sending")]
@@ -38,9 +40,9 @@ impl SendArguments {
         let provider = self.oidc.into_provider().await?;
         let sender = HttpSender::new(
             provider,
-            sender::Options::default()
-                .connect_timeout(self.connect_timeout)
-                .timeout(self.timeout)
+            HttpSenderOptions::default()
+                .connect_timeout(Some(self.connect_timeout.into()))
+                .timeout(Some(self.timeout.into()))
                 .additional_root_certificates(self.additional_root_certificates),
         )
         .await?;

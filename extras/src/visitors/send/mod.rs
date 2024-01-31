@@ -34,6 +34,8 @@ pub enum SendError {
 }
 
 /// Stores all data so that it can be used as a [`crate::source::Source`] later.
+#[non_exhaustive]
+#[derive(Clone)]
 pub struct SendVisitor {
     /// The target endpoint
     pub url: Url,
@@ -46,6 +48,27 @@ pub struct SendVisitor {
 
     /// The delay between retries
     pub retry_delay: Option<Duration>,
+}
+
+impl SendVisitor {
+    pub fn new(url: impl Into<Url>, sender: HttpSender) -> Self {
+        Self {
+            url: url.into(),
+            sender,
+            retries: 0,
+            retry_delay: None,
+        }
+    }
+
+    pub fn retries(mut self, retries: usize) -> Self {
+        self.retries = retries;
+        self
+    }
+
+    pub fn retry_delay(mut self, retry_delay: impl Into<Duration>) -> Self {
+        self.retry_delay = Some(retry_delay.into());
+        self
+    }
 }
 
 /// The default amount of time to wait before trying

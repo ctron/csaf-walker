@@ -96,24 +96,11 @@ pub async fn new_source(
                 log::info!("Fully provided discovery URL: {url}");
             }
             let fetcher = client.new_fetcher().await?;
-            Ok(HttpSource {
-                url,
-                fetcher,
-                options: HttpOptions {
-                    since: discover.since,
-                },
-            }
-            .into())
+            Ok(HttpSource::new(url, fetcher, HttpOptions::new().since(discover.since)).into())
         }
         Err(_) => {
             // use as path
-            Ok(FileSource::new(
-                &discover.source,
-                FileOptions {
-                    since: discover.since,
-                },
-            )?
-            .into())
+            Ok(FileSource::new(&discover.source, FileOptions::new().since(discover.since))?.into())
         }
     }
 }

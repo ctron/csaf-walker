@@ -21,16 +21,38 @@ use walker_common::{
     validate::source::{Key, KeySource, KeySourceError},
 };
 
+#[non_exhaustive]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct HttpOptions {
     pub since: Option<SystemTime>,
 }
 
+impl HttpOptions {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn since(mut self, since: impl Into<Option<SystemTime>>) -> Self {
+        self.since = since.into();
+        self
+    }
+}
+
 #[derive(Clone)]
 pub struct HttpSource {
-    pub fetcher: Fetcher,
-    pub url: Url,
-    pub options: HttpOptions,
+    fetcher: Fetcher,
+    url: Url,
+    options: HttpOptions,
+}
+
+impl HttpSource {
+    pub fn new(url: Url, fetcher: Fetcher, options: HttpOptions) -> Self {
+        Self {
+            url,
+            fetcher,
+            options,
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

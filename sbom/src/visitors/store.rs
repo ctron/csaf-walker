@@ -15,12 +15,27 @@ use walker_common::utils::openpgp::PublicKey;
 pub const DIR_METADATA: &str = "metadata";
 
 /// Stores all data so that it can be used as a [`crate::source::Source`] later.
+#[non_exhaustive]
 pub struct StoreVisitor {
     /// the output base
     pub base: PathBuf,
 
     /// whether to set the file modification timestamps
     pub no_timestamps: bool,
+}
+
+impl StoreVisitor {
+    pub fn new(base: impl Into<PathBuf>) -> Self {
+        Self {
+            base: base.into(),
+            no_timestamps: false,
+        }
+    }
+
+    pub fn no_timestamps(mut self, no_timestamps: bool) -> Self {
+        self.no_timestamps = no_timestamps;
+        self
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

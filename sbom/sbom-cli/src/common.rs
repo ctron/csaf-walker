@@ -90,25 +90,16 @@ pub async fn new_source(
     match Url::parse(&discover.source) {
         Ok(url) => {
             let fetcher = client.new_fetcher().await?;
-            Ok(HttpSource {
+            Ok(HttpSource::new(
                 url,
                 fetcher,
-                options: HttpOptions {
-                    since: discover.since,
-                    keys: discover.keys,
-                },
-            }
+                HttpOptions::new().since(discover.since).keys(discover.keys),
+            )
             .into())
         }
         Err(_) => {
             // use as path
-            Ok(FileSource::new(
-                &discover.source,
-                FileOptions {
-                    since: discover.since,
-                },
-            )?
-            .into())
+            Ok(FileSource::new(&discover.source, FileOptions::new().since(discover.since))?.into())
         }
     }
 }

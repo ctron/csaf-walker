@@ -11,7 +11,7 @@ use walker_common::{
 
 /// A common source type, dispatching to the known implementations.
 ///
-/// This helps creating implementations which don't need to know the exact type. Unfortunately we
+/// This helps to create implementations which don't need to know the exact type. Unfortunately we
 /// cannot just "box" this, as the [`Source`] needs to implement [`Clone`], which requires [`Sized`],
 /// which prevents us from using `dyn` ("cannot be made into an object").
 ///

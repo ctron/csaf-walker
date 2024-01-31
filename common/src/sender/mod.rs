@@ -13,6 +13,7 @@ use reqwest::{header, IntoUrl, Method, RequestBuilder};
 use std::sync::Arc;
 use std::time::Duration;
 
+#[derive(Clone)]
 pub struct HttpSender {
     client: reqwest::Client,
     provider: Arc<dyn TokenProvider>,
@@ -21,24 +22,24 @@ pub struct HttpSender {
 /// Options for the [`HttpSender`].
 #[non_exhaustive]
 #[derive(Clone, Debug, Default)]
-pub struct Options {
+pub struct HttpSenderOptions {
     pub connect_timeout: Option<Duration>,
     pub timeout: Option<Duration>,
     pub additional_root_certificates: Vec<PathBuf>,
 }
 
-impl Options {
+impl HttpSenderOptions {
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn connect_timeout(mut self, connect_timeout: impl Into<Duration>) -> Self {
-        self.connect_timeout = Some(connect_timeout.into());
+    pub fn connect_timeout(mut self, connect_timeout: impl Into<Option<Duration>>) -> Self {
+        self.connect_timeout = connect_timeout.into();
         self
     }
 
-    pub fn timeout(mut self, timeout: impl Into<Duration>) -> Self {
-        self.connect_timeout = Some(timeout.into());
+    pub fn timeout(mut self, timeout: impl Into<Option<Duration>>) -> Self {
+        self.connect_timeout = timeout.into();
         self
     }
 
@@ -72,7 +73,7 @@ impl Options {
 const USER_AGENT: &str = concat!("CSAF-Walker/", env!("CARGO_PKG_VERSION"));
 
 impl HttpSender {
-    pub async fn new<P>(provider: P, options: Options) -> Result<Self, anyhow::Error>
+    pub async fn new<P>(provider: P, options: HttpSenderOptions) -> Result<Self, anyhow::Error>
     where
         P: TokenProvider + 'static,
     {

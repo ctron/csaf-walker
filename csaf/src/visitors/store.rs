@@ -22,6 +22,7 @@ pub const ATTR_ETAG: &str = "user.etag";
 pub const DIR_METADATA: &str = "metadata";
 
 /// Stores all data so that it can be used as a [`crate::source::Source`] later.
+#[non_exhaustive]
 pub struct StoreVisitor {
     /// the output base
     pub base: PathBuf,
@@ -32,6 +33,28 @@ pub struct StoreVisitor {
     /// whether to store additional metadata (like the etag) using extended attributes
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     pub no_xattrs: bool,
+}
+
+impl StoreVisitor {
+    pub fn new(base: impl Into<PathBuf>) -> Self {
+        Self {
+            base: base.into(),
+            no_timestamps: false,
+            #[cfg(any(target_os = "linux", target_os = "macos"))]
+            no_xattrs: false,
+        }
+    }
+
+    pub fn no_timestamps(mut self, no_timestamps: bool) -> Self {
+        self.no_timestamps = no_timestamps;
+        self
+    }
+
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    pub fn no_xattrs(mut self, no_xattrs: bool) -> Self {
+        self.no_xattrs = no_xattrs;
+        self
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

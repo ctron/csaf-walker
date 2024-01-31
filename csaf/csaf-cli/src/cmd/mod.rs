@@ -1,7 +1,6 @@
 use anyhow::Context;
 use csaf_walker::visitors::{filter::FilterConfig, store::StoreVisitor};
 use flexible_time::timestamp::StartTimestamp;
-use std::collections::HashSet;
 use std::path::PathBuf;
 
 pub mod discover;
@@ -41,11 +40,10 @@ pub struct FilterArguments {
 
 impl From<FilterArguments> for FilterConfig {
     fn from(filter: FilterArguments) -> Self {
-        Self {
-            ignored_distributions: HashSet::from_iter(filter.ignore_distribution),
-            ignored_prefixes: filter.ignore_prefix,
-            only_prefixes: filter.only_prefix,
-        }
+        FilterConfig::new()
+            .ignored_distributions(filter.ignore_distribution)
+            .ignored_prefixes(filter.ignore_prefix)
+            .only_prefixes(filter.only_prefix)
     }
 }
 
@@ -75,12 +73,12 @@ impl TryFrom<StoreArguments> for StoreVisitor {
             None => std::env::current_dir().context("Get current working directory")?,
         };
 
-        Ok(Self {
-            #[cfg(any(target_os = "linux", target_os = "macos"))]
-            no_xattrs: value.no_xattrs,
-            no_timestamps: value.no_timestamps,
-            base,
-        })
+        let result = Self::new(base).no_timestamps(value.no_timestamps);
+
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
+        let result = result.no_xattrs(value.no_xattrs);
+
+        Ok(result)
     }
 }
 

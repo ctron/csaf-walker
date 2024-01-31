@@ -19,17 +19,60 @@ use walker_common::{
     validate::source::{Key, KeySource, KeySourceError},
 };
 
+#[non_exhaustive]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct HttpOptions {
     pub since: Option<SystemTime>,
     pub keys: Vec<model::metadata::Key>,
 }
 
+impl HttpOptions {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn since(mut self, since: impl Into<Option<SystemTime>>) -> Self {
+        self.since = since.into();
+        self
+    }
+
+    pub fn keys<I>(mut self, keys: I) -> Self
+    where
+        I: IntoIterator<Item = model::metadata::Key>,
+    {
+        self.keys = Vec::from_iter(keys);
+        self
+    }
+
+    pub fn extend_keys<I>(mut self, keys: I) -> Self
+    where
+        I: IntoIterator<Item = model::metadata::Key>,
+    {
+        self.keys.extend(keys);
+        self
+    }
+
+    pub fn add_key(mut self, key: impl Into<model::metadata::Key>) -> Self {
+        self.keys.push(key.into());
+        self
+    }
+}
+
 #[derive(Clone)]
 pub struct HttpSource {
-    pub fetcher: Fetcher,
-    pub url: Url,
-    pub options: HttpOptions,
+    fetcher: Fetcher,
+    url: Url,
+    options: HttpOptions,
+}
+
+impl HttpSource {
+    pub fn new(url: Url, fetcher: Fetcher, options: HttpOptions) -> Self {
+        Self {
+            url,
+            fetcher,
+            options,
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

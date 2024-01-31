@@ -15,8 +15,8 @@ impl ValidationOptions {
         Self::default()
     }
 
-    pub fn validation_date(mut self, validation_date: impl Into<SystemTime>) -> Self {
-        self.validation_date = Some(validation_date.into());
+    pub fn validation_date(mut self, validation_date: impl Into<Option<SystemTime>>) -> Self {
+        self.validation_date = validation_date.into();
         self
     }
 }
