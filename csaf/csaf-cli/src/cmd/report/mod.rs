@@ -1,10 +1,10 @@
-mod render;
-
 use crate::{
     cmd::{DiscoverArguments, FilterArguments},
     common::walk_visitor,
 };
 use async_trait::async_trait;
+use csaf_walker::report::render;
+use csaf_walker::report::{DocumentKey, Duplicates, RenderOptions, ReportResult};
 use csaf_walker::{
     discover::{AsDiscovered, DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor},
     retrieve::RetrievingVisitor,
@@ -14,11 +14,8 @@ use csaf_walker::{
         VerificationError, VerifiedAdvisory, VerifyingVisitor,
     },
 };
-use reqwest::Url;
 use std::{
-    borrow::Cow,
-    collections::{BTreeMap, HashSet},
-    path::PathBuf,
+    collections::BTreeMap,
     sync::{
         atomic::{AtomicUsize, Ordering},
         Arc, Mutex,
@@ -51,48 +48,6 @@ pub struct Report {
 
     #[command(flatten)]
     render: RenderOptions,
-}
-
-#[derive(clap::Args, Debug)]
-pub struct RenderOptions {
-    /// Path of the HTML output file
-    #[arg(long, default_value = "report.html")]
-    output: PathBuf,
-
-    /// Make links relative to this URL.
-    #[arg(short = 'B', long)]
-    base_url: Option<Url>,
-}
-
-#[derive(Clone, Debug)]
-pub struct ReportResult<'d> {
-    pub total: usize,
-    pub duplicates: &'d Duplicates,
-    pub errors: &'d BTreeMap<DocumentKey, String>,
-    pub warnings: &'d BTreeMap<DocumentKey, Vec<Cow<'static, str>>>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct Duplicates {
-    pub duplicates: BTreeMap<DocumentKey, usize>,
-    pub known: HashSet<DocumentKey>,
-}
-
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct DocumentKey {
-    /// the URL to the distribution folder
-    pub distribution_url: Url,
-    /// the URL to the document, relative to the `distribution_url`.
-    pub url: String,
-}
-
-impl DocumentKey {
-    pub fn for_document(advisory: &DiscoveredAdvisory) -> Self {
-        Self {
-            distribution_url: advisory.distribution.directory_url.clone(),
-            url: advisory.possibly_relative_url(),
-        }
-    }
 }
 
 impl Report {

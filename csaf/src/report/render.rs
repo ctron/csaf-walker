@@ -1,5 +1,5 @@
-use super::{DocumentKey, ReportResult};
-use crate::cmd::report::RenderOptions;
+use crate::report::DocumentKey;
+use crate::report::{RenderOptions, ReportResult};
 use std::fmt::{Display, Formatter};
 use walker_common::report;
 
