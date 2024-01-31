@@ -40,6 +40,8 @@ walker-common = { version = "0.6.0-alpha.7", path = "../common" }
 sequoia-openpgp = { version = "1", default-features = false }
 
 csaf = { version = "0.5", default-features = false, optional = true }
+clap = "4.4.8"
+html-escape = "0.2.13"
 
 [features]
 default = ["crypto-nettle", "csaf"]
