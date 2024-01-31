@@ -11,6 +11,10 @@ pub struct FilteringVisitor<V: DiscoveredVisitor> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FilterConfig {
+    /// A set of distributions to ignore
+    ///
+    /// **NOTE:** The distributions will still be discovered, as this is a post-discovery visitor. If you want to
+    /// even skip discovering the source, use [`crate::walker::Walker::with_distribution_filter`].
     pub ignored_distributions: HashSet<String>,
     pub ignored_prefixes: Vec<String>,
     pub only_prefixes: Vec<String>,

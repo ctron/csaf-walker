@@ -45,8 +45,15 @@ impl<S: Source> Walker<S> {
         self
     }
 
-    pub fn with_distribution_filter(mut self, distribution_filter: DistributionFilter) -> Self {
-        self.distribution_filter = Some(distribution_filter);
+    /// Set a filter for distributions.
+    ///
+    /// Each distribution from the metadata file will be passed to this function, if it returns `false`, the distribution
+    /// will not even be fetched.
+    pub fn with_distribution_filter<F>(mut self, distribution_filter: F) -> Self
+    where
+        F: Fn(&Distribution) -> bool + 'static,
+    {
+        self.distribution_filter = Some(Box::new(distribution_filter));
         self
     }
 
