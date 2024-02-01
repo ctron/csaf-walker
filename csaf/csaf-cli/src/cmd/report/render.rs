@@ -1,7 +1,188 @@
 use super::{DocumentKey, ReportResult};
 use crate::cmd::report::RenderOptions;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
+use time::OffsetDateTime;
 use walker_common::report;
+
+#[derive(Serialize, Deserialize, Default, Debug)]
+pub struct ReportJson {
+    #[serde(rename = "summary")]
+    pub summary: Summary,
+
+    #[serde(rename = "duplicates")]
+    pub duplicates: Duplicates,
+
+    #[serde(rename = "created")]
+    pub created: Option<OffsetDateTime>,
+
+    #[serde(rename = "warnings")]
+    pub warnings: Warnings,
+
+    #[serde(rename = "id")]
+    pub id: String,
+
+    #[serde(rename = "errors")]
+    pub errors: Errors,
+}
+
+impl ReportJson {
+    fn new(
+        summary: usize,
+        duplicates: Duplicates,
+        created: OffsetDateTime,
+        warnings: Warnings,
+        errors: Errors,
+        id: String,
+    ) -> Self {
+        Self {
+            summary: Summary { total: summary },
+            duplicates,
+            created: Some(created),
+            warnings,
+            id,
+            errors,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Default, Debug)]
+pub struct Duplicates {
+    #[serde(rename = "total")]
+    pub total: usize,
+
+    #[serde(rename = "messages")]
+    pub messages: Vec<DuplicatesMessage>,
+}
+
+impl Duplicates {
+    fn new(t: usize) -> Self {
+        Self {
+            total: t,
+            messages: vec![],
+        }
+    }
+
+    pub fn add_message(&mut self, file: String, message: usize) {
+        self.messages.push(DuplicatesMessage::new(file, message));
+    }
+}
+
+#[derive(Serialize, Deserialize, Default, Debug)]
+pub struct DuplicatesMessage {
+    #[serde(rename = "file")]
+    file: String,
+
+    #[serde(rename = "duplicate")]
+    duplicate: usize,
+}
+
+impl DuplicatesMessage {
+    fn new(f: String, duplicates: usize) -> Self {
+        Self {
+            file: f,
+            duplicate: duplicates,
+        }
+    }
+}
+#[derive(Serialize, Deserialize, Default, Debug)]
+pub struct Errors {
+    #[serde(rename = "total")]
+    total: usize,
+
+    #[serde(rename = "messages")]
+    messages: Vec<ErrorsMessage>,
+}
+
+impl Errors {
+    fn new(t: usize) -> Self {
+        Self {
+            total: t,
+            messages: vec![],
+        }
+    }
+
+    fn add_message(&mut self, file: String, message: String) {
+        self.messages.push(ErrorsMessage::new(file, message));
+    }
+}
+#[derive(Serialize, Deserialize, Default, Debug)]
+pub struct ErrorsMessage {
+    #[serde(rename = "file")]
+    file: String,
+
+    #[serde(rename = "message")]
+    message: String,
+}
+impl ErrorsMessage {
+    fn new(f: String, m: String) -> Self {
+        Self {
+            file: f,
+            message: m,
+        }
+    }
+}
+#[derive(Serialize, Deserialize, Default, Debug)]
+pub struct Summary {
+    #[serde(rename = "total")]
+    total: usize,
+}
+
+#[derive(Serialize, Deserialize, Default, Debug)]
+pub struct Warnings {
+    #[serde(rename = "total")]
+    total: usize,
+
+    #[serde(rename = "messages")]
+    messages: Vec<WarningsMessage>,
+}
+
+impl Warnings {
+    fn new(total: usize) -> Self {
+        Self {
+            total,
+            messages: vec![],
+        }
+    }
+
+    fn add_message(&mut self, m: WarningsMessage) {
+        self.messages.push(m);
+    }
+}
+
+#[derive(Serialize, Deserialize, Default, Debug)]
+pub struct WarningsMessage {
+    #[serde(rename = "file")]
+    file: String,
+
+    #[serde(rename = "messages")]
+    messages: Vec<MessageMessage>,
+}
+
+impl WarningsMessage {
+    pub fn new(f: String, ms: Vec<MessageMessage>) -> Self {
+        Self {
+            file: f,
+            messages: ms,
+        }
+    }
+
+    // fn add_message(&mut self, m: String) {
+    //     self.messages.push(MessageMessage::new(m));
+    // }
+}
+
+#[derive(Serialize, Deserialize, Default, Debug)]
+pub struct MessageMessage {
+    #[serde(rename = "message")]
+    message: String,
+}
+
+impl MessageMessage {
+    fn new(m: String) -> Self {
+        Self { message: m }
+    }
+}
 
 pub fn render_to_html<W: std::io::Write>(
     out: &mut W,
@@ -15,6 +196,46 @@ pub fn render_to_html<W: std::io::Write>(
         &Default::default(),
     )?;
 
+    Ok(())
+}
+
+pub fn render_to_json<W: std::io::Write>(out: &mut W, report: &ReportResult) -> anyhow::Result<()> {
+    let duplicates_size = report.duplicates.duplicates.len();
+    let mut duplicates = Duplicates::new(duplicates_size);
+    for (dk, size) in &report.duplicates.duplicates {
+        duplicates.add_message(dk.url.to_string(), *size)
+    }
+
+    let errors_size = report.errors.len();
+    let mut errors = Errors::new(errors_size);
+
+    for (dk, size) in report.errors {
+        errors.add_message(dk.url.to_string(), size.to_string())
+    }
+    let mut warnings_size = 0;
+    for warnings in report.warnings.values() {
+        warnings_size += warnings.len();
+    }
+
+    let mut warnings = Warnings::new(warnings_size);
+
+    for (dk, messages) in report.warnings {
+        let mut message_list = vec![];
+        for text in messages {
+            message_list.push(MessageMessage::new(format!("{:?})", text)));
+        }
+        warnings.add_message(WarningsMessage::new(dk.url.clone(), message_list));
+    }
+    let report_json = ReportJson::new(
+        duplicates_size + errors_size + warnings_size,
+        duplicates,
+        OffsetDateTime::now_utc(),
+        warnings,
+        errors,
+        "".to_string(),
+    );
+
+    writeln!(out, "{:?}", serde_json::to_string(&report_json).unwrap())?;
     Ok(())
 }
 
@@ -281,6 +502,7 @@ mod test {
         let opts = RenderOptions {
             output: Default::default(),
             base_url: Some(Url::parse("file:///foo/bar/").unwrap()),
+            json_output: None,
         };
         let report = HtmlReport(&details, &opts);
 

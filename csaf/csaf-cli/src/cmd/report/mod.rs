@@ -1,5 +1,4 @@
 mod render;
-
 use crate::{
     cmd::{DiscoverArguments, FilterArguments},
     common::walk_visitor,
@@ -62,6 +61,10 @@ pub struct RenderOptions {
     /// Make links relative to this URL.
     #[arg(short = 'B', long)]
     base_url: Option<Url>,
+
+    /// Generate report in JSON format
+    #[arg(long, default_value = "report.json")]
+    json_output: Option<PathBuf>,
 }
 
 #[derive(Clone, Debug)]
@@ -191,6 +194,10 @@ impl Report {
     }
 
     fn render(render: RenderOptions, report: ReportResult) -> anyhow::Result<()> {
+        if let Some(json_output) = &render.json_output {
+            let mut out = std::fs::File::create(json_output)?;
+            render::render_to_json(&mut out, &report)?;
+        }
         let mut out = std::fs::File::create(&render.output)?;
         render::render_to_html(&mut out, &report, &render)?;
 
