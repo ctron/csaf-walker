@@ -1,17 +1,20 @@
 use crate::report::DocumentKey;
-use crate::report::{RenderOptions, ReportResult};
+use crate::report::ReportResult;
 use std::fmt::{Display, Formatter};
+use std::path::PathBuf;
+use url::Url;
 use walker_common::report;
 
 pub fn render_to_html<W: std::io::Write>(
     out: &mut W,
     report: &ReportResult,
-    render: &RenderOptions,
+    output: PathBuf,
+    base_url: Option<Url>,
 ) -> anyhow::Result<()> {
     report::render(
         out,
         "CSAF Report",
-        HtmlReport(report, render),
+        HtmlReport(report, &output, &base_url),
         &Default::default(),
     )?;
 
@@ -35,7 +38,7 @@ impl Display for Title {
     }
 }
 
-struct HtmlReport<'r>(&'r ReportResult<'r>, &'r RenderOptions);
+struct HtmlReport<'r>(&'r ReportResult<'r>, &'r PathBuf, &'r Option<Url>);
 
 impl HtmlReport<'_> {
     fn render_duplicates(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -199,7 +202,7 @@ impl HtmlReport<'_> {
         // the full URL of the document
         let url = key.distribution_url.join(&key.url).ok()?;
 
-        let url = match &self.1.base_url {
+        let url = match &self.2 {
             Some(base_url) => base_url
                 .make_relative(&url)
                 .unwrap_or_else(|| url.to_string()),
@@ -278,11 +281,9 @@ mod test {
             errors: &Default::default(),
             warnings: &Default::default(),
         };
-        let opts = RenderOptions {
-            output: Default::default(),
-            base_url: Some(Url::parse("file:///foo/bar/").unwrap()),
-        };
-        let report = HtmlReport(&details, &opts);
+        let output = Default::default();
+        let base_url = Some(Url::parse("file:///foo/bar/").unwrap());
+        let report = HtmlReport(&details, &output, &base_url);
 
         let (url, _label) = report.link_document(&DocumentKey {
             distribution_url: Url::parse("file:///foo/bar/distribution/").unwrap(),

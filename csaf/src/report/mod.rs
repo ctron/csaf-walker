@@ -3,20 +3,8 @@ pub mod render;
 use crate::discover::DiscoveredAdvisory;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashSet};
-use std::path::PathBuf;
 use url::Url;
 use walker_common::utils::url::Urlify;
-
-#[derive(clap::Args, Debug)]
-pub struct RenderOptions {
-    /// Path of the HTML output file
-    #[arg(long, default_value = "report.html")]
-    pub output: PathBuf,
-
-    /// Make links relative to this URL.
-    #[arg(short = 'B', long)]
-    pub base_url: Option<Url>,
-}
 
 #[derive(Clone, Debug)]
 pub struct ReportResult<'d> {

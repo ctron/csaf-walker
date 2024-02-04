@@ -3,10 +3,9 @@ use crate::{
     common::walk_visitor,
 };
 use async_trait::async_trait;
-use csaf_walker::report::render;
-use csaf_walker::report::{DocumentKey, Duplicates, RenderOptions, ReportResult};
 use csaf_walker::{
     discover::{AsDiscovered, DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor},
+    report::{render, DocumentKey, Duplicates, ReportResult},
     retrieve::RetrievingVisitor,
     validation::{ValidatedAdvisory, ValidationError, ValidationVisitor},
     verification::{
@@ -14,6 +13,8 @@ use csaf_walker::{
         VerificationError, VerifiedAdvisory, VerifyingVisitor,
     },
 };
+use reqwest::Url;
+use std::path::PathBuf;
 use std::{
     collections::BTreeMap,
     sync::{
@@ -48,6 +49,17 @@ pub struct Report {
 
     #[command(flatten)]
     render: RenderOptions,
+}
+
+#[derive(clap::Args, Debug)]
+pub struct RenderOptions {
+    /// Path of the HTML output file
+    #[arg(long, default_value = "report.html")]
+    pub output: PathBuf,
+
+    /// Make links relative to this URL.
+    #[arg(short = 'B', long)]
+    pub base_url: Option<Url>,
 }
 
 impl Report {
@@ -147,7 +159,7 @@ impl Report {
 
     fn render(render: RenderOptions, report: ReportResult) -> anyhow::Result<()> {
         let mut out = std::fs::File::create(&render.output)?;
-        render::render_to_html(&mut out, &report, &render)?;
+        render::render_to_html(&mut out, &report, render.output, render.base_url)?;
 
         Ok(())
     }
