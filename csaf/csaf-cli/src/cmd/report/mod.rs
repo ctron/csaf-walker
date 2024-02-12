@@ -5,7 +5,7 @@ use crate::{
 use async_trait::async_trait;
 use csaf_walker::{
     discover::{AsDiscovered, DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor},
-    report::{render, DocumentKey, Duplicates, ReportResult},
+    report::{render_to_html, DocumentKey, Duplicates, ReportRenderOption, ReportResult},
     retrieve::RetrievingVisitor,
     validation::{ValidatedAdvisory, ValidationError, ValidationVisitor},
     verification::{
@@ -159,7 +159,15 @@ impl Report {
 
     fn render(render: RenderOptions, report: ReportResult) -> anyhow::Result<()> {
         let mut out = std::fs::File::create(&render.output)?;
-        render::render_to_html(&mut out, &report, render.output, render.base_url)?;
+
+        render_to_html(
+            &mut out,
+            &report,
+            ReportRenderOption {
+                output: render.output,
+                base_url: render.base_url,
+            },
+        )?;
 
         Ok(())
     }
