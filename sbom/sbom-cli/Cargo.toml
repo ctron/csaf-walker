@@ -10,12 +10,12 @@ categories = ["command-line-utilities", "data-structures"]
 keywords = ["sbom", "cli"]
 readme = "../../README.md"
 # based on clap
-rust-version = "1.70"
+rust-version = "1.74"
 
 [dependencies]
 anyhow = "1"
 async-trait = "0.1"
-clap = { version = "4", features = ["derive", "color"] }
+clap = { version = "4.5.0", features = ["derive", "color"] }
 comrak = { version = "0.20.0" }
 csaf = { version = "0.5.0", default-features = false }
 env_logger = "0.10.0"

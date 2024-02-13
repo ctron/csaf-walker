@@ -10,7 +10,7 @@ categories = ["data-structures"]
 keywords = ["csaf"]
 readme = "../README.md"
 # based on clap
-rust-version = "1.70"
+rust-version = "1.74"
 
 [dependencies]
 anyhow = "1"
