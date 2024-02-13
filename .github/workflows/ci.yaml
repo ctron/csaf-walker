@@ -19,6 +19,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: webiny/action-conventional-commits@8bc41ff4e7d423d56fa4905f6ff79209a78776c7
+
       - name: Check formatting
         run: |
           cargo fmt --check
