@@ -12,15 +12,15 @@ pub trait TokenInjector: Sized + Send + Sync {
 /// Injects tokens into a request by setting the authorization header to a "bearer" token.
 #[async_trait]
 impl TokenInjector for reqwest::RequestBuilder {
+    /// Workaround until https://github.com/tokio-rs/tracing/issues/2876 is fixed
+    #[allow(clippy::blocks_in_conditions)]
     #[instrument(level = "debug", skip(token_provider), err)]
     async fn inject_token(self, token_provider: &dyn TokenProvider) -> Result<Self, Error> {
-        let credentials_result = token_provider.provide_access_token().await?;
-        if let Some(credentials) = credentials_result {
-            let request_builder = match credentials {
+        if let Some(credentials) = token_provider.provide_access_token().await? {
+            Ok(match credentials {
                 Credentials::Bearer(token) => self.bearer_auth(token),
                 Credentials::Basic(username, password) => self.basic_auth(username, password),
-            };
-            Ok(request_builder)
+            })
         } else {
             Ok(self)
         }
