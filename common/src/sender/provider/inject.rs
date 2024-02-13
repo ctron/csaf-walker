@@ -14,13 +14,11 @@ pub trait TokenInjector: Sized + Send + Sync {
 impl TokenInjector for reqwest::RequestBuilder {
     #[instrument(level = "debug", skip(token_provider), err)]
     async fn inject_token(self, token_provider: &dyn TokenProvider) -> Result<Self, Error> {
-        let credentials_result = token_provider.provide_access_token().await?;
-        if let Some(credentials) = credentials_result {
-            let request_builder = match credentials {
+        if let Some(credentials) = token_provider.provide_access_token().await? {
+            Ok(match credentials {
                 Credentials::Bearer(token) => self.bearer_auth(token),
                 Credentials::Basic(username, password) => self.basic_auth(username, password),
-            };
-            Ok(request_builder)
+            })
         } else {
             Ok(self)
         }
