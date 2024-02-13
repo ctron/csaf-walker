@@ -56,7 +56,8 @@ pub mod report;
 pub mod retrieve;
 pub mod source;
 pub mod validation;
-#[cfg(feature = "csaf")]
-pub mod verification;
 pub mod visitors;
 pub mod walker;
+
+#[cfg(feature = "csaf")]
+pub mod verification;

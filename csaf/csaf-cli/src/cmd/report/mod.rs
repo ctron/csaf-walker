@@ -4,21 +4,19 @@ use crate::{
 };
 use csaf_walker::{
     discover::AsDiscovered,
-    report::{
-        render_to_html, DetectDuplicatesVisitor, DocumentKey, Duplicates, ReportRenderOption,
-        ReportResult,
-    },
+    report::{render_to_html, DocumentKey, Duplicates, ReportRenderOption, ReportResult},
     retrieve::RetrievingVisitor,
     validation::{ValidatedAdvisory, ValidationError, ValidationVisitor},
     verification::{
         check::{init_verifying_visitor, CheckError},
         VerificationError, VerifiedAdvisory, VerifyingVisitor,
     },
+    visitors::duplicates::DetectDuplicatesVisitor,
 };
 use reqwest::Url;
-use std::path::PathBuf;
 use std::{
     collections::BTreeMap,
+    path::PathBuf,
     sync::{
         atomic::{AtomicUsize, Ordering},
         Arc, Mutex,
