@@ -10,14 +10,14 @@ categories = ["data-structures"]
 keywords = ["csaf"]
 readme = "../README.md"
 # based on clap
-rust-version = "1.70"
+rust-version = "1.74"
 
 [dependencies]
 anyhow = "1"
 async-trait = "0.1"
 base64 = "0.21"
 bytes = "1"
-clap = { version = "4.3", features = ["derive", "env"] }
+clap = { version = "4.5.0", features = ["derive", "env"] }
 csv = "1"
 digest = "0.10.7"
 flexible-time = "0.1"

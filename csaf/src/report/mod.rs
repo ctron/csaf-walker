@@ -1,8 +1,10 @@
-use crate::discover::DiscoveredAdvisory;
+use crate::discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor};
+use async_trait::async_trait;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 use url::Url;
 use walker_common::report;
 use walker_common::utils::url::Urlify;
@@ -310,6 +312,42 @@ impl<'r> Display for HtmlReport<'r> {
         self.render_errors(f)?;
         self.render_warnings(f)?;
         Ok(())
+    }
+}
+
+pub struct DetectDuplicatesVisitor<D: DiscoveredVisitor> {
+    pub visitor: D,
+    pub duplicates: Arc<Mutex<Duplicates>>,
+}
+
+#[async_trait(?Send)]
+impl<V: DiscoveredVisitor> DiscoveredVisitor for DetectDuplicatesVisitor<V> {
+    type Error = V::Error;
+    type Context = V::Context;
+
+    async fn visit_context(
+        &self,
+        context: &DiscoveredContext,
+    ) -> Result<Self::Context, Self::Error> {
+        self.visitor.visit_context(context).await
+    }
+
+    async fn visit_advisory(
+        &self,
+        context: &Self::Context,
+        advisory: DiscoveredAdvisory,
+    ) -> Result<(), Self::Error> {
+        {
+            let key = DocumentKey::for_document(&advisory);
+
+            let mut duplicates = self.duplicates.lock().unwrap();
+            if !duplicates.known.insert(key.clone()) {
+                // add or get and increment by one
+                *duplicates.duplicates.entry(key).or_default() += 1;
+            }
+        }
+
+        self.visitor.visit_advisory(context, advisory).await
     }
 }
 
