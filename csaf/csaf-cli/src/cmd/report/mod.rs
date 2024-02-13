@@ -2,10 +2,12 @@ use crate::{
     cmd::{DiscoverArguments, FilterArguments},
     common::walk_visitor,
 };
-use csaf_walker::report::DetectDuplicatesVisitor;
 use csaf_walker::{
     discover::AsDiscovered,
-    report::{render_to_html, DocumentKey, Duplicates, ReportRenderOption, ReportResult},
+    report::{
+        render_to_html, DetectDuplicatesVisitor, DocumentKey, Duplicates, ReportRenderOption,
+        ReportResult,
+    },
     retrieve::RetrievingVisitor,
     validation::{ValidatedAdvisory, ValidationError, ValidationVisitor},
     verification::{
