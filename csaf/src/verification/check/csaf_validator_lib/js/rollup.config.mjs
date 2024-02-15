@@ -7,7 +7,7 @@ export default {
   input: 'main.js',
   output: {
     file: 'bundle.js',
-    format: 'cjs',
+    format: 'es',
     compact: false,
   },
   plugins: [
@@ -19,6 +19,6 @@ export default {
       }),
       commonjs(),
       json(),
-      terser()
+      // terser()
   ]
 };
