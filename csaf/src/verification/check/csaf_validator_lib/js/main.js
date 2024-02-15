@@ -1,6 +1,9 @@
-import validateStrict from 'csaf-validator-lib/validateStrict';
-import * as mandatory from 'csaf-validator-lib/mandatoryTests';
+import validateLib from '@secvisogram/csaf-validator-lib/validate';
 
-export async function validate(doc) {
-  await validateStrict(mandatory, doc)
-}
+import * as schema from '@secvisogram/csaf-validator-lib/schemaTests';
+import * as mandatory from '@secvisogram/csaf-validator-lib/mandatoryTests';
+
+const tests = Object.values(schema).concat(Object.values(mandatory))
+
+globalThis.result = await validateLib(tests, globalThis.doc);
+
