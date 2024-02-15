@@ -1,3 +1,5 @@
+//! Measuring the time of operations
+
 use std::time::{Duration, SystemTime};
 
 pub struct MeasureTime(SystemTime, bool);

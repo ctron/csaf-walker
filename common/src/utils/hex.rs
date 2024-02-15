@@ -1,3 +1,5 @@
+//! Handle "hex" encoding
+
 use std::fmt::{Debug, Formatter, LowerHex};
 
 pub struct Hex<'a>(pub &'a [u8]);

@@ -3,7 +3,7 @@
 //! ## Idea
 //!
 //! The basic idea is to provide a mechanism to walk over documents from differences sources
-//! ([`csaf_walker::source::HttpSource`] or [`csaf_walker::source::FileSource`]). Then
+//! ([`source::HttpSource`] or [`source::FileSource`]). Then
 //! chaining visitors in a layered fashion depending on your use case, extending the information
 //! known about a CSAF document. That doesn't mean to actually parse the document, but the ensure
 //! things like integrity, by digests and signatures.

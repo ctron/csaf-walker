@@ -33,7 +33,7 @@ pub enum SendError {
     UnexpectedStatus(StatusCode),
 }
 
-/// Stores all data so that it can be used as a [`crate::source::Source`] later.
+/// Send data to a remote sink.
 #[non_exhaustive]
 #[derive(Clone)]
 pub struct SendVisitor {

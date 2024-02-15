@@ -1,3 +1,4 @@
+//! URLs
 use url::Url;
 
 /// Get a URL from something

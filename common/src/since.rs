@@ -1,3 +1,4 @@
+//! Handling of detecting changes "since"
 use std::fs::File;
 use std::io::{BufReader, BufWriter, ErrorKind, Read, Write};
 use std::ops::Deref;

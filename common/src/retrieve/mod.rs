@@ -1,3 +1,5 @@
+//! Retrieving remote content
+
 use crate::utils::hex::Hex;
 use digest::{Digest, Output};
 use std::fmt::{Debug, Formatter};

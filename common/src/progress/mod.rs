@@ -1,3 +1,5 @@
+//! Progress reporting
+
 pub mod indicatif;
 
 use std::borrow::Cow;

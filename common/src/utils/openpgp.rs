@@ -1,3 +1,4 @@
+//! Helpers for working with "OpenPGP".
 use bytes::Bytes;
 use sequoia_openpgp::cert::CertParser;
 use sequoia_openpgp::parse::Parse;

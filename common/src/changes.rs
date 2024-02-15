@@ -1,3 +1,5 @@
+//! Changes based on the `changes.csv` file.
+
 use crate::fetcher::{self, Fetcher};
 use time::OffsetDateTime;
 use url::{ParseError, Url};
@@ -12,18 +14,23 @@ pub enum Error {
     Csv(#[from] csv::Error),
 }
 
+/// An entry when a resource was last changed.
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize)]
 pub struct ChangeEntry {
+    /// The relative file name
     pub file: String,
+    /// The timestamp of the last change
     #[serde(with = "time::serde::iso8601")]
     pub timestamp: OffsetDateTime,
 }
 
+/// State of a `changes.csv` file.
 pub struct ChangeSource {
     pub entries: Vec<ChangeEntry>,
 }
 
 impl ChangeSource {
+    /// Retrieve a file using a [`Fetcher`].
     pub async fn retrieve(fetcher: &Fetcher, base_url: &Url) -> Result<Self, Error> {
         let changes = fetcher
             .fetch::<String>(base_url.join("changes.csv")?)

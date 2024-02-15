@@ -1,3 +1,5 @@
+//! Reporting functionality
+
 mod render;
 
 pub use render::*;

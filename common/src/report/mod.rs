@@ -10,11 +10,13 @@ const BOOTSTRAP_CSS_SRI: &str =
 const BOOTSTRAP_JS_SRI: &str =
     "sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4";
 
+/// Options for rendering reports.
 #[derive(Clone, Debug, Default)]
 pub struct ReportOptions {
     pub bootstrap: Bootstrap,
 }
 
+/// Options for the imported bootstrap resources.
 #[derive(Clone, Default, Debug)]
 pub enum Bootstrap {
     /// Use a default version served from a CDN

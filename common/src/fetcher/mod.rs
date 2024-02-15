@@ -21,6 +21,7 @@ pub struct Fetcher {
     retries: usize,
 }
 
+/// Error when retrieving
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("Request error: {0}")]
@@ -36,15 +37,18 @@ pub struct FetcherOptions {
 }
 
 impl FetcherOptions {
+    /// Create a new instance.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Set the timeout.
     pub fn timeout(mut self, timeout: impl Into<Duration>) -> Self {
         self.timeout = timeout.into();
         self
     }
 
+    /// Set the number of retries.
     pub fn retries(mut self, retries: usize) -> Self {
         self.retries = retries;
         self
@@ -74,6 +78,7 @@ impl Fetcher {
         Ok(Self::with_client(client.build()?, options))
     }
 
+    /// Create a fetcher providing an existing client.
     fn with_client(client: Client, options: FetcherOptions) -> Self {
         Self {
             client,
@@ -132,6 +137,7 @@ impl Fetcher {
     }
 }
 
+/// Processing data returned by a request.
 #[async_trait(?Send)]
 pub trait DataProcessor {
     type Type: Sized;
@@ -150,6 +156,7 @@ impl<D: Data> TypedProcessor<D> {
     }
 }
 
+/// Extract response payload which implements [`Data`].
 #[async_trait(?Send)]
 impl<D: Data> DataProcessor for TypedProcessor<D> {
     type Type = D;

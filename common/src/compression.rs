@@ -1,3 +1,5 @@
+//! Helpers for using compression/decompression.
+
 use bytes::Bytes;
 
 /// Decompress a bz2 stream, or fail if no encoder was configured.

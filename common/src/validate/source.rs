@@ -1,3 +1,4 @@
+//! Working with the source in the context of validation.
 use crate::fetcher::Fetcher;
 use crate::utils::openpgp::PublicKey;
 use crate::{fetcher, utils};

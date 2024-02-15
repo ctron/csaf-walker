@@ -1,3 +1,4 @@
+//! OpenPGP validation
 use crate::utils::openpgp::PublicKey;
 use crate::validate::ValidationOptions;
 use anyhow::bail;

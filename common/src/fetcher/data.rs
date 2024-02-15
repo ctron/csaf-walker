@@ -4,11 +4,13 @@ use reqwest::{Response, StatusCode};
 use serde::de::DeserializeOwned;
 use std::ops::{Deref, DerefMut};
 
+/// Data which can be extracted from a [`Response`].
 #[async_trait(?Send)]
 pub trait Data: Sized {
     async fn from_response(response: Response) -> Result<Self, reqwest::Error>;
 }
 
+/// String data
 #[async_trait(?Send)]
 impl Data for String {
     async fn from_response(response: Response) -> Result<Self, reqwest::Error> {
@@ -16,6 +18,7 @@ impl Data for String {
     }
 }
 
+/// BLOB data
 #[async_trait(?Send)]
 impl Data for Bytes {
     async fn from_response(response: Response) -> Result<Self, reqwest::Error> {
@@ -23,6 +26,7 @@ impl Data for Bytes {
     }
 }
 
+/// A new-type wrapping [`String`].
 pub struct Text(pub String);
 
 #[async_trait(?Send)]
@@ -52,6 +56,7 @@ impl DerefMut for Text {
     }
 }
 
+/// JSON based data.
 pub struct Json<D>(pub D)
 where
     D: DeserializeOwned;
