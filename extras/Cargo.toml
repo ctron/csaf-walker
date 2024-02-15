@@ -36,6 +36,12 @@ default = [
     "sbom-walker"
 ]
 
+[package.metadata.docs.rs]
+features = [
+    "csaf-walker/crypto-nettle",
+    "sbom-walker/crypto-nettle",
+]
+
 [package.metadata.cargo-all-features]
 always_include_features = [
     "csaf-walker/crypto-nettle",
