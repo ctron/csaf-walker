@@ -3,7 +3,9 @@ use url::Url;
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct Distribution {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub directory_url: Option<Url>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub rolie: Option<Rolie>,
 }
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
@@ -19,12 +21,13 @@ pub struct Feed {
     pub url: Url,
 }
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "UPPERCASE")]
 pub enum TlpLabel {
-    UNLABELED,
-    WHITE,
-    GREEN,
-    AMBER,
-    RED,
+    Unlabeled,
+    White,
+    Green,
+    Amber,
+    Red,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]

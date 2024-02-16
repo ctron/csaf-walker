@@ -78,7 +78,7 @@ impl<S: Source> Walker<S> {
             }
 
             if let Some(directory_url) = &distribution.directory_url {
-                log::warn!("Walking: {}", directory_url.clone());
+                log::warn!("Walking: {:?}", directory_url.clone());
             }
 
             let index = self

@@ -1,6 +1,7 @@
 use crate::discover::DiscoveredAdvisory;
 use crate::model::metadata::{Distribution, ProviderMetadata};
 use crate::retrieve::{RetrievalMetadata, RetrievedAdvisory};
+use crate::rolie::RolieRetrievable;
 use crate::source::Source;
 use async_trait::async_trait;
 use bytes::{BufMut, Bytes, BytesMut};
@@ -103,7 +104,6 @@ impl Source for HttpSource {
                 Url::parse(&format!("{}{s}", base))
             };
 
-            // TODO: need to handle ROLIE source too
             let changes =
                 ChangeSource::retrieve(&self.fetcher, &distribution.directory_url.clone().unwrap())
                     .await?;

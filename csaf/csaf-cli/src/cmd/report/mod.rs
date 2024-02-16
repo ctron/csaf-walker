@@ -2,9 +2,8 @@ use crate::{
     cmd::{DiscoverArguments, FilterArguments},
     common::walk_visitor,
 };
-use csaf_walker::discover::DiscoveredAdvisory;
 use csaf_walker::{
-    discover::AsDiscovered,
+    discover::{AsDiscovered, DiscoveredAdvisory},
     report::{render_to_html, DocumentKey, Duplicates, ReportRenderOption, ReportResult},
     retrieve::RetrievingVisitor,
     validation::{ValidatedAdvisory, ValidationError, ValidationVisitor},
@@ -160,8 +159,8 @@ impl Report {
             distribution_url: da.url().clone(),
             url: file_name.to_string(),
         };
-
-        document_key.clone_from(&name);
+        *document_key = name;
+        // document_key.clone_from(&name);
     }
 
     fn render(render: RenderOptions, report: ReportResult) -> anyhow::Result<()> {

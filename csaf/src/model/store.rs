@@ -5,16 +5,14 @@ use std::path::{Path, PathBuf};
 /// create a distribution base directory
 pub fn distribution_base(base: impl AsRef<Path>, distribution: &Distribution) -> PathBuf {
     if let Some(_directory_url) = &distribution.directory_url {
-        return base.as_ref().join(
+        base.as_ref().join(
             utf8_percent_encode(
                 distribution.directory_url.clone().unwrap().as_str(),
                 NON_ALPHANUMERIC,
             )
             .to_string(),
-        );
+        )
     } else {
-        return base
-            .as_ref()
-            .join(utf8_percent_encode("http://example.com/", NON_ALPHANUMERIC).to_string());
+        base.as_ref().to_path_buf()
     }
 }

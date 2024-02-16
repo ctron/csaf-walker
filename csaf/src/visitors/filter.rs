@@ -120,17 +120,6 @@ impl<V: DiscoveredVisitor> DiscoveredVisitor for FilteringVisitor<V> {
             }
         };
 
-        // if self.config.ignored_distributions.contains(
-        //     advisory
-        //         .distribution
-        //         .directory_url
-        //         .clone()
-        //         .unwrap()
-        //         .as_str(),
-        // ) {
-        //     return Ok(());
-        // }
-
         // eval name
 
         let name = advisory
