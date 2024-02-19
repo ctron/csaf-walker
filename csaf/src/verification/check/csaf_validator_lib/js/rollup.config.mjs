@@ -19,6 +19,6 @@ export default {
       }),
       commonjs(),
       json(),
-      // terser()
+      terser()
   ]
 };
