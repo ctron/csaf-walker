@@ -1,8 +1,10 @@
 use crate::verification::check::{Check, CheckError, Checking};
-use csaf::definitions::{BranchesT, ProductIdT};
-use csaf::document::Category;
-use csaf::product_tree::ProductTree;
-use csaf::Csaf;
+use csaf::{
+    definitions::{BranchesT, ProductIdT},
+    document::Category,
+    product_tree::ProductTree,
+    Csaf,
+};
 use std::collections::HashSet;
 
 /// /vulnerabilities needs to be more than one vulnerability listed
@@ -17,7 +19,7 @@ pub fn check_vulnerabilities_size(csaf: &Csaf) -> Vec<CheckError> {
         result = false;
     }
     Checking::new()
-        .require("The csaf file's Vulnerabilities is empty", !result)
+        .require("The CSAF file's vulnerabilities section is empty", !result)
         .done()
 }
 
@@ -68,7 +70,10 @@ pub fn check_vulnerabilities_product_status(csaf: &Csaf) -> Vec<CheckError> {
         }
     }
     checking
-        .require("The csaf does not have any vulnerabilities", !result)
+        .require(
+            "The CSAF document does not have any vulnerabilities",
+            !result,
+        )
         .done()
 }
 
@@ -80,7 +85,7 @@ pub fn check_vulnerabilities_cve_ids(csaf: &Csaf) -> Vec<CheckError> {
         return vec![];
     }
     let mut result;
-    let mut check_erroies = vec![];
+    let mut check_errors = vec![];
     if let Some(vulns) = &csaf.vulnerabilities {
         for vuln in vulns {
             if let Some(ids) = &vuln.ids {
@@ -93,11 +98,11 @@ pub fn check_vulnerabilities_cve_ids(csaf: &Csaf) -> Vec<CheckError> {
 
             if !result {
                 if let Some(cwe) = &vuln.cwe {
-                    check_erroies.extend(
+                    check_errors.extend(
                         Checking::new()
                             .require(
                                 format!(
-                                    "The vulnerability cwe id: {:?} does not have any cve or ids",
+                                    "The vulnerability CWE ID: {:?} does not have any CVE or IDs",
                                     &cwe.id
                                 ),
                                 result,
@@ -105,10 +110,10 @@ pub fn check_vulnerabilities_cve_ids(csaf: &Csaf) -> Vec<CheckError> {
                             .done(),
                     );
                 } else {
-                    check_erroies.extend(
+                    check_errors.extend(
                         Checking::new()
                             .require(
-                                "The csaf file have a vulnerability",
+                                "The CSAF file has a vulnerability",
                                 vuln.cve.is_none() | vuln.ids.is_none(),
                             )
                             .done(),
@@ -117,7 +122,7 @@ pub fn check_vulnerabilities_cve_ids(csaf: &Csaf) -> Vec<CheckError> {
             }
         }
     }
-    check_erroies
+    check_errors
 }
 
 fn get_all_product_id_from_product_tree_branches(

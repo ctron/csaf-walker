@@ -1,6 +1,8 @@
 use crate::verification::check::{Check, CheckError, Checking};
-use csaf::definitions::{NoteCategory, ReferenceCategory};
-use csaf::Csaf;
+use csaf::{
+    definitions::{NoteCategory, ReferenceCategory},
+    Csaf,
+};
 
 pub fn check_csaf_document_notes(csaf: &Csaf) -> Vec<CheckError> {
     if !is_security_incident_response(csaf) && !is_security_informational_advisory(csaf) {
@@ -20,7 +22,7 @@ pub fn check_csaf_document_notes(csaf: &Csaf) -> Vec<CheckError> {
             result |= is_invalid_note;
         }
     }
-    Checking::new().require("The document note  with at least one item which has a category of description, details, general or summary", result).done()
+    Checking::new().require("The document note with at least one item which has a category of description, details, general or summary", result).done()
 }
 
 pub fn check_csaf_document_references(csaf: &Csaf) -> Vec<CheckError> {
@@ -67,6 +69,3 @@ pub fn init_csaf_is_security_incident_response_verifying_visitor(
         ),
     ]
 }
-
-#[cfg(test)]
-mod tests {}

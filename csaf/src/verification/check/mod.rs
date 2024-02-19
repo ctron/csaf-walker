@@ -1,14 +1,13 @@
-use crate::verification::check::base::{
-    check_csaf_base, check_csaf_document_tracking_revision_history,
-};
-use crate::verification::check::informational_advisory::check_vulnerabilities_not_exits;
-use crate::verification::check::security_incident_response::{
-    check_csaf_document_notes, check_csaf_document_references,
-};
-use crate::verification::check::vex::{
-    check_all_products_v11ies_exits_in_product_tree, check_branches_relationships_product_match,
-    check_csaf_vex, check_history, check_vulnerabilities_cve_ids,
-    check_vulnerabilities_product_status, check_vulnerabilities_size,
+use crate::verification::check::{
+    base::{check_csaf_base, check_csaf_document_tracking_revision_history},
+    informational_advisory::check_vulnerabilities_not_exits,
+    security_incident_response::{check_csaf_document_notes, check_csaf_document_references},
+    vex::{
+        check_all_products_v11ies_exits_in_product_tree,
+        check_branches_relationships_product_match, check_csaf_vex, check_history,
+        check_vulnerabilities_cve_ids, check_vulnerabilities_product_status,
+        check_vulnerabilities_size,
+    },
 };
 use async_trait::async_trait;
 use csaf::Csaf;

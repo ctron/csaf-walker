@@ -1,7 +1,7 @@
-use crate::verification::check::security_incident_response::{
-    check_csaf_document_notes, check_csaf_document_references,
+use crate::verification::check::{
+    security_incident_response::{check_csaf_document_notes, check_csaf_document_references},
+    Check, CheckError, Checking,
 };
-use crate::verification::check::{Check, CheckError, Checking};
 use csaf::Csaf;
 
 pub fn check_vulnerabilities_not_exits(csaf: &Csaf) -> Vec<CheckError> {
@@ -10,7 +10,7 @@ pub fn check_vulnerabilities_not_exits(csaf: &Csaf) -> Vec<CheckError> {
     }
     Checking::new()
         .require(
-            "The csaf file should not related to a vulnerability ",
+            "The CSAF file should not relate to a vulnerability ",
             csaf.vulnerabilities.is_some(),
         )
         .done()
@@ -36,6 +36,3 @@ pub fn init_csaf_informational_advisory_verifying_visitor() -> Vec<(&'static str
         ),
     ]
 }
-
-#[cfg(test)]
-mod tests {}
