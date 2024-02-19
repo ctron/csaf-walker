@@ -70,6 +70,8 @@ where
         advisory: A,
         error: serde_json::Error,
     },
+    #[error("check runtime error: {error}")]
+    Check { advisory: A, error: anyhow::Error },
 }
 
 impl<A, UE> AsDiscovered for VerificationError<UE, A>
@@ -81,6 +83,7 @@ where
         match self {
             Self::Upstream(err) => err.as_discovered(),
             Self::Parsing { advisory, .. } => advisory.as_discovered(),
+            Self::Check { advisory, .. } => advisory.as_discovered(),
         }
     }
 }
@@ -94,6 +97,7 @@ where
         match self {
             Self::Upstream(err) => err.url(),
             Self::Parsing { advisory, .. } => advisory.as_retrieved().url(),
+            Self::Check { advisory, .. } => advisory.as_retrieved().url(),
         }
     }
 }
@@ -183,7 +187,10 @@ where
         let mut successes = HashSet::new();
 
         for (index, check) in &self.checks {
-            let result = check.as_ref().check(&csaf).await;
+            let result = match check.as_ref().check(&csaf).await {
+                Ok(result) => result,
+                Err(error) => return Err(VerificationError::Check { error, advisory }),
+            };
             if !result.is_empty() {
                 failures.insert(index.clone(), result);
             } else {
