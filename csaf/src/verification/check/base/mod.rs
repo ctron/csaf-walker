@@ -1,13 +1,12 @@
-use csaf::Csaf;
-// use csaf::document::{Category, CsafVersion, PublisherCategory};
 use crate::verification::check::{Check, CheckError, Checking};
+use csaf::Csaf;
 
 pub fn check_csaf_base(csaf: &Csaf) -> Vec<CheckError> {
     let mut result = vec![];
     result.extend(
         Checking::new()
             .require(
-                "The csaf file does not have document publisher name",
+                "The CSAF file does not have a document publisher name",
                 !csaf.document.publisher.name.is_empty(),
             )
             .done(),
@@ -15,7 +14,7 @@ pub fn check_csaf_base(csaf: &Csaf) -> Vec<CheckError> {
     result.extend(
         Checking::new()
             .require(
-                "The csaf file does not have document title",
+                "The CSAF file does not have a document title",
                 !csaf.document.title.is_empty(),
             )
             .done(),
@@ -23,7 +22,7 @@ pub fn check_csaf_base(csaf: &Csaf) -> Vec<CheckError> {
     result.extend(
         Checking::new()
             .require(
-                "The csaf file's document tracking id is empty",
+                "The CSAF file's document tracking id is empty",
                 !csaf.document.tracking.id.is_empty(),
             )
             .done(),
@@ -38,7 +37,7 @@ pub fn check_csaf_document_tracking_revision_history(csaf: &Csaf) -> Vec<CheckEr
             Checking::new()
                 .require(
                     format!(
-                        "The csaf file's document revision_history {:?} number is empty",
+                        "The CSAF file's document revision_history {:?} number is empty",
                         revision.number.to_string()
                     ),
                     !revision.number.is_empty(),
@@ -48,7 +47,7 @@ pub fn check_csaf_document_tracking_revision_history(csaf: &Csaf) -> Vec<CheckEr
         result.extend(
             Checking::new()
                 .require(
-                    "The csaf file's document revision_history summary is empty",
+                    "The CSAF file's document revision_history summary is empty",
                     !revision.summary.is_empty(),
                 )
                 .done(),
@@ -66,39 +65,6 @@ pub fn init_csaf_base_verifying_visitor() -> Vec<(&'static str, Box<dyn Check>)>
         ),
     ]
 }
-// pub fn check_csaf_publisher_category(csaf: &Csaf) -> Vec<CheckError> {
-//     let result;
-//     match csaf.document.publisher.category {
-//         PublisherCategory::Vendor => result = false,
-//         PublisherCategory::Coordinator => result = false,
-//         PublisherCategory::Other => result = false,
-//         PublisherCategory::Discoverer => result = false,
-//         PublisherCategory::Translator => result = false,
-//         PublisherCategory::User => result = false,
-//         _ => result = false,
-//     }
-//     Checking::new().require("The csaf's document publisher category is not right", result).done()
-// }
-//
-// pub fn check_csaf_category(csaf: &Csaf) -> Vec<CheckError> {
-//     let result;
-//     match csaf.document.category {
-//         Category::Vex => result = true,
-//         Category::Base => result = true,
-//         Category::SecurityAdvisory => result = true,
-//         _ => result = false,
-//     };
-//     Checking::new().require("The csaf's document category is not right", result).done()
-// }
-//
-// pub fn check_csaf_version(csaf: &Csaf) -> Vec<CheckError> {
-//     let result;
-//     match csaf.document.csaf_version {
-//         CsafVersion::TwoDotZero =>result = true,
-//         _ => result = false,
-//     };
-//     Checking::new().require("The csaf's version is not right", result).done()
-// }
 
 #[cfg(test)]
 mod tests {

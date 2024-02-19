@@ -1,5 +1,6 @@
-use crate::verification::check::vex::check_all_products_v11ies_exits_in_product_tree;
-use crate::verification::check::Check;
+use crate::verification::{
+    check::vex::check_all_products_v11ies_exits_in_product_tree, check::Check,
+};
 
 pub fn init_csaf_security_advisory_verifying_visitor() -> Vec<(&'static str, Box<dyn Check>)> {
     vec![(
@@ -7,6 +8,3 @@ pub fn init_csaf_security_advisory_verifying_visitor() -> Vec<(&'static str, Box
         Box::new(check_all_products_v11ies_exits_in_product_tree),
     )]
 }
-
-#[cfg(test)]
-mod tests {}

@@ -2,12 +2,14 @@
 //!
 //! Checks to ensure conformity with the specification.
 
-use crate::discover::{AsDiscovered, DiscoveredAdvisory};
-use crate::retrieve::{
-    AsRetrieved, RetrievalContext, RetrievalError, RetrievedAdvisory, RetrievedVisitor,
+use crate::{
+    discover::{AsDiscovered, DiscoveredAdvisory},
+    retrieve::{
+        AsRetrieved, RetrievalContext, RetrievalError, RetrievedAdvisory, RetrievedVisitor,
+    },
+    validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, ValidationError},
+    verification::check::{Check, CheckError},
 };
-use crate::validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, ValidationError};
-use crate::verification::check::{Check, CheckError};
 use async_trait::async_trait;
 use csaf::Csaf;
 use std::collections::{HashMap, HashSet};
