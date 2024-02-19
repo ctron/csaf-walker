@@ -56,6 +56,7 @@ pub struct Report {
 }
 
 #[derive(clap::Args, Debug)]
+#[command(next_help_heading = "Report rendering")]
 pub struct RenderOptions {
     /// Path of the HTML output file
     #[arg(long, default_value = "report.html")]
