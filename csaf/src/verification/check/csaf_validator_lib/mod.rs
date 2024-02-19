@@ -1,7 +1,11 @@
+//! A validator based on the `csaf_validator_lib`
+
 mod deno;
 
-use crate::verification::check::csaf_validator_lib::deno::{Extractable, Injectable, Json};
-use crate::verification::check::{Check, CheckError};
+use crate::verification::check::{
+    csaf_validator_lib::deno::{Extractable, Injectable, Json},
+    Check, CheckError,
+};
 use async_trait::async_trait;
 use csaf::Csaf;
 use deno_core::{
@@ -15,16 +19,10 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use url::Url;
 
-const MODULE: &'static str = "internal://bundle.js";
+const MODULE_ID: &'static str = "internal://bundle.js";
 
 fn create_runtime() -> JsRuntime {
-    /*
-        let csaf_validator_lib = ExtensionBuilder::default()
-            .js(include_js_files!(csaf_validator_lib dir "src/verification/check/csaf_validator_lib/js", "bundle.js",).into())
-            .build();
-    */
-
-    let specifier = Url::parse(MODULE).unwrap();
+    let specifier = Url::parse(MODULE_ID).unwrap();
     let code = include_str!("js/bundle.js");
 
     let runtime = JsRuntime::new(RuntimeOptions {
@@ -38,14 +36,19 @@ fn create_runtime() -> JsRuntime {
     runtime
 }
 
-async fn validate<S, D>(runtime: &mut JsRuntime, doc: S) -> anyhow::Result<D>
+async fn validate<S, D>(
+    runtime: &mut JsRuntime,
+    doc: S,
+    validations: &[ValidationSet],
+) -> anyhow::Result<D>
 where
     S: Serialize + Send,
     D: for<'de> Deserialize<'de> + Send + Default + Debug,
 {
-    doc.inject(runtime, "doc").unwrap();
+    doc.inject(runtime, "doc")?;
+    validations.inject(runtime, "validations")?;
 
-    let module = Url::parse(MODULE).unwrap();
+    let module = Url::parse(MODULE_ID)?;
     let mod_id = runtime.load_main_module(&module, None).await?;
     let result = runtime.mod_evaluate(mod_id);
     runtime
@@ -54,55 +57,62 @@ where
 
     result.await?;
 
-    // log::info!("Finished");
-
-    /*
-    {
-        let global = runtime.main_context();
-        let scope = &mut runtime.handle_scope();
-        let global = global.open(scope).global(scope);
-
-        let keys = global
-            .get_property_names(scope, GetPropertyNamesArgs::default())
-            .unwrap();
-
-        for i in 0..keys.length() {
-            let key = keys.get_index(scope, i).unwrap();
-            let value = global.get(scope, key).unwrap();
-
-            let key_str = key.to_rust_string_lossy(scope);
-            let value_str = value.to_rust_string_lossy(scope);
-
-            log::info!("{key_str}: {value_str}");
-        }
-
-        // log::info!("Global: {result:?}");
-    }*/
-
     let result: Json<D> = Json::extract(runtime, "result")?;
 
-    log::info!("Result: {result:#?}");
+    log::trace!("Result: {result:#?}");
 
     Ok(result.0)
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ValidationSet {
+    Schema,
+    Mandatory,
+    Optional,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq)]
+pub enum Profile {
+    Schema,
+    Mandatory,
+    Optional,
+}
+
 pub struct CsafValidatorLib {
     runtime: Arc<Mutex<JsRuntime>>,
+    validations: Vec<ValidationSet>,
 }
 
 impl CsafValidatorLib {
-    pub fn new() -> Self {
+    pub fn new(profile: Profile) -> Self {
         let runtime = Arc::new(Mutex::new(create_runtime()));
-        Self { runtime }
+
+        let validations = match profile {
+            Profile::Schema => vec![ValidationSet::Schema],
+            Profile::Mandatory => vec![ValidationSet::Schema, ValidationSet::Mandatory],
+            Profile::Optional => vec![
+                ValidationSet::Schema,
+                ValidationSet::Mandatory,
+                ValidationSet::Optional,
+            ],
+        };
+
+        Self {
+            runtime,
+            validations,
+        }
     }
 }
 
+/// Result structure, coming from the test call
 #[derive(Clone, Debug, Default, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct TestResult {
     pub tests: Vec<Entry>,
 }
 
+/// Test result entry from the tests
 #[derive(Clone, Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Entry {
@@ -123,15 +133,17 @@ struct Error {
 #[async_trait(?Send)]
 impl Check for CsafValidatorLib {
     async fn check(&self, csaf: &Csaf) -> Vec<CheckError> {
-        let test_result: TestResult = validate(&mut *self.runtime.lock().await, csaf)
-            .await
-            .unwrap();
+        let test_result: TestResult =
+            validate(&mut *self.runtime.lock().await, csaf, &self.validations)
+                .await
+                .unwrap();
 
-        log::info!("Result: {test_result:?}");
+        log::trace!("Result: {test_result:?}");
 
         let mut result = vec![];
 
         for entry in test_result.tests {
+            // we currently only report "failed" tests
             if entry.is_valid {
                 continue;
             }
@@ -157,17 +169,15 @@ mod test {
     use super::*;
     use csaf::document::*;
     use log::LevelFilter;
-    use serde_json::json;
 
     #[tokio::test]
-    async fn test() {
+    async fn basic_test() {
         let _ = env_logger::builder()
             .filter_level(LevelFilter::Info)
             .try_init();
 
-        let check = CsafValidatorLib::new();
+        let check = CsafValidatorLib::new(Profile::Optional);
 
-        // let result = Handle::current().spawn_blocking(|| validate()).await;
         let result = check
             .check(&Csaf {
                 document: Document {
@@ -206,6 +216,6 @@ mod test {
 
         log::info!("Result: {result:#?}");
 
-        // result.unwrap().unwrap();
+        assert!(!result.is_empty());
     }
 }

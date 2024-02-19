@@ -4,7 +4,6 @@
     "build": "npx rollup --config rollup.config.mjs"
   },
 
-  "x-comment":  "copied over from csaf-validator-lib/package.json",
   "dependencies": {
     "@secvisogram/csaf-validator-lib": "^1.3.23"
   },
