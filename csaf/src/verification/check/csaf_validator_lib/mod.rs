@@ -62,7 +62,7 @@ where
     Ok(result.0)
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd, serde::Serialize)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ValidationSet {
     Schema,
@@ -70,7 +70,7 @@ pub enum ValidationSet {
     Optional,
 }
 
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Profile {
     Schema,
     Mandatory,
@@ -130,7 +130,7 @@ struct Error {
 
 #[async_trait(?Send)]
 impl Check for CsafValidatorLib {
-    async fn check(&self, csaf: &Csaf) -> Vec<CheckError> {
+    async fn check(&self, csaf: &Csaf) -> anyhow::Result<Vec<CheckError>> {
         let test_result: TestResult =
             validate(&mut *self.runtime.lock().await, csaf, &self.validations).await?;
 
@@ -156,7 +156,7 @@ impl Check for CsafValidatorLib {
             }
         }
 
-        result
+        Ok(result)
     }
 }
 

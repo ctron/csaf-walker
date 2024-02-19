@@ -103,6 +103,39 @@ pub struct SkipArguments {
 pub struct VerificationArguments {
     /// The profile to use for the CSAF validator suite
     #[cfg(feature = "csaf-validator-lib")]
-    #[arg(id = "csaf-validator-profile", long, default_value_t = csaf_walker::verification::check::csaf_validator_lib::Profile::Optional )]
-    pub profile: csaf_walker::verification::check::csaf_validator_lib::Profile,
+    #[arg(id = "csaf-validator-profile", long, value_enum, default_value_t = ValidatorProfile::Optional)]
+    pub profile: ValidatorProfile,
+}
+
+#[cfg(feature = "csaf-validator-lib")]
+#[derive(Clone, Copy, Debug, clap::ValueEnum)]
+pub enum ValidatorProfile {
+    /// disabled
+    Disabled,
+    /// schema only
+    Schema,
+    /// schema and mandatory checks
+    Mandatory,
+    /// schema, mandatory, and optional checks
+    Optional,
+}
+
+#[cfg(feature = "csaf-validator-lib")]
+impl From<ValidatorProfile>
+    for Option<csaf_walker::verification::check::csaf_validator_lib::Profile>
+{
+    fn from(value: ValidatorProfile) -> Self {
+        match value {
+            ValidatorProfile::Disabled => None,
+            ValidatorProfile::Schema => {
+                Some(csaf_walker::verification::check::csaf_validator_lib::Profile::Schema)
+            }
+            ValidatorProfile::Mandatory => {
+                Some(csaf_walker::verification::check::csaf_validator_lib::Profile::Mandatory)
+            }
+            ValidatorProfile::Optional => {
+                Some(csaf_walker::verification::check::csaf_validator_lib::Profile::Optional)
+            }
+        }
+    }
 }

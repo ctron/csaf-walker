@@ -125,7 +125,26 @@ impl Report {
                     Ok::<_, anyhow::Error>(())
                 }
             };
+
+            // content checks
+
             let visitor = VerifyingVisitor::with_checks(visitor, init_verifying_visitor());
+            #[cfg(feature = "csaf-validator-lib")]
+            let visitor = {
+                if let Some(profile) = self.verification.profile.into() {
+                    visitor.add(
+                        "csaf_validator_lib",
+                        csaf_walker::verification::check::csaf_validator_lib::CsafValidatorLib::new(
+                            profile,
+                        ),
+                    )
+                } else {
+                    visitor
+                }
+            };
+
+            // validation (can we work with this document?)
+
             let visitor = ValidationVisitor::new(visitor).with_options(options);
 
             walk_visitor(
