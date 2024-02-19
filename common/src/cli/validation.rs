@@ -20,7 +20,7 @@ impl From<ValidationArguments> for ValidationOptions {
         let validation_date: Option<SystemTime> = match (value.policy_date, value.v3_signatures) {
             (_, true) => Some(SystemTime::from(
                 Date::from_calendar_date(2007, Month::January, 1)
-                    .unwrap()
+                    .expect("policy date is known to parse")
                     .midnight()
                     .assume_offset(UtcOffset::UTC),
             )),

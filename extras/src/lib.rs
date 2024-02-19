@@ -1,3 +1,5 @@
+#![deny(clippy::unwrap_used)]
+
 pub mod visitors;
 
 #[cfg(feature = "sbom-walker")]

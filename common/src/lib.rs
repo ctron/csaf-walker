@@ -1,3 +1,5 @@
+#![deny(clippy::unwrap_used)]
+
 pub mod changes;
 pub mod cli;
 pub mod compression;

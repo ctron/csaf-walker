@@ -11,7 +11,7 @@ impl ProgressImpl for Indicatif {
         bar.set_style(
             ProgressStyle::default_bar()
                 .template("{msg} {wide_bar} {pos}/{len} ({eta})")
-                .unwrap(),
+                .expect("templates must parse"),
         );
         Rc::new(IndicatifProgressBar(bar))
     }
@@ -41,7 +41,7 @@ impl ProgressImpl for MultiIndicatif {
         bar.set_style(
             ProgressStyle::default_bar()
                 .template("{msg} {wide_bar} {pos}/{len} ({eta})")
-                .unwrap(),
+                .expect("template must parse"),
         );
         let bar = self.0.add(bar);
         Rc::new(IndicatifProgressBar(bar))
