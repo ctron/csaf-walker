@@ -8,24 +8,34 @@ import * as schema from '@secvisogram/csaf-validator-lib/schemaTests';
 import * as mandatory from '@secvisogram/csaf-validator-lib/mandatoryTests';
 import * as optional from '@secvisogram/csaf-validator-lib/optionalTests';
 
-let tests = [];
-
-Object.values(schema).concat(Object.values(mandatory));
-
-for (const validation of globalThis.validations) {
-  switch (validation) {
-    case "schema":
-      tests = tests.concat(Object.values(schema));
-      break;
-    case "mandatory":
-      tests = tests.concat(Object.values(mandatory));
-      break;
-    case "optional":
-      tests = tests.concat(Object.values(optional));
-      break;
-    default:
-      throw new Error(`Unknown validation set: ${validation}`);
-  }
+/**
+ * Can be used for testing
+ * @param msg a string to print.
+ */
+function print(msg) {
+  Deno.core.print(msg);
 }
 
-globalThis.result = await validateLib(tests, globalThis.doc);
+async function runValidation(validations, doc) {
+  let tests = [];
+
+  for (const validation of validations) {
+    switch (validation) {
+      case "schema":
+        tests = tests.concat(Object.values(schema));
+        break;
+      case "mandatory":
+        tests = tests.concat(Object.values(mandatory));
+        break;
+      case "optional":
+        tests = tests.concat(Object.values(optional));
+        break;
+      default:
+        throw new Error(`Unknown validation set: ${validation}`);
+    }
+  }
+
+  return validateLib(tests, doc);
+}
+
+Deno.core.ops.op_register_func(runValidation);
