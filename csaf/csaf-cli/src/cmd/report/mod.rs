@@ -19,9 +19,10 @@ use std::{
     path::PathBuf,
     sync::{
         atomic::{AtomicUsize, Ordering},
-        Arc, Mutex,
+        Arc,
     },
 };
+use tokio::sync::Mutex;
 use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
     progress::Progress,
@@ -103,7 +104,7 @@ impl Report {
 
                             // let name = err.url().to_string();
 
-                            errors.lock().unwrap().insert(name, err.to_string());
+                            errors.lock().await.insert(name, err.to_string());
                             return Ok::<_, anyhow::Error>(());
                         }
                     };
@@ -112,7 +113,7 @@ impl Report {
                         let name = DocumentKey::for_document(&adv);
                         warnings
                             .lock()
-                            .unwrap()
+                            .await
                             .entry(name)
                             .or_default()
                             .extend(adv.failures.into_values().flatten());
@@ -148,9 +149,9 @@ impl Report {
             self.render,
             ReportResult {
                 total,
-                duplicates: &duplicates.lock().unwrap(),
-                errors: &errors.lock().unwrap(),
-                warnings: &warnings.lock().unwrap(),
+                duplicates: &*duplicates.lock().await,
+                errors: &*errors.lock().await,
+                warnings: &*warnings.lock().await,
             },
         )?;
 
