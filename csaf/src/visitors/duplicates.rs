@@ -1,7 +1,8 @@
 use crate::discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor};
 use crate::report::{DocumentKey, Duplicates};
 use async_trait::async_trait;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 /// An intercepting visitor, collecting duplicates
 pub struct DetectDuplicatesVisitor<D: DiscoveredVisitor> {
@@ -29,7 +30,7 @@ impl<V: DiscoveredVisitor> DiscoveredVisitor for DetectDuplicatesVisitor<V> {
         {
             let key = DocumentKey::for_document(&advisory);
 
-            let mut duplicates = self.duplicates.lock().unwrap();
+            let mut duplicates = self.duplicates.lock().await;
             if !duplicates.known.insert(key.clone()) {
                 // add or get and increment by one
                 *duplicates.duplicates.entry(key).or_default() += 1;

@@ -293,14 +293,15 @@ mod test {
             warnings: &Default::default(),
         };
         let _output = PathBuf::default();
-        let base_url = Some(Url::parse("file:///foo/bar/").unwrap());
+        let base_url = Some(Url::parse("file:///foo/bar/").expect("example value must parse"));
         let report = HtmlReport {
             result: &details,
             base_url: &base_url,
         };
 
         let (url, _label) = report.link_document(&DocumentKey {
-            distribution_url: Url::parse("file:///foo/bar/distribution/").unwrap(),
+            distribution_url: Url::parse("file:///foo/bar/distribution/")
+                .expect("example value must parse"),
             url: "2023/cve.json".to_string(),
         });
 
