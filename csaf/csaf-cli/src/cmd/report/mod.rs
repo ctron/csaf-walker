@@ -1,5 +1,5 @@
 use crate::{
-    cmd::{DiscoverArguments, FilterArguments},
+    cmd::{DiscoverArguments, FilterArguments, VerificationArguments},
     common::walk_visitor,
 };
 use csaf_walker::{
@@ -47,6 +47,9 @@ pub struct Report {
 
     #[command(flatten)]
     validation: ValidationArguments,
+
+    #[command(flatten)]
+    verification: VerificationArguments,
 
     #[command(flatten)]
     render: RenderOptions,

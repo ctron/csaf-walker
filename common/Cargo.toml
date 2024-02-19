@@ -17,7 +17,6 @@ anyhow = "1"
 async-trait = "0.1"
 base64 = "0.21"
 bytes = "1"
-clap = { version = "4.5.0", features = ["derive", "env"] }
 csv = "1"
 digest = "0.10.7"
 flexible-time = "0.1"
@@ -41,6 +40,8 @@ sequoia-openpgp = { version = "1", default-features = false }
 
 bzip2 = { version = "0.4", optional = true }
 bzip2-rs = { version = "0.1", optional = true, features = ["rustc_1_51"] }
+
+clap = { version = "4.5.0", features = ["derive", "env"], optional = true }
 
 [features]
 default = ["bzip2"]

@@ -97,3 +97,12 @@ pub struct SkipArguments {
     #[arg(long)]
     pub since_file_offset: Option<humantime::Duration>,
 }
+
+#[derive(Debug, clap::Parser)]
+#[command(next_help_heading = "Checks")]
+pub struct VerificationArguments {
+    /// The profile to use for the CSAF validator suite
+    #[cfg(feature = "csaf-validator-lib")]
+    #[arg(id = "csaf-validator-profile", long, default_value_t = csaf_walker::verification::check::csaf_validator_lib::Profile::Optional )]
+    pub profile: csaf_walker::verification::check::csaf_validator_lib::Profile,
+}

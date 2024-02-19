@@ -36,6 +36,11 @@ default = [
     "sbom-walker"
 ]
 
+clap = [
+    "dep:clap",
+    "walker-common/clap"
+]
+
 [package.metadata.docs.rs]
 features = [
     "csaf-walker/crypto-nettle",
