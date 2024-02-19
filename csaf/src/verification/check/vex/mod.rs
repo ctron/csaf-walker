@@ -353,10 +353,10 @@ mod tests {
     async fn test_check_all_products_v11ies_exits_in_product_tree() {
         let csaf: Csaf =
             serde_json::from_str(include_str!("../../../../test-data/rhsa-2021_3029.json"))
-                .unwrap();
+                .expect("example data must parse");
         assert!(check_all_products_v11ies_exits_in_product_tree(&csaf)
             .first()
-            .unwrap()
+            .expect("must return an item")
             .contains("notexits"))
     }
 
@@ -364,7 +364,7 @@ mod tests {
     async fn test_check_csaf_vex() {
         let csaf: Csaf =
             serde_json::from_str(include_str!("../../../../test-data/rhsa-2021_3029.json"))
-                .unwrap();
+                .expect("example data must parse");
         assert_eq!(check_csaf_vex(&csaf).len(), 0);
     }
 
@@ -372,7 +372,7 @@ mod tests {
     async fn test_check_history() {
         let csaf: Csaf =
             serde_json::from_str(include_str!("../../../../test-data/rhsa-2021_3029.json"))
-                .unwrap();
+                .expect("example data must parse");
         assert_eq!(check_history(&csaf).len(), 0);
     }
 
@@ -381,7 +381,7 @@ mod tests {
     async fn test_check_vulnerabilities_product_status() {
         let csaf: Csaf =
             serde_json::from_str(include_str!("../../../../test-data/rhsa-2023_1441.json"))
-                .unwrap();
+                .expect("example data must parse");
         assert_eq!(check_vulnerabilities_product_status(&csaf).len(), 1);
     }
 
@@ -390,10 +390,10 @@ mod tests {
     async fn test_check_vulnerabilities_cve_ids() {
         let csaf: Csaf =
             serde_json::from_str(include_str!("../../../../test-data/rhsa-2023_1441.json"))
-                .unwrap();
+                .expect("example data must parse");
         assert!(check_vulnerabilities_cve_ids(&csaf)
             .first()
-            .unwrap()
+            .expect("must return an item")
             .contains("CWE-704"));
     }
 
@@ -402,7 +402,7 @@ mod tests {
     async fn test_check_vulnerabilities_size() {
         let csaf: Csaf =
             serde_json::from_str(include_str!("../../../../test-data/rhsa-2023_3408.json"))
-                .unwrap();
+                .expect("example data must parse");
         assert_eq!(check_vulnerabilities_size(&csaf).len(), 1);
     }
 
@@ -411,10 +411,10 @@ mod tests {
     async fn test_branches_relationships_product_match() {
         let csaf: Csaf =
             serde_json::from_str(include_str!("../../../../test-data/rhsa-2023_4378.json"))
-                .unwrap();
+                .expect("example data must parse");
         assert!(check_branches_relationships_product_match(&csaf)
             .first()
-            .unwrap()
+            .expect("must return an item")
             .contains(
                 "notmatch-NFV-9.2.0.Z.MAIN.EUS:kernel-rt-0:5.14.0-284.25.1.rt14.310.el9_2.src"
             ));

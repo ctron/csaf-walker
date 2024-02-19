@@ -1,3 +1,5 @@
+#![deny(clippy::unwrap_used)]
+
 //! Walking through CSAF documents
 //!
 //! ## Idea

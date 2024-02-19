@@ -77,7 +77,7 @@ mod tests {
     async fn test_check_csaf_base() {
         let csaf: Csaf =
             serde_json::from_str(include_str!("../../../../test-data/rhba-2023_0564.json"))
-                .unwrap();
+                .expect("example data must parse");
         assert_eq!(check_csaf_base(&csaf).len(), 3)
     }
 
@@ -85,7 +85,7 @@ mod tests {
     async fn test_check_csaf_document_tracking_revision_history() {
         let csaf: Csaf =
             serde_json::from_str(include_str!("../../../../test-data/rhba-2023_0564.json"))
-                .unwrap();
+                .expect("example data must parse");
         assert_eq!(
             check_csaf_document_tracking_revision_history(&csaf).len(),
             2
