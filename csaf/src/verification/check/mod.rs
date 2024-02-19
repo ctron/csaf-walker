@@ -27,7 +27,7 @@ pub type CheckError = Cow<'static, str>;
 #[async_trait(?Send)]
 pub trait Check {
     /// Perform a check on a CSAF document
-    async fn check(&self, csaf: &Csaf) -> Vec<CheckError>;
+    async fn check(&self, csaf: &Csaf) -> anyhow::Result<Vec<CheckError>>;
 }
 
 /// Implementation to allow a simple function style check
@@ -36,8 +36,8 @@ impl<F> Check for F
 where
     F: Fn(&Csaf) -> Vec<CheckError>,
 {
-    async fn check(&self, csaf: &Csaf) -> Vec<CheckError> {
-        (self)(csaf)
+    async fn check(&self, csaf: &Csaf) -> anyhow::Result<Vec<CheckError>> {
+        Ok((self)(csaf))
     }
 }
 

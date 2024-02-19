@@ -2,12 +2,10 @@
 
 mod deno;
 
-use crate::verification::check::{
-    csaf_validator_lib::deno::{Extractable, Injectable, Json},
-    Check, CheckError,
-};
+use crate::verification::check::{Check, CheckError};
 use async_trait::async_trait;
 use csaf::Csaf;
+use deno::{Extractable, Injectable, Json};
 use deno_core::{
     JsRuntime, ModuleCodeString, PollEventLoopOptions, RuntimeOptions, StaticModuleLoader,
 };
@@ -22,7 +20,7 @@ use url::Url;
 const MODULE_ID: &'static str = "internal://bundle.js";
 
 fn create_runtime() -> JsRuntime {
-    let specifier = Url::parse(MODULE_ID).unwrap();
+    let specifier = Url::parse(MODULE_ID).expect("internal module ID must parse");
     let code = include_str!("js/bundle.js");
 
     let runtime = JsRuntime::new(RuntimeOptions {
@@ -134,9 +132,7 @@ struct Error {
 impl Check for CsafValidatorLib {
     async fn check(&self, csaf: &Csaf) -> Vec<CheckError> {
         let test_result: TestResult =
-            validate(&mut *self.runtime.lock().await, csaf, &self.validations)
-                .await
-                .unwrap();
+            validate(&mut *self.runtime.lock().await, csaf, &self.validations).await?;
 
         log::trace!("Result: {test_result:?}");
 
@@ -185,7 +181,7 @@ mod test {
                     publisher: Publisher {
                         category: PublisherCategory::Coordinator,
                         name: "".to_string(),
-                        namespace: Url::parse("http://example.com").unwrap(),
+                        namespace: Url::parse("http://example.com").expect("test URL must parse"),
                         contact_details: None,
                         issuing_authority: None,
                     },
