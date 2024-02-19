@@ -1,11 +1,13 @@
 use super::{Credentials, Expires, TokenProvider};
 use crate::sender::Error;
-use anyhow::Context;
 use core::fmt::{self, Debug, Formatter};
 use std::{ops::Deref, sync::Arc};
 use tokio::sync::RwLock;
-use url::Url;
 
+#[cfg(feature = "clap")]
+use {anyhow::Context, url::Url};
+
+#[cfg(feature = "clap")]
 #[derive(Clone, Debug, PartialEq, Eq, clap::Args)]
 pub struct OpenIdTokenProviderConfigArguments {
     /// The client ID for using Open ID connect
@@ -45,12 +47,14 @@ pub struct OpenIdTokenProviderConfigArguments {
     pub tls_insecure: bool,
 }
 
+#[cfg(feature = "clap")]
 impl OpenIdTokenProviderConfigArguments {
     pub async fn into_provider(self) -> anyhow::Result<Arc<dyn TokenProvider>> {
         OpenIdTokenProviderConfig::new_provider(OpenIdTokenProviderConfig::from_args(self)).await
     }
 }
 
+#[cfg(feature = "clap")]
 #[derive(Clone, Debug, PartialEq, Eq, clap::Args)]
 pub struct OpenIdTokenProviderConfig {
     pub client_id: String,
@@ -60,6 +64,7 @@ pub struct OpenIdTokenProviderConfig {
     pub tls_insecure: bool,
 }
 
+#[cfg(feature = "clap")]
 impl OpenIdTokenProviderConfig {
     pub async fn new_provider(config: Option<Self>) -> anyhow::Result<Arc<dyn TokenProvider>> {
         Ok(match config {
@@ -88,6 +93,7 @@ impl OpenIdTokenProviderConfig {
     }
 }
 
+#[cfg(feature = "clap")]
 impl From<OpenIdTokenProviderConfigArguments> for Option<OpenIdTokenProviderConfig> {
     fn from(value: OpenIdTokenProviderConfigArguments) -> Self {
         OpenIdTokenProviderConfig::from_args(value)
@@ -124,6 +130,7 @@ impl OpenIdTokenProvider {
         }
     }
 
+    #[cfg(feature = "clap")]
     pub async fn with_config(config: OpenIdTokenProviderConfig) -> anyhow::Result<Self> {
         let issuer = Url::parse(&config.issuer_url).context("Parse issuer URL")?;
 
