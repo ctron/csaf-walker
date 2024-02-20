@@ -212,7 +212,7 @@ pub enum Profile {
 }
 
 pub struct CsafValidatorLib {
-    runtime: Arc<Mutex<Option<InnerCheck>>>,
+    runtime: Arc<Mutex<Vec<InnerCheck>>>,
     validations: Vec<ValidationSet>,
     timeout: Option<Duration>,
     ignore: HashSet<String>,
@@ -220,7 +220,7 @@ pub struct CsafValidatorLib {
 
 impl CsafValidatorLib {
     pub fn new(profile: Profile) -> Self {
-        let runtime = Arc::new(Mutex::new(None));
+        let runtime = Arc::new(Mutex::new(vec![]));
 
         let validations = match profile {
             Profile::Schema => vec![ValidationSet::Schema],
@@ -275,13 +275,11 @@ impl CsafValidatorLib {
 #[async_trait(?Send)]
 impl Check for CsafValidatorLib {
     async fn check(&self, csaf: &Csaf) -> anyhow::Result<Vec<CheckError>> {
-        let mut inner_lock = self.runtime.lock().await;
-
-        let inner = match &mut *inner_lock {
-            Some(inner) => inner,
-            None => {
-                let new = InnerCheck::new().await?;
-                inner_lock.get_or_insert(new)
+        let mut inner = {
+            let mut inner_lock = self.runtime.lock().await;
+            match inner_lock.pop() {
+                Some(inner) => inner,
+                None => InnerCheck::new().await?,
             }
         };
 
@@ -292,10 +290,11 @@ impl Check for CsafValidatorLib {
         log::trace!("Result: {test_result:?}");
 
         let Some(test_result) = test_result else {
-            // clear instance, and return timeout
-            inner_lock.take();
             return Ok(vec!["check timed out".into()]);
         };
+
+        // not timed out, we can re-use it
+        self.runtime.lock().await.push(inner);
 
         let mut result = vec![];
 
