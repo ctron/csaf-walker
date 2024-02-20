@@ -16,6 +16,8 @@ function print(msg) {
   Deno.core.print(msg);
 }
 
+const DEBUG = false;
+
 async function runValidation(validations, doc) {
   let tests = [];
 
@@ -33,6 +35,17 @@ async function runValidation(validations, doc) {
       default:
         throw new Error(`Unknown validation set: ${validation}`);
     }
+  }
+
+  if (DEBUG) {
+    tests = tests.map((test) => {
+      return (doc) => {
+        print(`starting: ${test.name}\n`);
+        const result = test(doc);
+        print(`completed: ${test.name}\n`);
+        return result;
+      }
+    })
   }
 
   return validateLib(tests, doc);
