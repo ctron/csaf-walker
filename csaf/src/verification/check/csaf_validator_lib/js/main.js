@@ -18,7 +18,7 @@ function print(msg) {
 
 const DEBUG = false;
 
-async function runValidation(validations, doc) {
+async function runValidation(validations, doc, ignore) {
   let tests = [];
 
   for (const validation of validations) {
@@ -36,6 +36,10 @@ async function runValidation(validations, doc) {
         throw new Error(`Unknown validation set: ${validation}`);
     }
   }
+
+  tests = tests.filter((test) => {
+    return !ignore.has(test.name);
+  });
 
   if (DEBUG) {
     tests = tests.map((test) => {

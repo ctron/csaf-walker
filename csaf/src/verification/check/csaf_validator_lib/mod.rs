@@ -7,11 +7,12 @@ use anyhow::anyhow;
 use async_trait::async_trait;
 use csaf::Csaf;
 use deno_core::{
-    op2, serde_v8, v8, Extension, JsRuntime, ModuleCodeString, Op, PollEventLoopOptions,
-    RuntimeOptions, StaticModuleLoader,
+    _ops::RustToV8NoScope, op2, serde_v8, v8, Extension, JsRuntime, ModuleCodeString, Op,
+    PollEventLoopOptions, RuntimeOptions, StaticModuleLoader,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashSet;
 use std::fmt::Debug;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -86,6 +87,7 @@ impl InnerCheck {
         &mut self,
         doc: S,
         validations: &[ValidationSet],
+        ignore: &HashSet<String>,
         timeout: Option<Duration>,
     ) -> anyhow::Result<Option<D>>
     where
@@ -107,7 +109,18 @@ impl InnerCheck {
                 v8::Global::new(scope, validations)
             };
 
-            [validations, doc]
+            let ignore = {
+                let set = v8::Set::new(scope);
+                for ignore in ignore {
+                    let value = serde_v8::to_v8(scope, ignore)?;
+                    set.add(scope, value);
+                }
+
+                // let ignore = serde_v8::to_v8(scope, ignore)?;
+                v8::Global::new(scope, set.to_v8())
+            };
+
+            [validations, doc, ignore]
         };
 
         let deadline = timeout.map(|duration| {
@@ -222,6 +235,7 @@ pub struct CsafValidatorLib {
     runtime: Arc<Mutex<Option<InnerCheck>>>,
     validations: Vec<ValidationSet>,
     timeout: Option<Duration>,
+    ignore: HashSet<String>,
 }
 
 impl CsafValidatorLib {
@@ -241,6 +255,7 @@ impl CsafValidatorLib {
         Self {
             runtime,
             validations,
+            ignore: Default::default(),
             timeout: None,
         }
     }
@@ -259,6 +274,22 @@ impl CsafValidatorLib {
         self.timeout = None;
         self
     }
+
+    pub fn ignore(mut self, ignore: impl IntoIterator<Item = impl ToString>) -> Self {
+        self.ignore.clear();
+        self.extend_ignore(ignore)
+    }
+
+    pub fn add_ignore(mut self, ignore: impl ToString) -> Self {
+        self.ignore.insert(ignore.to_string());
+        self
+    }
+
+    pub fn extend_ignore(mut self, ignore: impl IntoIterator<Item = impl ToString>) -> Self {
+        self.ignore
+            .extend(ignore.into_iter().map(|s| s.to_string()));
+        self
+    }
 }
 
 #[async_trait(?Send)]
@@ -275,7 +306,7 @@ impl Check for CsafValidatorLib {
         };
 
         let test_result = inner
-            .validate::<_, TestResult>(csaf, &self.validations, self.timeout)
+            .validate::<_, TestResult>(csaf, &self.validations, &self.ignore, self.timeout)
             .await?;
 
         log::trace!("Result: {test_result:?}");
@@ -342,12 +373,17 @@ mod test {
     use log::LevelFilter;
     use std::borrow::Cow;
     use std::io::BufReader;
+    use std::path::Path;
 
-    fn valid_doc() -> Csaf {
+    fn load_file(path: impl AsRef<Path>) -> Csaf {
         serde_json::from_reader(BufReader::new(
-            std::fs::File::open("tests/good.json").expect("must be able to open file"),
+            std::fs::File::open(path).expect("must be able to open file"),
         ))
         .expect("must parse")
+    }
+
+    fn valid_doc() -> Csaf {
+        load_file("tests/good.json")
     }
 
     fn invalid_doc() -> Csaf {
@@ -439,7 +475,7 @@ mod test {
     }
 
     #[tokio::test]
-    #[ignore]
+    #[ignore = "Requires 'rhsa-2018_3140.json' in the data/ folder"]
     async fn test_timeout() {
         let _ = env_logger::builder().try_init();
 
@@ -463,6 +499,7 @@ mod test {
     }
 
     #[tokio::test]
+    #[ignore = "Requires 'rhsa-2018_3140.json' in the data/ folder"]
     async fn test_timeout_next() {
         let _ = env_logger::builder().try_init();
 
@@ -488,5 +525,20 @@ mod test {
         log::info!("Result: {result:#?}");
         let result = result.expect("must succeed");
         assert!(result.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_ignore() {
+        let _ = env_logger::builder()
+            .filter_level(LevelFilter::Info)
+            .try_init();
+
+        let check =
+            CsafValidatorLib::new(Profile::Optional).ignore(&["csaf_2_0", "csaf_2_0_strict"]);
+
+        let result = check.check(&load_file("tests/test_ignore.json")).await;
+        log::info!("Result: {result:#?}");
+        let result = result.expect("must succeed");
+        assert_eq!(result, Vec::<CheckError>::new());
     }
 }

@@ -46568,7 +46568,7 @@ var optional = /*#__PURE__*/Object.freeze({
 // Whenever you make changes to this script, you will need to re-run `npm build`.
 
 
-async function runValidation(validations, doc) {
+async function runValidation(validations, doc, ignore) {
   let tests = [];
 
   for (const validation of validations) {
@@ -46586,6 +46586,10 @@ async function runValidation(validations, doc) {
         throw new Error(`Unknown validation set: ${validation}`);
     }
   }
+
+  tests = tests.filter((test) => {
+    return !ignore.has(test.name);
+  });
 
   return validateLib(tests, doc);
 }

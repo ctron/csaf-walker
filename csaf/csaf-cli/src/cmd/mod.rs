@@ -110,6 +110,11 @@ pub struct VerificationArguments {
     #[cfg(feature = "csaf-validator-lib")]
     #[arg(id = "csaf-validator-timeout", long)]
     pub timeout: Option<humantime::Duration>,
+
+    /// CSAF validator tests to skip
+    #[cfg(feature = "csaf-validator-lib")]
+    #[arg(id = "csaf-validator-skip", long)]
+    pub skip: Vec<String>,
 }
 
 #[cfg(feature = "csaf-validator-lib")]

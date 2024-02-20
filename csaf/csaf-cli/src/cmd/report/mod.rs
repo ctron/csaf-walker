@@ -138,7 +138,7 @@ impl Report {
                         "csaf_validator_lib",
                         csaf_walker::verification::check::csaf_validator_lib::CsafValidatorLib::new(
                             profile,
-                        ).timeout(timeout),
+                        ).timeout(timeout).ignore(self.verification.skip),
                     )
                 } else {
                     visitor
