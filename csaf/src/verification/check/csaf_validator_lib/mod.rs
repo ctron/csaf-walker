@@ -88,6 +88,8 @@ where
     S: Serialize + Send,
     D: for<'de> Deserialize<'de> + Send + Default + Debug,
 {
+    log::debug!("Create arguments");
+
     let args = {
         let scope = &mut inner.runtime.handle_scope();
 
@@ -104,12 +106,18 @@ where
         [validations, doc]
     };
 
+    log::debug!("Call function");
+
     let call = inner.runtime.call_with_args(&inner.runner, &args);
+
+    log::debug!("Wait for completion");
 
     let result = inner
         .runtime
         .with_event_loop_promise(call, PollEventLoopOptions::default())
         .await?;
+
+    log::debug!("Extract result");
 
     let result = {
         let scope = &mut inner.runtime.handle_scope();
@@ -227,6 +235,7 @@ mod test {
     use super::*;
     use csaf::document::*;
     use log::LevelFilter;
+    use std::io::BufReader;
 
     fn invalid_doc() -> Csaf {
         Csaf {
@@ -301,6 +310,32 @@ mod test {
 
         let result = check.check(&invalid_doc()).await;
 
+        log::info!("Result: {result:#?}");
+        let result = result.expect("must succeed");
+        assert!(!result.is_empty());
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn test_big() {
+        let _ = env_logger::builder().try_init();
+
+        log::info!("Loading file");
+
+        let doc = serde_json::from_reader(BufReader::new(
+            std::fs::File::open("../data/rhsa-2018_3140.json").expect("test file should open"),
+        ))
+        .expect("test file should parse");
+
+        log::info!("Creating instance");
+
+        let check = CsafValidatorLib::new(Profile::Optional)
+            .await
+            .expect("create instance");
+
+        log::info!("Running check");
+
+        let result = check.check(&doc).await;
         log::info!("Result: {result:#?}");
         let result = result.expect("must succeed");
         assert!(!result.is_empty());
