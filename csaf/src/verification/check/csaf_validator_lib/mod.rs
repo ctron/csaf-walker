@@ -14,7 +14,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fmt::Debug;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Condvar};
+use std::time::Duration;
 use tokio::sync::Mutex;
 use url::Url;
 
@@ -79,11 +81,29 @@ async fn create_runtime() -> anyhow::Result<InnerCheck> {
     Ok(InnerCheck { runtime, runner })
 }
 
+struct Deadline(Arc<(std::sync::Mutex<()>, Condvar, AtomicBool)>);
+
+impl Deadline {
+    pub fn was_cancelled(&self) -> bool {
+        let (_, _, cancelled) = &*self.0;
+        cancelled.load(Ordering::Acquire)
+    }
+}
+
+impl Drop for Deadline {
+    fn drop(&mut self) {
+        log::debug!("Aborting deadline");
+        let (_lock, notify, _cancelled) = &*self.0;
+        notify.notify_one();
+    }
+}
+
 async fn validate<S, D>(
     inner: &mut InnerCheck,
     doc: S,
     validations: &[ValidationSet],
-) -> anyhow::Result<D>
+    timeout: Option<Duration>,
+) -> anyhow::Result<Option<D>>
 where
     S: Serialize + Send,
     D: for<'de> Deserialize<'de> + Send + Default + Debug,
@@ -106,6 +126,38 @@ where
         [validations, doc]
     };
 
+    let deadline = timeout.map(|duration| {
+        log::debug!("Starting deadline");
+        let isolate = inner.runtime.v8_isolate().thread_safe_handle();
+
+        let lock = Arc::new((
+            std::sync::Mutex::new(()),
+            Condvar::new(),
+            AtomicBool::new(false),
+        ));
+        {
+            let lock = lock.clone();
+            std::thread::spawn(move || {
+                let (lock, notify, cancelled) = &*lock;
+                let lock = lock.lock().expect("unable to acquire deadline lock");
+                log::debug!("Deadline active");
+                let (_lock, result) = notify
+                    .wait_timeout(lock, duration)
+                    .expect("unable to await deadline");
+
+                if result.timed_out() {
+                    log::info!("Terminating execution after: {duration:?}");
+                    cancelled.store(true, Ordering::Release);
+                    isolate.terminate_execution();
+                } else {
+                    log::debug!("Deadline cancelled");
+                }
+            });
+        }
+
+        Deadline(lock)
+    });
+
     log::debug!("Call function");
 
     let call = inner.runtime.call_with_args(&inner.runner, &args);
@@ -115,7 +167,24 @@ where
     let result = inner
         .runtime
         .with_event_loop_promise(call, PollEventLoopOptions::default())
-        .await?;
+        .await;
+
+    // first check if we got cancelled
+
+    let cancelled = deadline
+        .as_ref()
+        .map(|deadline| deadline.was_cancelled())
+        .unwrap_or_default();
+
+    drop(deadline);
+
+    if cancelled {
+        return Ok(None);
+    }
+
+    // now process the result
+
+    let result = result?;
 
     log::debug!("Extract result");
 
@@ -129,7 +198,7 @@ where
 
     log::trace!("Result: {result:#?}");
 
-    Ok(result)
+    Ok(Some(result))
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd, serde::Serialize)]
@@ -150,6 +219,7 @@ pub enum Profile {
 pub struct CsafValidatorLib {
     runtime: Arc<Mutex<InnerCheck>>,
     validations: Vec<ValidationSet>,
+    timeout: Option<Duration>,
 }
 
 impl CsafValidatorLib {
@@ -169,7 +239,23 @@ impl CsafValidatorLib {
         Ok(Self {
             runtime,
             validations,
+            timeout: None,
         })
+    }
+
+    pub fn timeout(mut self, timeout: impl Into<Option<Duration>>) -> Self {
+        self.timeout = timeout.into();
+        self
+    }
+
+    pub fn with_timeout(mut self, timeout: impl Into<Duration>) -> Self {
+        self.timeout = Some(timeout.into());
+        self
+    }
+
+    pub fn without_timeout(mut self) -> Self {
+        self.timeout = None;
+        self
     }
 }
 
@@ -201,10 +287,19 @@ struct Error {
 #[async_trait(?Send)]
 impl Check for CsafValidatorLib {
     async fn check(&self, csaf: &Csaf) -> anyhow::Result<Vec<CheckError>> {
-        let test_result: TestResult =
-            validate(&mut *self.runtime.lock().await, csaf, &self.validations).await?;
+        let test_result = validate::<_, TestResult>(
+            &mut *self.runtime.lock().await,
+            csaf,
+            &self.validations,
+            self.timeout,
+        )
+        .await?;
 
         log::trace!("Result: {test_result:?}");
+
+        let Some(test_result) = test_result else {
+            return Ok(vec!["check timed out".into()]);
+        };
 
         let mut result = vec![];
 
@@ -235,6 +330,7 @@ mod test {
     use super::*;
     use csaf::document::*;
     use log::LevelFilter;
+    use std::borrow::Cow;
     use std::io::BufReader;
 
     fn invalid_doc() -> Csaf {
@@ -316,7 +412,7 @@ mod test {
     }
 
     #[tokio::test]
-    #[ignore]
+    #[skip]
     async fn test_big() {
         let _ = env_logger::builder().try_init();
 
@@ -331,13 +427,14 @@ mod test {
 
         let check = CsafValidatorLib::new(Profile::Optional)
             .await
-            .expect("create instance");
+            .expect("create instance")
+            .with_timeout(Duration::from_secs(10));
 
         log::info!("Running check");
 
         let result = check.check(&doc).await;
         log::info!("Result: {result:#?}");
         let result = result.expect("must succeed");
-        assert!(!result.is_empty());
+        assert_eq!(result, vec![Cow::Borrowed("check timed out")]);
     }
 }

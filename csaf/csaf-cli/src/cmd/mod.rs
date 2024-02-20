@@ -105,6 +105,11 @@ pub struct VerificationArguments {
     #[cfg(feature = "csaf-validator-lib")]
     #[arg(id = "csaf-validator-profile", long, value_enum, default_value_t = ValidatorProfile::Optional)]
     pub profile: ValidatorProfile,
+
+    /// A timeout checking the CSAF validator suite for a single document
+    #[cfg(feature = "csaf-validator-lib")]
+    #[arg(id = "csaf-validator-timeout", long)]
+    pub timeout: Option<humantime::Duration>,
 }
 
 #[cfg(feature = "csaf-validator-lib")]

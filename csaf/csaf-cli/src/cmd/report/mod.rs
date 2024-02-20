@@ -133,11 +133,12 @@ impl Report {
             #[cfg(feature = "csaf-validator-lib")]
             let visitor = {
                 if let Some(profile) = self.verification.profile.into() {
+                    let timeout = self.verification.timeout.map(|timeout| timeout.into());
                     visitor.add(
                         "csaf_validator_lib",
                         csaf_walker::verification::check::csaf_validator_lib::CsafValidatorLib::new(
                             profile,
-                        ).await?,
+                        ).await?.timeout(timeout),
                     )
                 } else {
                     visitor
