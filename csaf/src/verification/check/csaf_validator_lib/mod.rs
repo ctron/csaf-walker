@@ -40,45 +40,150 @@ struct InnerCheck {
     runner: v8::Global<v8::Function>,
 }
 
-async fn create_runtime() -> anyhow::Result<InnerCheck> {
-    let specifier = Url::parse(MODULE_ID).expect("internal module ID must parse");
-    #[cfg(debug_assertions)]
-    let code = include_str!("js/bundle.debug.js");
-    #[cfg(not(debug_assertions))]
-    let code = include_str!("js/bundle.js");
+impl InnerCheck {
+    pub async fn new() -> anyhow::Result<Self> {
+        let specifier = Url::parse(MODULE_ID).expect("internal module ID must parse");
+        #[cfg(debug_assertions)]
+        let code = include_str!("js/bundle.debug.js");
+        #[cfg(not(debug_assertions))]
+        let code = include_str!("js/bundle.js");
 
-    let ext = Extension {
-        ops: std::borrow::Cow::Borrowed(&[op_register_func::DECL]),
-        op_state_fn: Some(Box::new(|state| {
-            state.put(FunctionsState::default());
-        })),
-        ..Default::default()
-    };
+        let ext = Extension {
+            ops: std::borrow::Cow::Borrowed(&[op_register_func::DECL]),
+            op_state_fn: Some(Box::new(|state| {
+                state.put(FunctionsState::default());
+            })),
+            ..Default::default()
+        };
 
-    let mut runtime = JsRuntime::new(RuntimeOptions {
-        module_loader: Some(Rc::new(StaticModuleLoader::with(
-            specifier,
-            ModuleCodeString::Static(code),
-        ))),
-        extensions: vec![ext],
-        ..Default::default()
-    });
+        let mut runtime = JsRuntime::new(RuntimeOptions {
+            module_loader: Some(Rc::new(StaticModuleLoader::with(
+                specifier,
+                ModuleCodeString::Static(code),
+            ))),
+            extensions: vec![ext],
+            ..Default::default()
+        });
 
-    let module = Url::parse(MODULE_ID)?;
-    let mod_id = runtime.load_main_module(&module, None).await?;
-    let result = runtime.mod_evaluate(mod_id);
-    runtime
-        .run_event_loop(PollEventLoopOptions::default())
-        .await?;
+        let module = Url::parse(MODULE_ID)?;
+        let mod_id = runtime.load_main_module(&module, None).await?;
+        let result = runtime.mod_evaluate(mod_id);
+        runtime
+            .run_event_loop(PollEventLoopOptions::default())
+            .await?;
 
-    result.await?;
+        result.await?;
 
-    let state: FunctionsState = runtime.op_state().borrow_mut().take();
-    let runner = state
-        .runner_func
-        .ok_or_else(|| anyhow!("runner function was not initialized"))?;
+        let state: FunctionsState = runtime.op_state().borrow_mut().take();
+        let runner = state
+            .runner_func
+            .ok_or_else(|| anyhow!("runner function was not initialized"))?;
 
-    Ok(InnerCheck { runtime, runner })
+        Ok(InnerCheck { runtime, runner })
+    }
+
+    async fn validate<S, D>(
+        &mut self,
+        doc: S,
+        validations: &[ValidationSet],
+        timeout: Option<Duration>,
+    ) -> anyhow::Result<Option<D>>
+    where
+        S: Serialize + Send,
+        D: for<'de> Deserialize<'de> + Send + Default + Debug,
+    {
+        log::debug!("Create arguments");
+
+        let args = {
+            let scope = &mut self.runtime.handle_scope();
+
+            let doc = {
+                let doc = serde_v8::to_v8(scope, doc)?;
+                v8::Global::new(scope, doc)
+            };
+
+            let validations = {
+                let validations = serde_v8::to_v8(scope, validations)?;
+                v8::Global::new(scope, validations)
+            };
+
+            [validations, doc]
+        };
+
+        let deadline = timeout.map(|duration| {
+            log::debug!("Starting deadline");
+            let isolate = self.runtime.v8_isolate().thread_safe_handle();
+
+            let lock = Arc::new((
+                std::sync::Mutex::new(()),
+                Condvar::new(),
+                AtomicBool::new(false),
+            ));
+            {
+                let lock = lock.clone();
+                std::thread::spawn(move || {
+                    let (lock, notify, cancelled) = &*lock;
+                    let lock = lock.lock().expect("unable to acquire deadline lock");
+                    log::debug!("Deadline active");
+                    let (_lock, result) = notify
+                        .wait_timeout(lock, duration)
+                        .expect("unable to await deadline");
+
+                    if result.timed_out() {
+                        log::info!("Terminating execution after: {duration:?}");
+                        cancelled.store(true, Ordering::Release);
+                        isolate.terminate_execution();
+                    } else {
+                        log::debug!("Deadline cancelled");
+                    }
+                });
+            }
+
+            Deadline(lock)
+        });
+
+        log::debug!("Call function");
+
+        let call = self.runtime.call_with_args(&self.runner, &args);
+
+        log::debug!("Wait for completion");
+
+        let result = self
+            .runtime
+            .with_event_loop_promise(call, PollEventLoopOptions::default())
+            .await;
+
+        // first check if we got cancelled
+
+        let cancelled = deadline
+            .as_ref()
+            .map(|deadline| deadline.was_cancelled())
+            .unwrap_or_default();
+
+        drop(deadline);
+
+        if cancelled {
+            return Ok(None);
+        }
+
+        // now process the result
+
+        let result = result?;
+
+        log::debug!("Extract result");
+
+        let result = {
+            let scope = &mut self.runtime.handle_scope();
+            let result = v8::Local::new(scope, result);
+            let result: D = serde_v8::from_v8(scope, result)?;
+
+            result
+        };
+
+        log::trace!("Result: {result:#?}");
+
+        Ok(Some(result))
+    }
 }
 
 struct Deadline(Arc<(std::sync::Mutex<()>, Condvar, AtomicBool)>);
@@ -98,109 +203,6 @@ impl Drop for Deadline {
     }
 }
 
-async fn validate<S, D>(
-    inner: &mut InnerCheck,
-    doc: S,
-    validations: &[ValidationSet],
-    timeout: Option<Duration>,
-) -> anyhow::Result<Option<D>>
-where
-    S: Serialize + Send,
-    D: for<'de> Deserialize<'de> + Send + Default + Debug,
-{
-    log::debug!("Create arguments");
-
-    let args = {
-        let scope = &mut inner.runtime.handle_scope();
-
-        let doc = {
-            let doc = serde_v8::to_v8(scope, doc)?;
-            v8::Global::new(scope, doc)
-        };
-
-        let validations = {
-            let validations = serde_v8::to_v8(scope, validations)?;
-            v8::Global::new(scope, validations)
-        };
-
-        [validations, doc]
-    };
-
-    let deadline = timeout.map(|duration| {
-        log::debug!("Starting deadline");
-        let isolate = inner.runtime.v8_isolate().thread_safe_handle();
-
-        let lock = Arc::new((
-            std::sync::Mutex::new(()),
-            Condvar::new(),
-            AtomicBool::new(false),
-        ));
-        {
-            let lock = lock.clone();
-            std::thread::spawn(move || {
-                let (lock, notify, cancelled) = &*lock;
-                let lock = lock.lock().expect("unable to acquire deadline lock");
-                log::debug!("Deadline active");
-                let (_lock, result) = notify
-                    .wait_timeout(lock, duration)
-                    .expect("unable to await deadline");
-
-                if result.timed_out() {
-                    log::info!("Terminating execution after: {duration:?}");
-                    cancelled.store(true, Ordering::Release);
-                    isolate.terminate_execution();
-                } else {
-                    log::debug!("Deadline cancelled");
-                }
-            });
-        }
-
-        Deadline(lock)
-    });
-
-    log::debug!("Call function");
-
-    let call = inner.runtime.call_with_args(&inner.runner, &args);
-
-    log::debug!("Wait for completion");
-
-    let result = inner
-        .runtime
-        .with_event_loop_promise(call, PollEventLoopOptions::default())
-        .await;
-
-    // first check if we got cancelled
-
-    let cancelled = deadline
-        .as_ref()
-        .map(|deadline| deadline.was_cancelled())
-        .unwrap_or_default();
-
-    drop(deadline);
-
-    if cancelled {
-        return Ok(None);
-    }
-
-    // now process the result
-
-    let result = result?;
-
-    log::debug!("Extract result");
-
-    let result = {
-        let scope = &mut inner.runtime.handle_scope();
-        let result = v8::Local::new(scope, result);
-        let result: D = serde_v8::from_v8(scope, result)?;
-
-        result
-    };
-
-    log::trace!("Result: {result:#?}");
-
-    Ok(Some(result))
-}
-
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ValidationSet {
@@ -217,14 +219,14 @@ pub enum Profile {
 }
 
 pub struct CsafValidatorLib {
-    runtime: Arc<Mutex<InnerCheck>>,
+    runtime: Arc<Mutex<Option<InnerCheck>>>,
     validations: Vec<ValidationSet>,
     timeout: Option<Duration>,
 }
 
 impl CsafValidatorLib {
-    pub async fn new(profile: Profile) -> anyhow::Result<Self> {
-        let runtime = Arc::new(Mutex::new(create_runtime().await?));
+    pub fn new(profile: Profile) -> Self {
+        let runtime = Arc::new(Mutex::new(None));
 
         let validations = match profile {
             Profile::Schema => vec![ValidationSet::Schema],
@@ -236,11 +238,11 @@ impl CsafValidatorLib {
             ],
         };
 
-        Ok(Self {
+        Self {
             runtime,
             validations,
             timeout: None,
-        })
+        }
     }
 
     pub fn timeout(mut self, timeout: impl Into<Option<Duration>>) -> Self {
@@ -256,6 +258,55 @@ impl CsafValidatorLib {
     pub fn without_timeout(mut self) -> Self {
         self.timeout = None;
         self
+    }
+}
+
+#[async_trait(?Send)]
+impl Check for CsafValidatorLib {
+    async fn check(&self, csaf: &Csaf) -> anyhow::Result<Vec<CheckError>> {
+        let mut inner_lock = self.runtime.lock().await;
+
+        let inner = match &mut *inner_lock {
+            Some(inner) => inner,
+            None => {
+                let new = InnerCheck::new().await?;
+                inner_lock.get_or_insert(new)
+            }
+        };
+
+        let test_result = inner
+            .validate::<_, TestResult>(csaf, &self.validations, self.timeout)
+            .await?;
+
+        log::trace!("Result: {test_result:?}");
+
+        let Some(test_result) = test_result else {
+            // clear instance, and return timeout
+            inner_lock.take();
+            return Ok(vec!["check timed out".into()]);
+        };
+
+        let mut result = vec![];
+
+        for entry in test_result.tests {
+            // we currently only report "failed" tests
+            if entry.is_valid {
+                continue;
+            }
+
+            for error in entry.errors {
+                result.push(
+                    format!(
+                        "{name}: {message}",
+                        name = entry.name,
+                        message = error.message
+                    )
+                    .into(),
+                );
+            }
+        }
+
+        Ok(result)
     }
 }
 
@@ -284,47 +335,6 @@ struct Error {
     pub message: String,
 }
 
-#[async_trait(?Send)]
-impl Check for CsafValidatorLib {
-    async fn check(&self, csaf: &Csaf) -> anyhow::Result<Vec<CheckError>> {
-        let test_result = validate::<_, TestResult>(
-            &mut *self.runtime.lock().await,
-            csaf,
-            &self.validations,
-            self.timeout,
-        )
-        .await?;
-
-        log::trace!("Result: {test_result:?}");
-
-        let Some(test_result) = test_result else {
-            return Ok(vec!["check timed out".into()]);
-        };
-
-        let mut result = vec![];
-
-        for entry in test_result.tests {
-            // we currently only report "failed" tests
-            if entry.is_valid {
-                continue;
-            }
-
-            for error in entry.errors {
-                result.push(
-                    format!(
-                        "{name}: {message}",
-                        name = entry.name,
-                        message = error.message
-                    )
-                    .into(),
-                );
-            }
-        }
-
-        Ok(result)
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -332,6 +342,13 @@ mod test {
     use log::LevelFilter;
     use std::borrow::Cow;
     use std::io::BufReader;
+
+    fn valid_doc() -> Csaf {
+        serde_json::from_reader(BufReader::new(
+            std::fs::File::open("tests/good.json").expect("must be able to open file"),
+        ))
+        .expect("must parse")
+    }
 
     fn invalid_doc() -> Csaf {
         Csaf {
@@ -375,9 +392,7 @@ mod test {
             .filter_level(LevelFilter::Info)
             .try_init();
 
-        let check = CsafValidatorLib::new(Profile::Optional)
-            .await
-            .expect("create instance");
+        let check = CsafValidatorLib::new(Profile::Optional);
 
         let result = check.check(&invalid_doc()).await;
 
@@ -395,9 +410,7 @@ mod test {
             .filter_level(LevelFilter::Info)
             .try_init();
 
-        let check = CsafValidatorLib::new(Profile::Optional)
-            .await
-            .expect("create instance");
+        let check = CsafValidatorLib::new(Profile::Optional);
 
         let result = check.check(&invalid_doc()).await;
         log::info!("Result: {result:#?}");
@@ -412,8 +425,22 @@ mod test {
     }
 
     #[tokio::test]
-    #[skip]
-    async fn test_big() {
+    async fn test_ok() {
+        let _ = env_logger::builder()
+            .filter_level(LevelFilter::Info)
+            .try_init();
+
+        let check = CsafValidatorLib::new(Profile::Optional);
+
+        let result = check.check(&valid_doc()).await;
+        log::info!("Result: {result:#?}");
+        let result = result.expect("must succeed");
+        assert_eq!(result, Vec::<CheckError>::new());
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn test_timeout() {
         let _ = env_logger::builder().try_init();
 
         log::info!("Loading file");
@@ -425,10 +452,7 @@ mod test {
 
         log::info!("Creating instance");
 
-        let check = CsafValidatorLib::new(Profile::Optional)
-            .await
-            .expect("create instance")
-            .with_timeout(Duration::from_secs(10));
+        let check = CsafValidatorLib::new(Profile::Optional).with_timeout(Duration::from_secs(10));
 
         log::info!("Running check");
 
@@ -436,5 +460,33 @@ mod test {
         log::info!("Result: {result:#?}");
         let result = result.expect("must succeed");
         assert_eq!(result, vec![Cow::Borrowed("check timed out")]);
+    }
+
+    #[tokio::test]
+    async fn test_timeout_next() {
+        let _ = env_logger::builder().try_init();
+
+        log::info!("Loading file");
+
+        let doc = serde_json::from_reader(BufReader::new(
+            std::fs::File::open("../data/rhsa-2018_3140.json").expect("test file should open"),
+        ))
+        .expect("test file should parse");
+
+        log::info!("Creating instance");
+
+        let check = CsafValidatorLib::new(Profile::Optional).with_timeout(Duration::from_secs(10));
+
+        log::info!("Running check");
+
+        let result = check.check(&doc).await;
+        log::info!("Result: {result:#?}");
+        let result = result.expect("must succeed");
+        assert_eq!(result, vec![Cow::Borrowed("check timed out")]);
+
+        let result = check.check(&valid_doc()).await;
+        log::info!("Result: {result:#?}");
+        let result = result.expect("must succeed");
+        assert!(result.is_empty());
     }
 }
