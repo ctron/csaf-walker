@@ -15,7 +15,6 @@ use serde_json::Value;
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar};
 use std::time::Duration;
 use tokio::sync::Mutex;
@@ -127,15 +126,11 @@ impl InnerCheck {
             log::debug!("Starting deadline");
             let isolate = self.runtime.v8_isolate().thread_safe_handle();
 
-            let lock = Arc::new((
-                std::sync::Mutex::new(()),
-                Condvar::new(),
-                AtomicBool::new(false),
-            ));
+            let lock = Arc::new((std::sync::Mutex::new(()), Condvar::new()));
             {
                 let lock = lock.clone();
                 std::thread::spawn(move || {
-                    let (lock, notify, cancelled) = &*lock;
+                    let (lock, notify) = &*lock;
                     let lock = lock.lock().expect("unable to acquire deadline lock");
                     log::debug!("Deadline active");
                     let (_lock, result) = notify
@@ -144,7 +139,6 @@ impl InnerCheck {
 
                     if result.timed_out() {
                         log::info!("Terminating execution after: {duration:?}");
-                        cancelled.store(true, Ordering::Release);
                         isolate.terminate_execution();
                     } else {
                         log::debug!("Deadline cancelled");
@@ -166,22 +160,15 @@ impl InnerCheck {
             .with_event_loop_promise(call, PollEventLoopOptions::default())
             .await;
 
-        // first check if we got cancelled
-
-        let cancelled = deadline
-            .as_ref()
-            .map(|deadline| deadline.was_cancelled())
-            .unwrap_or_default();
-
         drop(deadline);
-
-        if cancelled {
-            return Ok(None);
-        }
 
         // now process the result
 
-        let result = result?;
+        let result = match result {
+            Err(err) if err.to_string().ends_with(": execution terminated") => return Ok(None),
+            Err(err) => return Err(err),
+            Ok(result) => result,
+        };
 
         log::debug!("Extract result");
 
@@ -199,19 +186,12 @@ impl InnerCheck {
     }
 }
 
-struct Deadline(Arc<(std::sync::Mutex<()>, Condvar, AtomicBool)>);
-
-impl Deadline {
-    pub fn was_cancelled(&self) -> bool {
-        let (_, _, cancelled) = &*self.0;
-        cancelled.load(Ordering::Acquire)
-    }
-}
+struct Deadline(Arc<(std::sync::Mutex<()>, Condvar)>);
 
 impl Drop for Deadline {
     fn drop(&mut self) {
         log::debug!("Aborting deadline");
-        let (_lock, notify, _cancelled) = &*self.0;
+        let (_lock, notify) = &*self.0;
         notify.notify_one();
     }
 }
