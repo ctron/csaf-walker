@@ -11,9 +11,9 @@ use walker_common::progress::Progress;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error<VE, SE>
-where
-    VE: std::fmt::Display + Debug,
-    SE: std::fmt::Display + Debug,
+    where
+        VE: std::fmt::Display + Debug,
+        SE: std::fmt::Display + Debug,
 {
     #[error("Source error: {0}")]
     Source(SE),
@@ -50,16 +50,16 @@ impl<S: Source> Walker<S> {
     /// Each distribution from the metadata file will be passed to this function, if it returns `false`, the distribution
     /// will not even be fetched.
     pub fn with_distribution_filter<F>(mut self, distribution_filter: F) -> Self
-    where
-        F: Fn(&Distribution) -> bool + 'static,
+        where
+            F: Fn(&Distribution) -> bool + 'static,
     {
         self.distribution_filter = Some(Box::new(distribution_filter));
         self
     }
 
     pub async fn walk<V>(self, visitor: V) -> Result<(), Error<V::Error, S::Error>>
-    where
-        V: DiscoveredVisitor,
+        where
+            V: DiscoveredVisitor,
     {
         let metadata = self.source.load_metadata().await.map_err(Error::Source)?;
 
@@ -113,8 +113,8 @@ impl<S: Source> Walker<S> {
         limit: usize,
         visitor: V,
     ) -> Result<(), Error<V::Error, S::Error>>
-    where
-        V: DiscoveredVisitor,
+        where
+            V: DiscoveredVisitor,
     {
         let metadata = self.source.load_metadata().await.map_err(Error::Source)?;
         let context = visitor
@@ -137,11 +137,20 @@ impl<S: Source> Walker<S> {
             metadata.distributions
         };
 
-        collect_advisories::<V, S>(&self.source, distributions)
+        let stream = collect_advisories::<V, S>(&self.source, distributions);
+
+        let (_start, size) = stream.size_hint();
+        let progress = size.map(|size| self.progress.start(size));
+
+        stream
             .try_for_each_concurrent(limit, |advisory| {
                 log::debug!("Discovered advisory: {}", advisory.url);
                 let context = context.clone();
                 let visitor = visitor.clone();
+
+                if let Some(progress) = &progress {
+                    progress.tick();
+                }
 
                 async move {
                     visitor
@@ -160,7 +169,7 @@ impl<S: Source> Walker<S> {
 fn collect_sources<'s, V: DiscoveredVisitor, S: Source>(
     source: &'s S,
     distributions: Vec<Distribution>,
-) -> impl TryStream<Ok = impl Stream<Item = DiscoveredAdvisory>, Error = Error<V::Error, S::Error>> + 's
+) -> impl TryStream<Ok=impl Stream<Item=DiscoveredAdvisory>, Error=Error<V::Error, S::Error>> + 's
 {
     stream::iter(distributions).then(move |distribution| async move {
         log::debug!("Walking: {}", distribution.directory_url);
@@ -176,7 +185,7 @@ fn collect_sources<'s, V: DiscoveredVisitor, S: Source>(
 fn collect_advisories<'s, V: DiscoveredVisitor + 's, S: Source>(
     source: &'s S,
     distributions: Vec<Distribution>,
-) -> impl TryStream<Ok = DiscoveredAdvisory, Error = Error<V::Error, S::Error>> + 's {
+) -> impl TryStream<Ok=DiscoveredAdvisory, Error=Error<V::Error, S::Error>> + 's {
     collect_sources::<V, S>(source, distributions)
         .map_ok(|s| s.map(Ok))
         .try_flatten()
