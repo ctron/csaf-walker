@@ -40,7 +40,7 @@ impl ProgressImpl for MultiIndicatif {
         let bar = indicatif::ProgressBar::new(tasks.try_into().unwrap_or(u64::MAX));
         bar.set_style(
             ProgressStyle::default_bar()
-                .template("{msg} {wide_bar} {pos}/{len} ({eta})")
+                .template("{msg:<20} {wide_bar} {pos}/{len} ({eta})")
                 .expect("template must parse"),
         );
         let bar = self.0.add(bar);
