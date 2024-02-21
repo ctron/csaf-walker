@@ -15,6 +15,7 @@ use serde_json::Value;
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar};
 use std::time::Duration;
 use tokio::sync::Mutex;
@@ -122,11 +123,14 @@ impl InnerCheck {
             [validations, doc, ignore]
         };
 
+        let cancelled = Arc::new(AtomicBool::new(false));
+
         let deadline = timeout.map(|duration| {
             log::debug!("Starting deadline");
             let isolate = self.runtime.v8_isolate().thread_safe_handle();
 
             let lock = Arc::new((std::sync::Mutex::new(()), Condvar::new()));
+            let cancelled = cancelled.clone();
             {
                 let lock = lock.clone();
                 std::thread::spawn(move || {
@@ -139,6 +143,7 @@ impl InnerCheck {
 
                     if result.timed_out() {
                         log::info!("Terminating execution after: {duration:?}");
+                        cancelled.store(true, Ordering::Release);
                         isolate.terminate_execution();
                     } else {
                         log::debug!("Deadline cancelled");
@@ -153,12 +158,22 @@ impl InnerCheck {
 
         let call = self.runtime.call_with_args(&self.runner, &args);
 
+        if cancelled.load(Ordering::Acquire) {
+            // already cancelled
+            return Ok(None);
+        }
+
         log::debug!("Wait for completion");
 
         let result = self
             .runtime
             .with_event_loop_promise(call, PollEventLoopOptions::default())
             .await;
+
+        if cancelled.load(Ordering::Acquire) {
+            // already cancelled
+            return Ok(None);
+        }
 
         drop(deadline);
 
@@ -272,7 +287,7 @@ impl CsafValidatorLib {
     }
 }
 
-#[async_trait(?Send)]
+#[async_trait(? Send)]
 impl Check for CsafValidatorLib {
     async fn check(&self, csaf: &Csaf) -> anyhow::Result<Vec<CheckError>> {
         let mut inner = {
@@ -293,7 +308,7 @@ impl Check for CsafValidatorLib {
             return Ok(vec!["check timed out".into()]);
         };
 
-        // not timed out, we can re-use it
+        // not timed out, not failed, we can re-use it
         self.runtime.lock().await.push(inner);
 
         let mut result = vec![];
@@ -478,7 +493,7 @@ mod test {
     }
 
     #[tokio::test]
-    #[ignore = "Requires 'rhsa-2018_3140.json' in the data/ folder"]
+    // #[ignore = "Requires 'rhsa-2018_3140.json' in the data/ folder"]
     async fn test_timeout_next() {
         let _ = env_logger::builder().try_init();
 
