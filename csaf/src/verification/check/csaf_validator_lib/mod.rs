@@ -322,8 +322,9 @@ impl Check for CsafValidatorLib {
             for error in entry.errors {
                 result.push(
                     format!(
-                        "{name}: {message}",
+                        "{name} ({instance_path}): {message}",
                         name = entry.name,
+                        instance_path = error.instance_path,
                         message = error.message
                     )
                     .into(),
@@ -349,15 +350,16 @@ struct Entry {
     pub name: String,
     pub is_valid: bool,
 
-    pub errors: Vec<Error>,
-    pub warnings: Vec<Value>,
-    pub infos: Vec<Value>,
+    pub errors: Vec<TestResultEntry>,
+    pub warnings: Vec<TestResultEntry>,
+    pub infos: Vec<TestResultEntry>,
 }
 
 #[derive(Clone, Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct Error {
+struct TestResultEntry {
     pub message: String,
+    pub instance_path: String,
 }
 
 #[cfg(test)]
