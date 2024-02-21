@@ -11,7 +11,6 @@ use deno_core::{
     PollEventLoopOptions, RuntimeOptions, StaticModuleLoader,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::rc::Rc;
@@ -21,7 +20,7 @@ use std::time::Duration;
 use tokio::sync::Mutex;
 use url::Url;
 
-const MODULE_ID: &'static str = "internal://bundle.js";
+const MODULE_ID: &str = "internal://bundle.js";
 
 #[derive(Default)]
 pub struct FunctionsState {
@@ -530,7 +529,7 @@ mod test {
             .try_init();
 
         let check =
-            CsafValidatorLib::new(Profile::Optional).ignore(&["csaf_2_0", "csaf_2_0_strict"]);
+            CsafValidatorLib::new(Profile::Optional).ignore(["csaf_2_0", "csaf_2_0_strict"]);
 
         let result = check.check(&load_file("tests/test_ignore.json")).await;
         log::info!("Result: {result:#?}");
