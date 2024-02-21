@@ -106,8 +106,6 @@ impl Report {
                                 },
                             };
 
-                            // let name = err.url().to_string();
-
                             errors.lock().await.insert(name, err.to_string());
                             return Ok::<_, anyhow::Error>(());
                         }
