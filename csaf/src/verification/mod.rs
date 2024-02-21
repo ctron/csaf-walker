@@ -12,6 +12,7 @@ use crate::{
 };
 use async_trait::async_trait;
 use csaf::Csaf;
+use serde::de::Error as _;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Display};
 use std::future::Future;
@@ -178,9 +179,19 @@ where
     }
 
     async fn verify(&self, advisory: A) -> Result<VerifiedAdvisory<A, I>, VerificationError<E, A>> {
-        let csaf: Csaf = match serde_json::from_slice(&advisory.as_retrieved().data) {
-            Ok(csaf) => csaf,
-            Err(error) => return Err(VerificationError::Parsing { error, advisory }),
+        let data = advisory.as_retrieved().data.clone();
+
+        let csaf = match tokio::task::spawn_blocking(move || serde_json::from_slice::<Csaf>(&data))
+            .await
+        {
+            Ok(Ok(csaf)) => csaf,
+            Ok(Err(error)) => return Err(VerificationError::Parsing { error, advisory }),
+            Err(_) => {
+                return Err(VerificationError::Parsing {
+                    error: serde_json::error::Error::custom("failed to wait for deserialization"),
+                    advisory,
+                })
+            }
         };
 
         let mut failures = HashMap::new();
