@@ -22,8 +22,7 @@ export default {
   plugins: [
     nodeResolve({
       moduleDirectories: [
-        "node_modules",
-        "build"
+        "node_modules"
       ]
     }),
     commonjs(),
