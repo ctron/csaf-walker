@@ -249,7 +249,7 @@ jobs:
 
       - name: Generate changelog
         run: |
-          convco changelog -s --max-majors=1 --max-minors=1 --max-patches=1 > /tmp/changelog.md
+          convco changelog -s --max-majors=1 --max-minors=1 --max-patches=1 -n > /tmp/changelog.md
 
       - uses: actions/download-artifact@v4
         with:
