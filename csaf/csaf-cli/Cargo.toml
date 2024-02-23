@@ -16,9 +16,9 @@ rust-version = "1.74"
 anyhow = "1"
 async-trait = "0.1"
 clap = { version = "4.5.0", features = ["derive", "color"] }
-comrak = { version = "0.20.0" }
+comrak = { version = "0.21.0" }
 csaf = { version = "0.5.0", default-features = false }
-env_logger = "0.10.0"
+env_logger = "0.11.2"
 flexible-time = "0.1.1"
 humantime = "2"
 indicatif = { version = "0.17.3", features = [] }
@@ -32,7 +32,7 @@ time = "0.3.20"
 tokio = { version = "1", features = ["full"] }
 
 walker-common = { version = "0.6.0-alpha.7", path = "../../common" }
-walker-extras = { version = "0.6.0-alpha.7", path = "../../extras"}
+walker-extras = { version = "0.6.0-alpha.7", path = "../../extras" }
 csaf-walker = { version = "0.6.0-alpha.7", path = "..", default-features = false, features = ["csaf"] }
 
 # just there for the feature

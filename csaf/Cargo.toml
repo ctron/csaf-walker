@@ -43,8 +43,7 @@ csaf = { version = "0.5", default-features = false, optional = true }
 html-escape = "0.2.13"
 
 # for csaf-validator-lib
-deno_core = { version = "0.263.0", optional = true }
-deno_console = { version = "0.138.0", optional = true }
+deno_core = { version = "0.264.0", optional = true }
 
 [dev-dependencies]
 env_logger = "0.11.2"
