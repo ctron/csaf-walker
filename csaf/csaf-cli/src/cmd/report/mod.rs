@@ -3,7 +3,7 @@ use crate::{
     common::walk_visitor,
 };
 use csaf_walker::{
-    discover::{AsDiscovered, DiscoveredAdvisory},
+    discover::AsDiscovered,
     report::{render_to_html, DocumentKey, Duplicates, ReportRenderOption, ReportResult},
     retrieve::RetrievingVisitor,
     validation::{ValidatedAdvisory, ValidationError, ValidationVisitor},
@@ -90,8 +90,16 @@ impl Report {
                     let adv = match advisory {
                         Ok(adv) => adv,
                         Err(err) => {
-                            let mut name: DocumentKey = DocumentKey::default();
-                            Self::get_document_key_name(err.as_discovered(), &mut name);
+                            let name = match err.as_discovered().relative_base_and_url() {
+                                Some((base, relative)) => DocumentKey {
+                                    distribution_url: base.clone(),
+                                    url: relative,
+                                },
+                                None => DocumentKey {
+                                    distribution_url: err.url().clone(),
+                                    url: Default::default(),
+                                },
+                            };
 
                             errors.lock().unwrap().insert(name, err.to_string());
                             return Ok::<_, anyhow::Error>(());
@@ -99,8 +107,9 @@ impl Report {
                     };
 
                     if !adv.failures.is_empty() {
-                        let mut name: DocumentKey = DocumentKey::default();
-                        Self::get_document_key_name(adv.as_discovered(), &mut name);
+                        // let mut name: DocumentKey = DocumentKey::default();
+                        // Self::get_document_key_name(adv.as_discovered(), &mut name);
+                        let name = DocumentKey::for_document(&adv);
                         warnings
                             .lock()
                             .unwrap()
@@ -147,21 +156,21 @@ impl Report {
         Ok(())
     }
 
-    fn get_document_key_name(da: &DiscoveredAdvisory, document_key: &mut DocumentKey) {
-        let segments = da
-            .url()
-            .path_segments()
-            .map(|c| c.collect::<Vec<_>>())
-            .unwrap();
-        let file_name = segments.last().unwrap_or(&"");
-
-        let name = DocumentKey {
-            distribution_url: da.url().clone(),
-            url: file_name.to_string(),
-        };
-        *document_key = name;
-        // document_key.clone_from(&name);
-    }
+    // fn get_document_key_name(da: &DiscoveredAdvisory, document_key: &mut DocumentKey) {
+    //     let segments = da
+    //         .url()
+    //         .path_segments()
+    //         .map(|c| c.collect::<Vec<_>>())
+    //         .unwrap();
+    //     let file_name = segments.last().unwrap_or(&"");
+    //
+    //     let name = DocumentKey {
+    //         distribution_url: da.url().clone(),
+    //         url: file_name.to_string(),
+    //     };
+    //     *document_key = name;
+    //     // document_key.clone_from(&name);
+    // }
 
     fn render(render: RenderOptions, report: ReportResult) -> anyhow::Result<()> {
         let mut out = std::fs::File::create(&render.output)?;

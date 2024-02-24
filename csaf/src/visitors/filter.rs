@@ -110,16 +110,13 @@ impl<V: DiscoveredVisitor> DiscoveredVisitor for FilteringVisitor<V> {
     ) -> Result<(), Self::Error> {
         // ignore distributions
 
-        if let Some(directory_url) = &advisory.distribution.directory_url {
-            if self
-                .config
-                .ignored_distributions
-                .contains(directory_url.as_str())
-            {
-                return Ok(());
-            }
+        if self
+            .config
+            .ignored_distributions
+            .contains(advisory.context.url.as_str())
+        {
+            return Ok(());
         };
-
         // eval name
 
         let name = advisory

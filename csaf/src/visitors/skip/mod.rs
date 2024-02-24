@@ -48,26 +48,11 @@ impl<V: DiscoveredVisitor> DiscoveredVisitor for SkipExistingVisitor<V> {
         context: &Self::Context,
         advisory: DiscoveredAdvisory,
     ) -> Result<(), Self::Error> {
-        let name = if let Some(_directory_url) = &advisory.distribution.directory_url {
-            match advisory
-                .distribution
-                .directory_url
-                .clone()
-                .unwrap()
-                .make_relative(&advisory.url)
-            {
-                Some(name) => name,
-                None => return Err(Error::Name),
-            }
-        } else {
-            let segments = advisory
-                .url()
-                .path_segments()
-                .map(|c| c.collect::<Vec<_>>())
-                .unwrap();
-            segments.last().unwrap_or(&"").to_string()
+        let name = match advisory.context.url.clone().make_relative(&advisory.url) {
+            Some(name) => name,
+            None => return Err(Error::Name),
         };
-        let path = distribution_base(&self.output, &advisory.distribution).join(&name);
+        let path = distribution_base(&self.output, advisory.context.url.clone()).join(&name);
 
         if fs::try_exists(&path).await? {
             // if we have a "since", we use it as the file modification timestamp

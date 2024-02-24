@@ -1,7 +1,7 @@
-use crate::discover::DiscoveredAdvisory;
-use crate::model::metadata::{Distribution, ProviderMetadata};
+use crate::discover::{DiscoverContext, DiscoverContextType, DiscoveredAdvisory};
+use crate::model::metadata::ProviderMetadata;
 use crate::retrieve::{RetrievalMetadata, RetrievedAdvisory};
-use crate::rolie::RolieRetrievable;
+use crate::rolie::{RolieRetrievable, SourceFile, SourceFiles};
 use crate::source::Source;
 use async_trait::async_trait;
 use bytes::{BufMut, Bytes, BytesMut};
@@ -90,87 +90,82 @@ impl Source for HttpSource {
 
     async fn load_index(
         &self,
-        distribution: Distribution,
+        context: DiscoverContext,
     ) -> Result<Vec<DiscoveredAdvisory>, Self::Error> {
-        let distribution = Arc::new(distribution);
+        let discover_context = Arc::new(context);
 
-        if let Some(base) = &distribution.clone().directory_url {
-            let has_slash = base.to_string().ends_with('/');
+        match &discover_context.discover_context_type {
+            DiscoverContextType::DirectoryUrl => {
+                let base = &discover_context.url;
+                let has_slash = base.to_string().ends_with('/');
 
-            let join_url = |mut s: &str| {
-                if has_slash && s.ends_with('/') {
-                    s = &s[1..];
-                }
-                Url::parse(&format!("{}{s}", base))
-            };
+                let join_url = |mut s: &str| {
+                    if has_slash && s.ends_with('/') {
+                        s = &s[1..];
+                    }
+                    Url::parse(&format!("{}{s}", base))
+                };
 
-            let changes =
-                ChangeSource::retrieve(&self.fetcher, &distribution.directory_url.clone().unwrap())
-                    .await?;
+                let changes =
+                    ChangeSource::retrieve(&self.fetcher, &discover_context.url.clone()).await?;
 
-            return Ok(changes
-                .entries
-                .into_iter()
-                .map(|ChangeEntry { file, timestamp }| {
-                    let modified = timestamp.into();
-                    let url = join_url(&file)?;
+                return Ok(changes
+                    .entries
+                    .into_iter()
+                    .map(|ChangeEntry { file, timestamp }| {
+                        let modified = timestamp.into();
+                        let url = join_url(&file)?;
 
-                    Ok::<_, ParseError>(DiscoveredAdvisory {
-                        distribution: distribution.clone(),
-                        url,
-                        modified,
-                    })
-                })
-                // filter out advisories based in since, but only if we can be sure
-                .filter(|advisory| match (advisory, &self.options.since) {
-                    (
-                        Ok(DiscoveredAdvisory {
-                            url: _,
-                            distribution: _,
+                        Ok::<_, ParseError>(DiscoveredAdvisory {
+                            context: discover_context.clone(),
+                            url,
                             modified,
-                        }),
-                        Some(since),
-                    ) => modified >= since,
-                    _ => true,
-                })
-                .collect::<Result<_, _>>()?);
-        }
-        if let Some(rolie) = &distribution.rolie {
-            let mut all_changes = ChangeSource::default();
-            for f in &rolie.feeds {
-                let mut changes =
-                    ChangeSource::retrieve_rolie(&self.fetcher, f.clone().url).await?;
-                all_changes.append(&mut changes);
+                        })
+                    })
+                    // filter out advisories based in since, but only if we can be sure
+                    .filter(|advisory| match (advisory, &self.options.since) {
+                        (
+                            Ok(DiscoveredAdvisory {
+                                url: _, modified, ..
+                            }),
+                            Some(since),
+                        ) => modified >= since,
+                        _ => true,
+                    })
+                    .collect::<Result<_, _>>()?);
             }
 
-            let join_url = |s: &str| Url::parse(s);
-            return Ok(all_changes
-                .entries
-                .into_iter()
-                .map(|ChangeEntry { file, timestamp }| {
-                    let modified = timestamp.into();
-                    let url = join_url(&file)?;
+            DiscoverContextType::FeedUrl => {
+                let feed = &discover_context.url;
+                let source_flies = SourceFiles::retrieve_rolie(&self.fetcher, feed.clone()).await?;
+                let join_url = |s: &str| Url::parse(s);
+                return Ok(source_flies
+                    .files
+                    .into_iter()
+                    .map(|SourceFile { file, timestamp }| {
+                        let modified = timestamp.into();
+                        let url = join_url(&file)?;
 
-                    Ok::<_, ParseError>(DiscoveredAdvisory {
-                        distribution: distribution.clone(),
-                        url,
-                        modified,
-                    })
-                })
-                .filter(|advisory| match (advisory, &self.options.since) {
-                    (
-                        Ok(DiscoveredAdvisory {
-                            url: _,
-                            distribution: _,
+                        Ok::<_, ParseError>(DiscoveredAdvisory {
+                            context: discover_context.clone(),
+                            url,
                             modified,
-                        }),
-                        Some(since),
-                    ) => modified >= since,
-                    _ => true,
-                })
-                .collect::<Result<_, _>>()?);
+                        })
+                    })
+                    .filter(|advisory| match (advisory, &self.options.since) {
+                        (
+                            Ok(DiscoveredAdvisory {
+                                url: _,
+                                context: _,
+                                modified,
+                            }),
+                            Some(since),
+                        ) => modified >= since,
+                        _ => true,
+                    })
+                    .collect::<Result<_, _>>()?);
+            }
         }
-        Ok(vec![])
     }
     async fn load_advisory(
         &self,

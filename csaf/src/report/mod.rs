@@ -32,26 +32,11 @@ pub struct DocumentKey {
     pub url: String,
 }
 
-impl Default for DocumentKey {
-    fn default() -> Self {
-        Self {
-            distribution_url: Url::parse("https://example.net").unwrap(),
-            url: "".to_string(),
-        }
-    }
-}
 impl DocumentKey {
     pub fn for_document(advisory: &DiscoveredAdvisory) -> Self {
-        if let Some(_directory_url) = &advisory.distribution.directory_url {
-            Self {
-                distribution_url: advisory.distribution.directory_url.clone().unwrap(),
-                url: advisory.possibly_relative_url(),
-            }
-        } else {
-            Self {
-                distribution_url: Url::parse("https://example.net").unwrap(),
-                url: advisory.possibly_relative_url(),
-            }
+        Self {
+            distribution_url: advisory.url.clone(),
+            url: advisory.possibly_relative_url(),
         }
     }
 }

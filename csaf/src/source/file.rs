@@ -1,7 +1,8 @@
+use crate::discover::DiscoverContext;
 use crate::{
     discover::DiscoveredAdvisory,
     model::{
-        metadata::{self, Distribution, ProviderMetadata},
+        metadata::{self, ProviderMetadata},
         store::distribution_base,
     },
     retrieve::{RetrievalMetadata, RetrievedAdvisory},
@@ -104,21 +105,15 @@ impl FileSource {
     /// walk a distribution directory
     fn walk_distribution(
         &self,
-        distribution: &Distribution,
+        context: Arc<DiscoverContext>,
     ) -> Result<mpsc::Receiver<walkdir::Result<walkdir::DirEntry>>, anyhow::Error> {
         let (tx, rx) = mpsc::channel(8);
 
-        let path = distribution
-            .directory_url
+        let path = context
+            .url
             .clone()
-            .unwrap()
             .to_file_path()
-            .map_err(|()| {
-                anyhow!(
-                    "Failed to convert into path: {:?}",
-                    distribution.directory_url.clone()
-                )
-            })?;
+            .map_err(|()| anyhow!("Failed to convert into path: {:?}", &context.url.clone()))?;
 
         tokio::task::spawn_blocking(move || {
             for entry in WalkDir::new(path).into_iter().filter_entry(|entry| {
@@ -154,31 +149,46 @@ impl Source for FileSource {
         metadata.public_openpgp_keys = self.scan_keys().await?;
 
         for dist in &mut metadata.distributions {
-            let distribution_base = distribution_base(&self.base, dist);
-            let directory_url = Url::from_directory_path(&distribution_base).map_err(|()| {
-                anyhow!(
-                    "Failed to convert directory into URL: {}",
-                    self.base.display(),
-                )
-            })?;
+            if let Some(directory_url) = &dist.directory_url {
+                let distribution_base = distribution_base(&self.base, directory_url.clone());
+                let directory_url = Url::from_directory_path(&distribution_base).map_err(|()| {
+                    anyhow!(
+                        "Failed to convert directory into URL: {}",
+                        self.base.display(),
+                    )
+                })?;
 
-            dist.directory_url = Some(directory_url);
+                dist.directory_url = Some(directory_url);
+            }
+
+            if dist.rolie.is_some() {
+                let rolie = &dist.rolie;
+                for feed in &mut rolie.clone().unwrap().feeds {
+                    let distribution_base = distribution_base(&self.base, feed.url.clone());
+                    let feed_url = Url::from_directory_path(&distribution_base).map_err(|()| {
+                        anyhow!(
+                            "Failed to convert directory into URL: {}",
+                            self.base.display(),
+                        )
+                    })?;
+
+                    feed.url = feed_url;
+                }
+            }
         }
-
-        // return result
 
         Ok(metadata)
     }
 
     async fn load_index(
         &self,
-        distribution: Distribution,
+        context: DiscoverContext,
     ) -> Result<Vec<DiscoveredAdvisory>, Self::Error> {
         log::info!("Loading index - since: {:?}", self.options.since);
 
-        let distribution = Arc::new(distribution);
+        let context = Arc::new(context);
 
-        let mut entries = self.walk_distribution(&distribution)?;
+        let mut entries = self.walk_distribution(context.clone())?;
         let mut result = vec![];
 
         while let Some(entry) = entries.recv().await {
@@ -212,7 +222,7 @@ impl Source for FileSource {
             result.push(DiscoveredAdvisory {
                 url,
                 modified,
-                distribution: distribution.clone(),
+                context: context.clone(),
             })
         }
 

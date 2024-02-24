@@ -13,7 +13,6 @@ use std::rc::Rc;
 use std::time::SystemTime;
 use tokio::fs;
 use walker_common::utils::openpgp::PublicKey;
-use walker_common::utils::url::Urlify;
 
 #[cfg(target_os = "macos")]
 pub const ATTR_ETAG: &str = "etag";
@@ -138,18 +137,34 @@ impl ValidatedVisitor for StoreVisitor {
 impl StoreVisitor {
     async fn prepare_distributions(&self, metadata: &ProviderMetadata) -> Result<(), StoreError> {
         for dist in &metadata.distributions {
-            let base = distribution_base(&self.base, dist);
-            log::debug!("Creating base distribution directory: {}", base.display());
+            if let Some(directory_url) = &dist.directory_url {
+                let base = distribution_base(&self.base, directory_url.clone());
+                log::debug!("Creating base distribution directory: {}", base.display());
 
-            fs::create_dir_all(&base)
-                .await
-                .with_context(|| {
-                    format!(
-                        "Unable to create distribution directory: {}",
-                        base.display()
-                    )
-                })
-                .map_err(StoreError::Io)?;
+                fs::create_dir_all(&base)
+                    .await
+                    .with_context(|| {
+                        format!(
+                            "Unable to create distribution directory: {}",
+                            base.display()
+                        )
+                    })
+                    .map_err(StoreError::Io)?;
+            }
+            if let Some(rolie) = &dist.rolie {
+                for feed in &rolie.feeds {
+                    let base = distribution_base(&self.base, feed.url.clone());
+                    fs::create_dir_all(&base)
+                        .await
+                        .with_context(|| {
+                            format!(
+                                "Unable to create distribution directory: {}",
+                                base.display()
+                            )
+                        })
+                        .map_err(StoreError::Io)?;
+                }
+            }
         }
 
         Ok(())
@@ -231,28 +246,14 @@ impl StoreVisitor {
             advisory.metadata.last_modification
         );
 
-        let name = if let Some(_directory_url) = &advisory.distribution.directory_url {
-            match advisory
-                .distribution
-                .directory_url
-                .clone()
-                .unwrap()
-                .make_relative(&advisory.url)
-            {
-                Some(name) => name,
-                None => return Err(StoreError::Filename(advisory.url.to_string())),
-            }
-        } else {
-            let segments = advisory
-                .url()
-                .path_segments()
-                .map(|c| c.collect::<Vec<_>>())
-                .unwrap();
-            segments.last().unwrap_or(&"").to_string()
+        let relative_url_result = advisory.context.url.make_relative(&advisory.url);
+        let name = match &relative_url_result {
+            Some(name) => name,
+            None => return Err(StoreError::Filename(advisory.url.to_string())),
         };
 
         // create a distribution base
-        let distribution_base = distribution_base(&self.base, &advisory.distribution);
+        let distribution_base = distribution_base(&self.base, advisory.context.url.clone());
 
         // put the file there
         let file = distribution_base.join(name);
