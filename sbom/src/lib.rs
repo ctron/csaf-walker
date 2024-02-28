@@ -2,6 +2,7 @@
 
 pub mod discover;
 pub mod model;
+pub mod report;
 pub mod retrieve;
 pub mod source;
 pub mod validation;

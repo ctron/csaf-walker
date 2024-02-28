@@ -39,6 +39,7 @@ sequoia-openpgp = { version = "1", default-features = false }
 
 cyclonedx-bom = { version = "0.4.3", optional = true }
 spdx-rs = { version = "0.5.4", optional = true }
+html-escape = "0.2.13"
 
 [features]
 default = ["crypto-nettle", "cyclonedx-bom", "spdx-rs"]
