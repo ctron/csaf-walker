@@ -1,14 +1,21 @@
 use super::ReportResult;
-use crate::cmd::report::RenderOptions;
 use reqwest::Url;
 use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
+use std::path::PathBuf;
 use walker_common::report;
+
+#[derive(Clone, Debug)]
+pub struct ReportRenderOption {
+    pub output: PathBuf,
+
+    pub base_url: Option<Url>,
+}
 
 pub fn render_to_html<W: std::io::Write>(
     out: &mut W,
     report: &ReportResult,
-    render: &RenderOptions,
+    render: &ReportRenderOption,
 ) -> anyhow::Result<()> {
     report::render(
         out,
@@ -20,7 +27,7 @@ pub fn render_to_html<W: std::io::Write>(
     Ok(())
 }
 
-struct HtmlReport<'r>(&'r ReportResult<'r>, &'r RenderOptions);
+struct HtmlReport<'r>(&'r ReportResult<'r>, &'r ReportRenderOption);
 
 impl HtmlReport<'_> {
     fn render_errors(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
