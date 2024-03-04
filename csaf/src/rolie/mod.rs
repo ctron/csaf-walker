@@ -1,12 +1,12 @@
 mod roliefeed;
 
-use crate::rolie::roliefeed::RolieFeed;
+pub use roliefeed::*;
+
 use crate::source::HttpSourceError;
-use async_trait::async_trait;
 use time::OffsetDateTime;
 use url::{ParseError, Url};
-use walker_common::fetcher;
-use walker_common::fetcher::Fetcher;
+use walker_common::fetcher::Json;
+use walker_common::{fetcher, fetcher::Fetcher};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -38,35 +38,26 @@ pub struct SourceFile {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize)]
-pub struct SourceFiles {
+pub struct RolieSource {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub files: Vec<SourceFile>,
 }
-#[async_trait(?Send)]
-pub trait RolieRetrievable {
-    async fn retrieve_rolie(fetcher: &Fetcher, base_url: Url) -> Result<Self, Error>
-    where
-        Self: Sized + Send;
-}
 
-#[async_trait(?Send)]
-impl RolieRetrievable for SourceFiles {
-    async fn retrieve_rolie(fetcher: &Fetcher, base_url: Url) -> Result<Self, Error>
-    where
-        Self: Sized + Send,
-    {
+impl RolieSource {
+    pub async fn retrieve(fetcher: &Fetcher, base_url: Url) -> Result<Self, Error> {
         let mut files = vec![];
-        let changes = fetcher.fetch::<String>(base_url).await?;
-        let result: RolieFeed = serde_json::from_str::<RolieFeed>(&changes)?;
+        let Json(result) = fetcher.fetch::<Json<RolieFeed>>(base_url).await?;
         for url in result.feed.entry {
             for link in url.link {
                 files.push(SourceFile {
-                    file: link.href.to_string(),
+                    file: link.href,
                     timestamp: url.updated,
                 })
             }
         }
-        log::info!("list all entry size is  {:?}", files.len());
+
+        log::debug!("found {:?} files", files.len());
+
         Ok(Self { files })
     }
 }

@@ -8,6 +8,7 @@ pub struct Distribution {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rolie: Option<Rolie>,
 }
+
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct Rolie {
     #[serde(default)]
@@ -17,6 +18,7 @@ pub struct Rolie {
     #[serde(default)]
     pub services: Vec<Url>,
 }
+
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct Feed {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -24,6 +26,7 @@ pub struct Feed {
     pub tlp_label: TlpLabel,
     pub url: Url,
 }
+
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum TlpLabel {

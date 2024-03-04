@@ -9,11 +9,12 @@ use std::time::SystemTime;
 use url::Url;
 use walker_common::utils::url::Urlify;
 
-#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub enum DiscoverContextType {
-    DirectoryUrl,
-    FeedUrl,
+    Directory,
+    Feed,
 }
+
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct DiscoverContext {
     pub discover_context_type: DiscoverContextType,

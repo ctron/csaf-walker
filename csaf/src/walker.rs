@@ -86,7 +86,7 @@ impl<S: Source> Walker<S> {
                     &mut self
                         .source
                         .load_index(DiscoverContext {
-                            discover_context_type: DiscoverContextType::DirectoryUrl,
+                            discover_context_type: DiscoverContextType::Directory,
                             url: directory_url.clone(),
                         })
                         .await
@@ -100,7 +100,7 @@ impl<S: Source> Walker<S> {
                         &mut self
                             .source
                             .load_index(DiscoverContext {
-                                discover_context_type: DiscoverContextType::FeedUrl,
+                                discover_context_type: DiscoverContextType::Feed,
                                 url: feed.url.clone(),
                             })
                             .await
@@ -166,14 +166,14 @@ impl<S: Source> Walker<S> {
             let mut distribution_list = vec![];
             if let Some(directory_url) = distribution.directory_url {
                 distribution_list.push(DiscoverContext {
-                    discover_context_type: DiscoverContextType::DirectoryUrl,
+                    discover_context_type: DiscoverContextType::Directory,
                     url: directory_url,
                 })
             }
             if let Some(rolie) = distribution.rolie {
                 for feed in rolie.feeds {
                     distribution_list.push(DiscoverContext {
-                        discover_context_type: DiscoverContextType::FeedUrl,
+                        discover_context_type: DiscoverContextType::Feed,
                         url: feed.url,
                     })
                 }

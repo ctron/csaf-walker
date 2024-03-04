@@ -56,11 +56,11 @@ pub mod discover;
 pub mod model;
 pub mod report;
 pub mod retrieve;
+pub mod rolie;
 pub mod source;
 pub mod validation;
 pub mod visitors;
 pub mod walker;
 
-mod rolie;
 #[cfg(feature = "csaf")]
 pub mod verification;
