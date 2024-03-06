@@ -113,7 +113,7 @@ impl<V: DiscoveredVisitor> DiscoveredVisitor for FilteringVisitor<V> {
         if self
             .config
             .ignored_distributions
-            .contains(advisory.context.url.as_str())
+            .contains(advisory.context.url().as_str())
         {
             return Ok(());
         };

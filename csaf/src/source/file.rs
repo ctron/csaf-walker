@@ -1,4 +1,4 @@
-use crate::discover::DiscoverContext;
+use crate::discover::DistributionContext;
 use crate::{
     discover::DiscoveredAdvisory,
     model::{
@@ -105,15 +105,15 @@ impl FileSource {
     /// walk a distribution directory
     fn walk_distribution(
         &self,
-        context: Arc<DiscoverContext>,
+        context: Arc<DistributionContext>,
     ) -> Result<mpsc::Receiver<walkdir::Result<walkdir::DirEntry>>, anyhow::Error> {
         let (tx, rx) = mpsc::channel(8);
 
         let path = context
-            .url
+            .url()
             .clone()
             .to_file_path()
-            .map_err(|()| anyhow!("Failed to convert into path: {:?}", &context.url.clone()))?;
+            .map_err(|()| anyhow!("Failed to convert into path: {:?}", &context.url()))?;
 
         tokio::task::spawn_blocking(move || {
             for entry in WalkDir::new(path).into_iter().filter_entry(|entry| {
@@ -180,7 +180,7 @@ impl Source for FileSource {
 
     async fn load_index(
         &self,
-        context: DiscoverContext,
+        context: DistributionContext,
     ) -> Result<Vec<DiscoveredAdvisory>, Self::Error> {
         log::info!("Loading index - since: {:?}", self.options.since);
 

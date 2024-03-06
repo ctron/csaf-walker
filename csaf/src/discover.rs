@@ -9,22 +9,26 @@ use std::time::SystemTime;
 use url::Url;
 use walker_common::utils::url::Urlify;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
-pub enum DiscoverContextType {
-    Directory,
-    Feed,
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum DistributionContext {
+    Directory(Url),
+    Feed(Url),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
-pub struct DiscoverContext {
-    pub discover_context_type: DiscoverContextType,
-    pub url: Url,
+impl DistributionContext {
+    /// Get the URL of the distribution
+    pub fn url(&self) -> &Url {
+        match self {
+            Self::Directory(url) => url,
+            Self::Feed(url) => url,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DiscoveredAdvisory {
     /// A reference to the distribution and rolie information
-    pub context: Arc<DiscoverContext>,
+    pub context: Arc<DistributionContext>,
     /// The URL of the advisory
     pub url: Url,
     /// The "last changed" date from the change information
@@ -49,9 +53,9 @@ impl Urlify for DiscoveredAdvisory {
 
     fn relative_base_and_url(&self) -> Option<(&Url, String)> {
         self.context
-            .url
+            .url()
             .make_relative(&self.url)
-            .map(|relative| (&self.context.url, relative))
+            .map(|relative| (self.context.url(), relative))
     }
 }
 

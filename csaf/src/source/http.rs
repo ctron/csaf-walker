@@ -1,4 +1,4 @@
-use crate::discover::{DiscoverContext, DiscoverContextType, DiscoveredAdvisory};
+use crate::discover::{DiscoveredAdvisory, DistributionContext};
 use crate::model::metadata::ProviderMetadata;
 use crate::retrieve::{RetrievalMetadata, RetrievedAdvisory};
 use crate::rolie::{RolieSource, SourceFile};
@@ -92,7 +92,7 @@ impl Source for HttpSource {
 
     async fn load_index(
         &self,
-        context: DiscoverContext,
+        context: DistributionContext,
     ) -> Result<Vec<DiscoveredAdvisory>, Self::Error> {
         let discover_context = Arc::new(context);
 
@@ -109,9 +109,8 @@ impl Source for HttpSource {
             _ => true,
         };
 
-        match &discover_context.discover_context_type {
-            DiscoverContextType::Directory => {
-                let base = &discover_context.url;
+        match discover_context.as_ref() {
+            DistributionContext::Directory(base) => {
                 let has_slash = base.to_string().ends_with('/');
 
                 let join_url = |mut s: &str| {
@@ -121,8 +120,7 @@ impl Source for HttpSource {
                     Url::parse(&format!("{}{s}", base))
                 };
 
-                let changes =
-                    ChangeSource::retrieve(&self.fetcher, &discover_context.url.clone()).await?;
+                let changes = ChangeSource::retrieve(&self.fetcher, &base.clone()).await?;
 
                 Ok(changes
                     .entries
@@ -141,8 +139,7 @@ impl Source for HttpSource {
                     .collect::<Result<_, _>>()?)
             }
 
-            DiscoverContextType::Feed => {
-                let feed = &discover_context.url;
+            DistributionContext::Feed(feed) => {
                 let source_files = RolieSource::retrieve(&self.fetcher, feed.clone()).await?;
                 Ok(source_files
                     .files

@@ -1,5 +1,5 @@
 use super::Source;
-use crate::discover::{DiscoverContext, DiscoveredAdvisory};
+use crate::discover::{DiscoveredAdvisory, DistributionContext};
 use crate::model::metadata::ProviderMetadata;
 use crate::retrieve::RetrievedAdvisory;
 use crate::source::{FileSource, HttpSource};
@@ -47,7 +47,7 @@ impl Source for DispatchSource {
 
     async fn load_index(
         &self,
-        context: DiscoverContext,
+        context: DistributionContext,
     ) -> Result<Vec<DiscoveredAdvisory>, Self::Error> {
         match self {
             Self::File(source) => source.load_index(context).await,

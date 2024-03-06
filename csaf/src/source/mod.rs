@@ -8,7 +8,7 @@ pub use dispatch::*;
 pub use file::*;
 pub use http::*;
 
-use crate::discover::{DiscoverContext, DiscoveredAdvisory};
+use crate::discover::{DiscoveredAdvisory, DistributionContext};
 use crate::model::metadata::ProviderMetadata;
 use crate::retrieve::RetrievedAdvisory;
 use async_trait::async_trait;
@@ -20,10 +20,12 @@ pub trait Source: Clone {
     type Error: Display + Debug;
 
     async fn load_metadata(&self) -> Result<ProviderMetadata, Self::Error>;
+
     async fn load_index(
         &self,
-        context: DiscoverContext,
+        context: DistributionContext,
     ) -> Result<Vec<DiscoveredAdvisory>, Self::Error>;
+
     async fn load_advisory(
         &self,
         advisory: DiscoveredAdvisory,

@@ -246,14 +246,14 @@ impl StoreVisitor {
             advisory.metadata.last_modification
         );
 
-        let relative_url_result = advisory.context.url.make_relative(&advisory.url);
+        let relative_url_result = advisory.context.url().make_relative(&advisory.url);
         let name = match &relative_url_result {
             Some(name) => name,
             None => return Err(StoreError::Filename(advisory.url.to_string())),
         };
 
         // create a distribution base
-        let distribution_base = distribution_base(&self.base, advisory.context.url.as_str());
+        let distribution_base = distribution_base(&self.base, advisory.context.url().as_str());
 
         // put the file there
         let file = distribution_base.join(name);
