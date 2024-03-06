@@ -47,6 +47,8 @@ impl ChangeSource {
             .into_deserialize::<ChangeEntry>()
             .collect::<Result<Vec<_>, _>>()?;
 
+        log::info!("Detected {} entries", entries.len());
+
         Ok(Self { entries })
     }
 }
