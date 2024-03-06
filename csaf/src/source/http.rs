@@ -97,7 +97,7 @@ impl Source for HttpSource {
         let discover_context = Arc::new(context);
 
         // filter out advisories based on since, but only if we can be sure
-        let since_filter = |advisory| match (advisory, &self.options.since) {
+        let since_filter = |advisory: &Result<_, _>| match (advisory, &self.options.since) {
             (
                 Ok(DiscoveredAdvisory {
                     url: _,
