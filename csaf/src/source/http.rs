@@ -96,6 +96,19 @@ impl Source for HttpSource {
     ) -> Result<Vec<DiscoveredAdvisory>, Self::Error> {
         let discover_context = Arc::new(context);
 
+        // filter out advisories based on since, but only if we can be sure
+        let since_filter = |advisory| match (advisory, &self.options.since) {
+            (
+                Ok(DiscoveredAdvisory {
+                    url: _,
+                    context: _,
+                    modified,
+                }),
+                Some(since),
+            ) => modified >= since,
+            _ => true,
+        };
+
         match &discover_context.discover_context_type {
             DiscoverContextType::Directory => {
                 let base = &discover_context.url;
@@ -124,29 +137,19 @@ impl Source for HttpSource {
                             modified,
                         })
                     })
-                    // filter out advisories based in since, but only if we can be sure
-                    .filter(|advisory| match (advisory, &self.options.since) {
-                        (
-                            Ok(DiscoveredAdvisory {
-                                url: _, modified, ..
-                            }),
-                            Some(since),
-                        ) => modified >= since,
-                        _ => true,
-                    })
+                    .filter(since_filter)
                     .collect::<Result<_, _>>()?)
             }
 
             DiscoverContextType::Feed => {
                 let feed = &discover_context.url;
                 let source_files = RolieSource::retrieve(&self.fetcher, feed.clone()).await?;
-                let join_url = |s: &str| Url::parse(s);
                 Ok(source_files
                     .files
                     .into_iter()
                     .map(|SourceFile { file, timestamp }| {
                         let modified = timestamp.into();
-                        let url = join_url(&file)?;
+                        let url = Url::parse(&file)?;
 
                         Ok::<_, ParseError>(DiscoveredAdvisory {
                             context: discover_context.clone(),
@@ -154,17 +157,7 @@ impl Source for HttpSource {
                             modified,
                         })
                     })
-                    .filter(|advisory| match (advisory, &self.options.since) {
-                        (
-                            Ok(DiscoveredAdvisory {
-                                url: _,
-                                context: _,
-                                modified,
-                            }),
-                            Some(since),
-                        ) => modified >= since,
-                        _ => true,
-                    })
+                    .filter(since_filter)
                     .collect::<Result<_, _>>()?)
             }
         }
