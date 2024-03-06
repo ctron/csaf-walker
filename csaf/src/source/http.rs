@@ -111,7 +111,7 @@ impl Source for HttpSource {
                 let changes =
                     ChangeSource::retrieve(&self.fetcher, &discover_context.url.clone()).await?;
 
-                return Ok(changes
+                Ok(changes
                     .entries
                     .into_iter()
                     .map(|ChangeEntry { file, timestamp }| {
@@ -134,14 +134,14 @@ impl Source for HttpSource {
                         ) => modified >= since,
                         _ => true,
                     })
-                    .collect::<Result<_, _>>()?);
+                    .collect::<Result<_, _>>()?)
             }
 
             DiscoverContextType::Feed => {
                 let feed = &discover_context.url;
                 let source_files = RolieSource::retrieve(&self.fetcher, feed.clone()).await?;
                 let join_url = |s: &str| Url::parse(s);
-                return Ok(source_files
+                Ok(source_files
                     .files
                     .into_iter()
                     .map(|SourceFile { file, timestamp }| {
@@ -165,7 +165,7 @@ impl Source for HttpSource {
                         ) => modified >= since,
                         _ => true,
                     })
-                    .collect::<Result<_, _>>()?);
+                    .collect::<Result<_, _>>()?)
             }
         }
     }
