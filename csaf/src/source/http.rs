@@ -169,6 +169,7 @@ impl Source for HttpSource {
             }
         }
     }
+
     async fn load_advisory(
         &self,
         discovered: DiscoveredAdvisory,
