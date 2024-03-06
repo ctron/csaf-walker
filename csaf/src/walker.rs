@@ -81,7 +81,7 @@ impl<S: Source> Walker<S> {
 
             let mut index = vec![];
             if let Some(directory_url) = &distribution.directory_url {
-                log::warn!("Walking: {:?}", directory_url.clone());
+                log::info!("Walking directory URL: {:?}", directory_url.clone());
                 index.append(
                     &mut self
                         .source
@@ -95,7 +95,7 @@ impl<S: Source> Walker<S> {
             }
             if let Some(rolie) = distribution.rolie {
                 for feed in rolie.feeds {
-                    log::warn!("Rolie feeds walking: {:?}", feed.url);
+                    log::info!("Walking ROLIE feed: {:?}", feed.url);
                     index.append(
                         &mut self
                             .source
