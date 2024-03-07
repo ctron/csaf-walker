@@ -1,3 +1,4 @@
+use crate::metadata_retriever::MetadataRetriever;
 use crate::{
     discover::{DiscoveredAdvisory, DistributionContext},
     model::metadata::ProviderMetadata,
@@ -17,7 +18,7 @@ use time::{format_description::well_known::Rfc2822, OffsetDateTime};
 use url::{ParseError, Url};
 use walker_common::{
     changes::{self, ChangeEntry, ChangeSource},
-    fetcher::{self, DataProcessor, Fetcher, Json},
+    fetcher::{self, DataProcessor, Fetcher},
     retrieve::{RetrievalMetadata, RetrievedDigest, RetrievingDigest},
     utils::openpgp::PublicKey,
     validate::source::{Key, KeySource, KeySourceError},
@@ -67,6 +68,8 @@ pub enum HttpSourceError {
     Csv(#[from] csv::Error),
     #[error("JSON parse error: {0}")]
     Json(#[from] serde_json::Error),
+    #[error("securityTxt ParseError error: {0}")]
+    SecurityTextError(#[from] sectxtlib::ParseError),
 }
 
 impl From<changes::Error> for HttpSourceError {
@@ -84,11 +87,11 @@ impl Source for HttpSource {
     type Error = HttpSourceError;
 
     async fn load_metadata(&self) -> Result<ProviderMetadata, Self::Error> {
-        Ok(self
-            .fetcher
-            .fetch::<Json<ProviderMetadata>>(self.url.clone())
-            .await?
-            .into_inner())
+        Ok(
+            MetadataRetriever::retrieve_metadata(&self.fetcher, self.url.clone())
+                .await?
+                .provider_metadata,
+        )
     }
 
     async fn load_index(
