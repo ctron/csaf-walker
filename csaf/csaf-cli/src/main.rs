@@ -11,10 +11,7 @@ use indicatif_log_bridge::LogWrapper;
 use log::LevelFilter;
 use std::io::Write;
 use std::process::ExitCode;
-use walker_common::{
-    progress::{indicatif::MultiIndicatif, NoProgress, Progress},
-    utils::measure::MeasureTime,
-};
+use walker_common::{progress::Progress, utils::measure::MeasureTime};
 
 #[derive(Debug, Parser)]
 #[command(version, about = "CSAF Tool", author, long_about = None)]
@@ -105,7 +102,7 @@ impl Cli {
         let progress = match self.quiet | self.no_progress {
             true => {
                 builder.init();
-                Progress::new(NoProgress)
+                Progress::default()
             }
             false => {
                 let logger = builder.build();
@@ -116,7 +113,7 @@ impl Cli {
                 log::set_boxed_logger(Box::new(log)).unwrap();
                 log::set_max_level(max_level);
 
-                Progress::new(MultiIndicatif(multi))
+                multi.into()
             }
         };
 
