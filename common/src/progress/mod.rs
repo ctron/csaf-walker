@@ -1,64 +1,113 @@
 //! Progress reporting
 
-pub mod indicatif;
-
+use indicatif::{MultiProgress, ProgressStyle};
 use std::borrow::Cow;
-use std::ops::Deref;
-use std::rc::Rc;
-use std::sync::Arc;
 
-#[derive(Clone)]
-pub struct Progress(pub Arc<dyn ProgressImpl>);
+#[derive(Clone, Default)]
+pub struct Progress {
+    progress: Option<MultiProgress>,
+}
+
+impl From<MultiProgress> for Progress {
+    fn from(progress: MultiProgress) -> Self {
+        Self {
+            progress: Some(progress),
+        }
+    }
+}
+
+impl From<()> for Progress {
+    fn from(_: ()) -> Self {
+        Self { progress: None }
+    }
+}
 
 impl Progress {
-    pub fn new<P: ProgressImpl + 'static>(value: P) -> Self {
-        Self(Arc::new(value))
+    pub fn start(&self, tasks: usize) -> ProgressBar {
+        let Some(progress) = &self.progress else {
+            return ProgressBar { bar: None };
+        };
+
+        let tasks = tasks.try_into().unwrap_or(u64::MAX);
+        let bar = indicatif::ProgressBar::new(tasks);
+        bar.set_style(
+            ProgressStyle::default_bar()
+                .template("{msg:<20} {wide_bar} {pos}/{len} ({eta})")
+                .expect("template must parse"),
+        );
+
+        ProgressBar {
+            bar: Some(progress.add(bar)),
+        }
+    }
+
+    pub fn wrap_iter<T>(
+        &self,
+        tasks: usize,
+        iter: impl Iterator<Item = T>,
+    ) -> impl Iterator<Item = T> {
+        match &self.progress {
+            Some(progress) => {
+                let tasks = tasks.try_into().unwrap_or(u64::MAX);
+                let bar = indicatif::ProgressBar::new(tasks);
+                bar.set_style(
+                    ProgressStyle::default_bar()
+                        .template("{wide_bar} {pos}/{len} ({eta})")
+                        .expect("template must parse"),
+                );
+
+                let bar = progress.add(bar);
+
+                let iter = bar.wrap_iter(iter);
+                ProgressIter::Some(iter)
+            }
+            None => ProgressIter::None(iter),
+        }
     }
 }
 
-impl<P: ProgressImpl + 'static> From<P> for Progress {
-    fn from(value: P) -> Self {
-        Self::new(value)
+enum ProgressIter<I>
+where
+    I: Iterator,
+{
+    None(I),
+    Some(indicatif::ProgressBarIter<I>),
+}
+
+impl<I> Iterator for ProgressIter<I>
+where
+    I: Iterator,
+{
+    type Item = I::Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::None(iter) => iter.next(),
+            Self::Some(iter) => iter.next(),
+        }
     }
 }
 
-impl Default for Progress {
-    fn default() -> Self {
-        Self(Arc::new(NoProgress))
+pub struct ProgressBar {
+    bar: Option<indicatif::ProgressBar>,
+}
+
+impl ProgressBar {
+    pub fn tick(&self) {
+        if let Some(bar) = &self.bar {
+            bar.inc(1);
+        }
     }
-}
 
-impl Deref for Progress {
-    type Target = dyn ProgressImpl;
-
-    fn deref(&self) -> &Self::Target {
-        self.0.as_ref()
+    pub fn set_message(&self, msg: Cow<'static, str>) {
+        if let Some(bar) = &self.bar {
+            bar.set_message(msg);
+        }
     }
-}
 
-pub trait ProgressImpl {
-    fn start(&self, tasks: usize) -> Rc<dyn ProgressBar>;
-}
-
-pub trait ProgressBar {
-    fn tick(&self);
-    fn set_message(&self, msg: Cow<'static, str>);
-    fn println(&self, msg: &str);
-}
-
-/// A no-op implementation
-pub struct NoProgress;
-
-impl ProgressImpl for NoProgress {
-    fn start(&self, _tasks: usize) -> Rc<dyn ProgressBar> {
-        Rc::new(())
-    }
-}
-
-impl ProgressBar for () {
-    fn tick(&self) {}
-    fn set_message(&self, _msg: Cow<'static, str>) {}
-    fn println(&self, msg: &str) {
-        println!("{}", msg);
+    pub fn println(&self, msg: &str) {
+        if let Some(bar) = &self.bar {
+            bar.println(msg);
+        }
     }
 }

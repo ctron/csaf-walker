@@ -155,11 +155,15 @@ impl<S: Source> Walker<S> {
         let distributions = self.collect_distributions(metadata.distributions);
         log::info!("processing {} distribution URLs", distributions.len());
 
-        let stream = collect_advisories::<V, S>(&self.source, distributions);
-        let (_start, size) = stream.size_hint();
-        let _progress = size.map(|size| self.progress.start(size));
+        let advisories: Vec<_> = collect_advisories::<V, S>(&self.source, distributions)
+            .try_collect()
+            .await?;
 
-        stream
+        let size = advisories.len();
+        log::info!("Discovered {size} advisories");
+
+        stream::iter(self.progress.wrap_iter(size, advisories.into_iter()))
+            .map(Ok)
             .try_for_each_concurrent(limit, |advisory| {
                 log::debug!("Discovered advisory: {}", advisory.url);
                 let context = context.clone();
