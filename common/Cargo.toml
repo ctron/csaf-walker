@@ -19,6 +19,7 @@ base64 = "0.21"
 bytes = "1"
 csv = "1"
 digest = "0.10.7"
+filetime = "0.2"
 flexible-time = "0.1"
 futures-util = "0.3"
 html-escape = "0.2"
@@ -42,6 +43,10 @@ bzip2 = { version = "0.4", optional = true }
 bzip2-rs = { version = "0.1", optional = true, features = ["rustc_1_51"] }
 
 clap = { version = "4.5.0", features = ["derive", "env"], optional = true }
+
+# workaround until xattr fixes its win32 compilation issues.
+[target.'cfg(any(unix, macos))'.dependencies]
+xattr = { version = "1" }
 
 [features]
 default = ["bzip2"]

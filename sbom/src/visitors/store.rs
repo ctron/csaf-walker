@@ -1,16 +1,18 @@
-use crate::model::metadata::SourceMetadata;
-use crate::retrieve::{RetrievalContext, RetrievalError, RetrievedSbom, RetrievedVisitor};
-use crate::validation::{ValidatedSbom, ValidatedVisitor, ValidationContext, ValidationError};
+use crate::{
+    model::metadata::SourceMetadata,
+    retrieve::{RetrievalContext, RetrievalError, RetrievedSbom, RetrievedVisitor},
+    validation::{ValidatedSbom, ValidatedVisitor, ValidationContext, ValidationError},
+};
 use anyhow::Context;
 use async_trait::async_trait;
-use sequoia_openpgp::armor::Kind;
-use sequoia_openpgp::serialize::SerializeInto;
-use sequoia_openpgp::Cert;
+use sequoia_openpgp::{armor::Kind, serialize::SerializeInto, Cert};
 use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
-use std::time::SystemTime;
 use tokio::fs;
-use walker_common::utils::openpgp::PublicKey;
+use walker_common::{
+    store::{store_document, Document, StoreError},
+    utils::openpgp::PublicKey,
+};
 
 pub const DIR_METADATA: &str = "metadata";
 
@@ -22,6 +24,10 @@ pub struct StoreVisitor {
 
     /// whether to set the file modification timestamps
     pub no_timestamps: bool,
+
+    /// whether to store additional metadata (like the etag) using extended attributes
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    pub no_xattrs: bool,
 }
 
 impl StoreVisitor {
@@ -29,6 +35,8 @@ impl StoreVisitor {
         Self {
             base: base.into(),
             no_timestamps: false,
+            #[cfg(any(target_os = "linux", target_os = "macos"))]
+            no_xattrs: false,
         }
     }
 
@@ -36,16 +44,12 @@ impl StoreVisitor {
         self.no_timestamps = no_timestamps;
         self
     }
-}
 
-#[derive(Debug, thiserror::Error)]
-pub enum StoreError {
-    #[error("{0:#}")]
-    Io(anyhow::Error),
-    #[error("Failed to construct filename from URL: {0}")]
-    Filename(String),
-    #[error("Serialize key error: {0:#}")]
-    SerializeKey(anyhow::Error),
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    pub fn no_xattrs(mut self, no_xattrs: bool) -> Self {
+        self.no_xattrs = no_xattrs;
+        self
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -196,56 +200,21 @@ impl StoreVisitor {
 
         log::debug!("Writing {}", file.display());
 
-        if let (reported_modified, Some(stored_modified)) =
-            (sbom.modified, sbom.metadata.last_modification)
-        {
-            if reported_modified != stored_modified {
-                log::warn!(
-                    "{}: Modification timestamp discrepancy - reported: {}, retrieved: {}",
-                    file.display(),
-                    humantime::Timestamp::from(reported_modified),
-                    humantime::Timestamp::from(SystemTime::from(stored_modified)),
-                );
-            }
-        }
-
-        fs::write(&file, &sbom.data)
-            .await
-            .with_context(|| format!("Failed to write advisory: {}", file.display()))
-            .map_err(StoreError::Io)?;
-
-        if let Some(sha256) = &sbom.sha256 {
-            let file = format!("{}.sha256", file.display());
-            fs::write(&file, &sha256.expected)
-                .await
-                .with_context(|| format!("Failed to write checksum: {file}"))
-                .map_err(StoreError::Io)?;
-        }
-        if let Some(sha512) = &sbom.sha512 {
-            let file = format!("{}.sha512", file.display());
-            fs::write(&file, &sha512.expected)
-                .await
-                .with_context(|| format!("Failed to write checksum: {file}"))
-                .map_err(StoreError::Io)?;
-        }
-        if let Some(sig) = &sbom.signature {
-            let file = format!("{}.asc", file.display());
-            fs::write(&file, &sig)
-                .await
-                .with_context(|| format!("Failed to write signature: {file}"))
-                .map_err(StoreError::Io)?;
-        }
-
-        if !self.no_timestamps {
-            filetime::set_file_mtime(&file, sbom.modified.into())
-                .with_context(|| {
-                    format!(
-                        "Failed to set last modification timestamp: {}",
-                        file.display()
-                    )
-                })
-                .map_err(StoreError::Io)?;
-        }
+        store_document(
+            &file,
+            Document {
+                data: &sbom.data,
+                changed: sbom.modified,
+                metadata: &sbom.metadata,
+                sha256: &sbom.sha256,
+                sha512: &sbom.sha512,
+                signature: &sbom.signature,
+                no_timestamps: self.no_timestamps,
+                #[cfg(any(target_os = "linux", target_os = "macos"))]
+                no_xattrs: self.no_xattrs,
+            },
+        )
+        .await?;
 
         Ok(())
     }

@@ -11,10 +11,9 @@ use sha2::{Sha256, Sha512};
 use std::fmt::Debug;
 use std::future::Future;
 use std::ops::{Deref, DerefMut};
-use time::OffsetDateTime;
 use url::Url;
 use walker_common::{
-    retrieve::RetrievedDigest,
+    retrieve::{RetrievalMetadata, RetrievedDigest},
     utils::{openpgp::PublicKey, url::Urlify},
     validate::source::{KeySource, KeySourceError},
 };
@@ -47,15 +46,6 @@ impl Urlify for RetrievedSbom {
     fn relative_base_and_url(&self) -> Option<(&Url, String)> {
         self.discovered.relative_base_and_url()
     }
-}
-
-/// Metadata of the retrieval process.
-#[derive(Clone, Debug)]
-pub struct RetrievalMetadata {
-    /// Last known modification time
-    pub last_modification: Option<OffsetDateTime>,
-    /// ETag
-    pub etag: Option<String>,
 }
 
 impl Deref for RetrievedSbom {

@@ -1,11 +1,11 @@
-use crate::discover::DistributionContext;
 use crate::{
     discover::DiscoveredAdvisory,
+    discover::DistributionContext,
     model::{
         metadata::{self, ProviderMetadata},
         store::distribution_base,
     },
-    retrieve::{RetrievalMetadata, RetrievedAdvisory},
+    retrieve::RetrievedAdvisory,
     source::Source,
     visitors::store::DIR_METADATA,
 };
@@ -22,6 +22,7 @@ use tokio::sync::mpsc;
 use url::Url;
 use walkdir::WalkDir;
 use walker_common::{
+    retrieve::RetrievalMetadata,
     source::file::{read_sig_and_digests, to_path},
     utils::{self, openpgp::PublicKey},
     validate::source::{Key, KeySource, KeySourceError},
@@ -247,7 +248,7 @@ impl Source for FileSource {
             .map(OffsetDateTime::from);
 
         #[cfg(any(target_os = "linux", target_os = "macos"))]
-        let etag = xattr::get(&path, crate::visitors::store::ATTR_ETAG)
+        let etag = xattr::get(&path, walker_common::store::ATTR_ETAG)
             .transpose()
             .and_then(|r| r.ok())
             .and_then(|s| String::from_utf8(s).ok());

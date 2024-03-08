@@ -1,23 +1,19 @@
-use crate::model::metadata::ProviderMetadata;
-use crate::model::store::distribution_base;
-use crate::retrieve::{RetrievalContext, RetrievalError, RetrievedAdvisory, RetrievedVisitor};
-use crate::validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, ValidationError};
+use crate::{
+    model::{metadata::ProviderMetadata, store::distribution_base},
+    retrieve::{RetrievalContext, RetrievalError, RetrievedAdvisory, RetrievedVisitor},
+    validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, ValidationError},
+};
 use anyhow::Context;
 use async_trait::async_trait;
-use sequoia_openpgp::armor::Kind;
-use sequoia_openpgp::serialize::SerializeInto;
-use sequoia_openpgp::Cert;
+use sequoia_openpgp::{armor::Kind, serialize::SerializeInto, Cert};
 use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::time::SystemTime;
 use tokio::fs;
-use walker_common::utils::openpgp::PublicKey;
-
-#[cfg(target_os = "macos")]
-pub const ATTR_ETAG: &str = "etag";
-#[cfg(target_os = "linux")]
-pub const ATTR_ETAG: &str = "user.etag";
+use walker_common::{
+    store::{store_document, Document, StoreError},
+    utils::openpgp::PublicKey,
+};
 
 pub const DIR_METADATA: &str = "metadata";
 
@@ -55,16 +51,6 @@ impl StoreVisitor {
         self.no_xattrs = no_xattrs;
         self
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum StoreError {
-    #[error("{0:#}")]
-    Io(anyhow::Error),
-    #[error("Failed to construct filename from URL: {0}")]
-    Filename(String),
-    #[error("Serialize key error: {0:#}")]
-    SerializeKey(anyhow::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -258,75 +244,21 @@ impl StoreVisitor {
         // put the file there
         let file = distribution_base.join(name);
 
-        log::debug!("Writing {}", file.display());
-
-        if let (reported_modified, Some(stored_modified)) =
-            (advisory.modified, advisory.metadata.last_modification)
-        {
-            if reported_modified != stored_modified {
-                log::warn!(
-                    "{}: Modification timestamp discrepancy - reported: {}, retrieved: {}",
-                    file.display(),
-                    humantime::Timestamp::from(reported_modified),
-                    humantime::Timestamp::from(SystemTime::from(stored_modified)),
-                );
-            }
-        }
-
-        if let Some(parent) = file.parent() {
-            fs::create_dir_all(parent)
-                .await
-                .with_context(|| format!("Failed to create parent directory: {}", parent.display()))
-                .map_err(StoreError::Io)?;
-        }
-
-        fs::write(&file, &advisory.data)
-            .await
-            .with_context(|| format!("Failed to write advisory: {}", file.display()))
-            .map_err(StoreError::Io)?;
-
-        if let Some(sha256) = &advisory.sha256 {
-            let file = format!("{}.sha256", file.display());
-            fs::write(&file, &sha256.expected)
-                .await
-                .with_context(|| format!("Failed to write checksum: {file}"))
-                .map_err(StoreError::Io)?;
-        }
-        if let Some(sha512) = &advisory.sha512 {
-            let file = format!("{}.sha512", file.display());
-            fs::write(&file, &sha512.expected)
-                .await
-                .with_context(|| format!("Failed to write checksum: {file}"))
-                .map_err(StoreError::Io)?;
-        }
-        if let Some(sig) = &advisory.signature {
-            let file = format!("{}.asc", file.display());
-            fs::write(&file, &sig)
-                .await
-                .with_context(|| format!("Failed to write signature: {file}"))
-                .map_err(StoreError::Io)?;
-        }
-
-        if !self.no_timestamps {
-            // if we have the last modification time, set the file timestamp to it
-            filetime::set_file_mtime(&file, advisory.modified.into())
-                .with_context(|| {
-                    format!(
-                        "Failed to set last modification timestamp: {}",
-                        file.display()
-                    )
-                })
-                .map_err(StoreError::Io)?;
-        }
-
-        #[cfg(any(target_os = "linux", target_os = "macos"))]
-        if !self.no_xattrs {
-            if let Some(etag) = &advisory.metadata.etag {
-                xattr::set(&file, ATTR_ETAG, etag.as_bytes())
-                    .with_context(|| format!("Failed to store {}: {}", ATTR_ETAG, file.display()))
-                    .map_err(StoreError::Io)?;
-            }
-        }
+        store_document(
+            &file,
+            Document {
+                data: &advisory.data,
+                changed: advisory.modified,
+                metadata: &advisory.metadata,
+                sha256: &advisory.sha256,
+                sha512: &advisory.sha512,
+                signature: &advisory.signature,
+                no_timestamps: self.no_timestamps,
+                #[cfg(any(target_os = "linux", target_os = "macos"))]
+                no_xattrs: self.no_xattrs,
+            },
+        )
+        .await?;
 
         Ok(())
     }
