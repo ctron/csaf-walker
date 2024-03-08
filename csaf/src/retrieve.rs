@@ -1,7 +1,9 @@
 //! Retrieval
 
-use crate::discover::{AsDiscovered, DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor};
-use crate::source::Source;
+use crate::{
+    discover::{AsDiscovered, DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor},
+    source::Source,
+};
 use async_trait::async_trait;
 use bytes::Bytes;
 use reqwest::StatusCode;
@@ -9,11 +11,12 @@ use sha2::{Sha256, Sha512};
 use std::fmt::Debug;
 use std::future::Future;
 use std::ops::{Deref, DerefMut};
-use time::OffsetDateTime;
 use url::Url;
-use walker_common::utils::url::Urlify;
-use walker_common::validate::source::{KeySource, KeySourceError};
-use walker_common::{retrieve::RetrievedDigest, utils::openpgp::PublicKey};
+use walker_common::{
+    retrieve::{RetrievalMetadata, RetrievedDigest},
+    utils::{openpgp::PublicKey, url::Urlify},
+    validate::source::{KeySource, KeySourceError},
+};
 
 /// A retrieved (but unverified) advisory
 #[derive(Clone, Debug)]
@@ -60,15 +63,6 @@ impl AsRetrieved for RetrievedAdvisory {
     fn as_retrieved(&self) -> &RetrievedAdvisory {
         self
     }
-}
-
-/// Metadata of the retrieval process.
-#[derive(Clone, Debug)]
-pub struct RetrievalMetadata {
-    /// Last known modification time
-    pub last_modification: Option<OffsetDateTime>,
-    /// ETag
-    pub etag: Option<String>,
 }
 
 impl Deref for RetrievedAdvisory {

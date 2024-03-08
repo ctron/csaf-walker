@@ -1,7 +1,9 @@
-use crate::discover::DiscoveredSbom;
-use crate::model::{self, metadata::SourceMetadata};
-use crate::retrieve::{RetrievalMetadata, RetrievedSbom};
-use crate::source::Source;
+use crate::{
+    discover::DiscoveredSbom,
+    model::{self, metadata::SourceMetadata},
+    retrieve::RetrievedSbom,
+    source::Source,
+};
 use async_trait::async_trait;
 use bytes::{BufMut, Bytes, BytesMut};
 use digest::Digest;
@@ -14,7 +16,7 @@ use url::{ParseError, Url};
 use walker_common::{
     changes::{self, ChangeEntry, ChangeSource},
     fetcher::{self, DataProcessor, Fetcher},
-    retrieve::{RetrievedDigest, RetrievingDigest},
+    retrieve::{RetrievalMetadata, RetrievedDigest, RetrievingDigest},
     utils::openpgp::PublicKey,
     validate::source::{Key, KeySource, KeySourceError},
 };

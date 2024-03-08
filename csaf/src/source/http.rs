@@ -1,8 +1,10 @@
-use crate::discover::{DiscoveredAdvisory, DistributionContext};
-use crate::model::metadata::ProviderMetadata;
-use crate::retrieve::{RetrievalMetadata, RetrievedAdvisory};
-use crate::rolie::{RolieSource, SourceFile};
-use crate::source::Source;
+use crate::{
+    discover::{DiscoveredAdvisory, DistributionContext},
+    model::metadata::ProviderMetadata,
+    retrieve::RetrievedAdvisory,
+    rolie::{RolieSource, SourceFile},
+    source::Source,
+};
 use async_trait::async_trait;
 use bytes::{BufMut, Bytes, BytesMut};
 use digest::Digest;
@@ -11,13 +13,12 @@ use reqwest::Response;
 use sha2::{Sha256, Sha512};
 use std::sync::Arc;
 use std::time::SystemTime;
-use time::format_description::well_known::Rfc2822;
-use time::OffsetDateTime;
+use time::{format_description::well_known::Rfc2822, OffsetDateTime};
 use url::{ParseError, Url};
 use walker_common::{
     changes::{self, ChangeEntry, ChangeSource},
     fetcher::{self, DataProcessor, Fetcher, Json},
-    retrieve::{RetrievedDigest, RetrievingDigest},
+    retrieve::{RetrievalMetadata, RetrievedDigest, RetrievingDigest},
     utils::openpgp::PublicKey,
     validate::source::{Key, KeySource, KeySourceError},
 };

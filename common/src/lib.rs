@@ -9,6 +9,7 @@ pub mod retrieve;
 pub mod sender;
 pub mod since;
 pub mod source;
+pub mod store;
 pub mod utils;
 pub mod validate;
 

@@ -1,8 +1,10 @@
-use crate::discover::DiscoveredSbom;
-use crate::model::metadata::{self, SourceMetadata};
-use crate::retrieve::{RetrievalMetadata, RetrievedSbom};
-use crate::source::Source;
-use crate::visitors::store::DIR_METADATA;
+use crate::{
+    discover::DiscoveredSbom,
+    model::metadata::{self, SourceMetadata},
+    retrieve::RetrievedSbom,
+    source::Source,
+    visitors::store::DIR_METADATA,
+};
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use bytes::Bytes;
@@ -13,6 +15,7 @@ use std::time::SystemTime;
 use time::OffsetDateTime;
 use url::Url;
 use walker_common::{
+    retrieve::RetrievalMetadata,
     source::file::{read_sig_and_digests, to_path},
     utils::{self, openpgp::PublicKey},
     validate::source::{Key, KeySource, KeySourceError},

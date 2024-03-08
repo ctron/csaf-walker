@@ -4,6 +4,7 @@ use crate::utils::hex::Hex;
 use digest::{Digest, Output};
 use std::fmt::{Debug, Formatter};
 use std::ops::{Deref, DerefMut};
+use time::OffsetDateTime;
 
 /// The retrieved digest
 #[derive(Clone, PartialEq, Eq)]
@@ -71,4 +72,13 @@ where
             actual: value.current.finalize(),
         }
     }
+}
+
+/// Metadata of the retrieval process.
+#[derive(Clone, Debug)]
+pub struct RetrievalMetadata {
+    /// Last known modification time
+    pub last_modification: Option<OffsetDateTime>,
+    /// ETag
+    pub etag: Option<String>,
 }
