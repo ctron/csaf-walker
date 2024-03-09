@@ -27,8 +27,11 @@ impl From<Error> for HttpSourceError {
         }
     }
 }
+
+#[derive(Clone)]
 pub struct MetadataRetriever {
-    pub provider_metadata: ProviderMetadata,
+    pub provider_metadata_url: Url,
+    pub fetcher: Fetcher,
 }
 
 impl MetadataRetriever {
@@ -46,88 +49,109 @@ impl MetadataRetriever {
         Ok(url)
     }
 
-    pub async fn retrieve_metadata(
-        fetcher: &Fetcher,
-        provider_metadata_url: Url,
-    ) -> Result<Self, Error>
+    pub async fn retrieve_metadata_by_well_known_url(&self) -> Result<ProviderMetadata, Error>
     where
         Self: Sized + Send,
     {
-        let result = fetcher
-            .fetch::<Json<ProviderMetadata>>(provider_metadata_url.clone())
-            .await;
+        log::trace!("Starting retrieve provider_metadata from full path, include /.well-known/csaf/provider_metadata.json ");
+        Ok(self
+            .fetcher
+            .fetch::<Json<ProviderMetadata>>(self.provider_metadata_url.clone())
+            .await?
+            .into_inner())
+    }
 
-        match result {
-            Ok(provider_metadata) => Ok(MetadataRetriever {
-                provider_metadata: provider_metadata.into_inner(),
-            }),
+    pub async fn retrieve_metadata_by_dns(&self) -> Result<ProviderMetadata, Error>
+    where
+        Self: Sized + Send,
+    {
+        log::trace!("Starting retrieve provider_metadata from DNS path ");
+        if let Some(host_url) = self.provider_metadata_url.clone().host_str() {
+            log::warn!("Querying provider metadata url DNS  {:?}", host_url);
+            let host_url_string = host_url.replace("www.", "");
+            let host_url_string = format!("https://csaf.data.security.{}", &host_url_string);
+            let dns_path = Url::parse(host_url_string.as_str())?;
+
+            let dns_result = self
+                .fetcher
+                .fetch::<Json<ProviderMetadata>>(dns_path.clone())
+                .await?;
+            Ok(dns_result.into_inner())
+        } else {
+            Err(Error::Url(ParseError::EmptyHost))
+        }
+    }
+
+    pub async fn retrieve_metadata_by_security_text(
+        &self,
+        security_txt_path: &str,
+    ) -> Result<ProviderMetadata, Error>
+    where
+        Self: Sized + Send,
+    {
+        if let Some(host_url) = self.provider_metadata_url.clone().host_str() {
+            let host_url_string = format!("https://{}", &host_url);
+            let host_url = Url::parse(host_url_string.as_str())?;
+            log::warn!(
+                "Querying provider metadata url from security text of {:?}",
+                host_url_string
+            );
+            let provider_metadata_path =
+                Self::get_url_from_security_text(&self.fetcher, host_url.join(security_txt_path)?)
+                    .await?;
+            let security_url = Url::parse(provider_metadata_path.as_str())?;
+            let security_result = self
+                .fetcher
+                .fetch::<Json<ProviderMetadata>>(security_url.clone())
+                .await?;
+            Ok(security_result.into_inner())
+        } else {
+            Err(Error::Url(ParseError::EmptyHost))
+        }
+    }
+
+    pub async fn retrieve(self) -> Result<ProviderMetadata, Error>
+    where
+        Self: Sized + Send,
+    {
+        let well_known_url_result = self.retrieve_metadata_by_well_known_url().await;
+
+        match well_known_url_result {
+            Ok(provider_metadata) => Ok(provider_metadata),
             Err(e) => {
                 log::warn!(
-                    "The url {:?} fetch failed {:?}",
-                    provider_metadata_url.clone(),
+                    "The url {} fetch failed {:?}",
+                    self.provider_metadata_url.clone(),
                     e
                 );
-                log::trace!("Starting retrieve provider_metadata from DNS path ");
-                if let Some(host_url) = provider_metadata_url.host_str() {
-                    log::warn!("Querying provider metadata url DNS  {:?}", host_url);
-                    let host_url_string = host_url.replace("www.", "");
-                    let host_url_string =
-                        format!("https://csaf.data.security.{}", &host_url_string);
-                    let dns_path = Url::parse(host_url_string.as_str())?;
+                let dns_result = self.retrieve_metadata_by_dns().await;
+                match dns_result {
+                    Ok(provider_metadata) => Ok(provider_metadata),
+                    Err(e) => {
+                        log::warn!(
+                            "DNS path {} fetch failed {:?}",
+                            self.provider_metadata_url.clone(),
+                            e
+                        );
+                        let security_result = self
+                            .retrieve_metadata_by_security_text("/security.txt")
+                            .await;
 
-                    let dns_result = fetcher
-                        .fetch::<Json<ProviderMetadata>>(dns_path.clone())
-                        .await;
-                    match dns_result {
-                        Ok(provider_metadata) => Ok(MetadataRetriever {
-                            provider_metadata: provider_metadata.into_inner(),
-                        }),
-                        Err(e) => {
-                            log::warn!("DNS path {:?} fetch failed {:?}", dns_path.clone(), e);
-                            let host_url_string = format!("https://{}", &host_url);
-                            let host_url = Url::parse(host_url_string.as_str())?;
-                            log::warn!(
-                                "Querying provider metadata url from security text of {:?}",
-                                host_url_string
-                            );
-                            let provider_metadata_url = Self::get_url_from_security_text(
-                                fetcher,
-                                host_url.join("/security.txt")?,
-                            )
-                            .await?;
-                            let security_url = Url::parse(provider_metadata_url.as_str())?;
-                            let security_result = fetcher
-                                .fetch::<Json<ProviderMetadata>>(security_url.clone())
-                                .await;
-
-                            match security_result {
-                                Ok(provider_metadata) => Ok(MetadataRetriever {
-                                    provider_metadata: provider_metadata.into_inner(),
-                                }),
-                                Err(e) => {
-                                    log::warn!(
-                                        "security text url {} fetch failed {:?}",
-                                        dns_path.clone().to_string(),
-                                        e
-                                    );
-                                    let security_url = Self::get_url_from_security_text(
-                                        fetcher,
-                                        host_url.join("/.well-known/security.txt")?,
-                                    )
+                        match security_result {
+                            Ok(provider_metadata) => Ok(provider_metadata),
+                            Err(e) => {
+                                log::warn!(
+                                    "security text url {} fetch failed {:?}",
+                                    self.provider_metadata_url.clone(),
+                                    e
+                                );
+                                let full_path_security_result = self
+                                    .retrieve_metadata_by_security_text("/.well-known/security.txt")
                                     .await?;
-
-                                    Ok(MetadataRetriever {
-                                        provider_metadata: fetcher
-                                            .fetch::<Json<ProviderMetadata>>(security_url.clone())
-                                            .await?
-                                            .into_inner(),
-                                    })
-                                }
+                                Ok(full_path_security_result)
                             }
                         }
                     }
-                } else {
-                    Err(Error::Url(ParseError::EmptyHost))
                 }
             }
         }
