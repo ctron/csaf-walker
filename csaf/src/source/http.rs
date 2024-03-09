@@ -87,11 +87,11 @@ impl Source for HttpSource {
     type Error = HttpSourceError;
 
     async fn load_metadata(&self) -> Result<ProviderMetadata, Self::Error> {
-        Ok(
-            MetadataRetriever::retrieve_metadata(&self.fetcher, self.url.clone())
-                .await?
-                .provider_metadata,
-        )
+        let metadata_retriever = MetadataRetriever {
+            provider_metadata_url: self.url.clone(),
+            fetcher: self.fetcher.clone(),
+        };
+        Ok(metadata_retriever.retrieve().await?)
     }
 
     async fn load_index(
