@@ -1,4 +1,4 @@
-use crate::metadata_retriever::MetadataRetriever;
+use crate::metadata_retriever::{DetectionType, MetadataRetriever};
 use crate::{
     discover::{DiscoveredAdvisory, DistributionContext},
     model::metadata::ProviderMetadata,
@@ -59,6 +59,16 @@ impl HttpSource {
 }
 
 #[derive(Debug, thiserror::Error)]
+pub enum MetadataLookupError {
+    #[error("The CSAF does not exist: {0}")]
+    CsafNotExist(String),
+    #[error("The provider metadata obtained from this URL is 'None': {0}")]
+    EmptyProviderMetadata(String),
+    #[error("The Security Text obtained from this URL is 'None': {0}")]
+    EmptySecurityText(String),
+}
+
+#[derive(Debug, thiserror::Error)]
 pub enum HttpSourceError {
     #[error("Fetch error: {0}")]
     Fetcher(#[from] fetcher::Error),
@@ -66,10 +76,12 @@ pub enum HttpSourceError {
     Url(#[from] ParseError),
     #[error("CSV error: {0}")]
     Csv(#[from] csv::Error),
-    #[error("JSON parse error: {0}")]
-    Json(#[from] serde_json::Error),
     #[error("securityTxt ParseError error: {0}")]
     SecurityTextError(#[from] sectxtlib::ParseError),
+    #[error("JSON parse error: {0}")]
+    Json(#[from] serde_json::Error),
+    #[error("Metadata lookup error: {0}")]
+    MetadataLookup(#[from] MetadataLookupError),
 }
 
 impl From<changes::Error> for HttpSourceError {
@@ -91,7 +103,22 @@ impl Source for HttpSource {
             provider_metadata_url: self.url.clone(),
             fetcher: self.fetcher.clone(),
         };
-        Ok(metadata_retriever.retrieve().await?)
+        match metadata_retriever.retrieve().await? {
+            DetectionType::WellKnowPath(provider_metadata) => {
+                log::info!("Finally get provider metadata from fully provided discovery URL");
+                Ok(provider_metadata)
+            }
+            DetectionType::DnsPath(provider_metadata) => {
+                log::info!("Finally get provider metadata from dns path of provided discovery URL");
+                Ok(provider_metadata)
+            }
+            DetectionType::SecurityTextPath(provider_metadata) => {
+                log::info!(
+                    "Finally get provider metadata from sercurity text of provided discovery URL"
+                );
+                Ok(provider_metadata)
+            }
+        }
     }
 
     async fn load_index(

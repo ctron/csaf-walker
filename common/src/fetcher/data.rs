@@ -57,6 +57,7 @@ impl DerefMut for Text {
 }
 
 /// JSON based data.
+#[derive(Clone)]
 pub struct Json<D>(pub D)
 where
     D: DeserializeOwned;
