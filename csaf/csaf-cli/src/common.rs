@@ -7,7 +7,6 @@ use csaf_walker::{
     visitors::filter::{FilterConfig, FilteringVisitor},
     walker::Walker,
 };
-use reqwest::Url;
 use std::future::Future;
 use std::time::SystemTime;
 use walker_common::{
@@ -49,13 +48,7 @@ where
 
 pub struct DiscoverConfig {
     /// The URL to locate the provider metadata.
-    ///
-    /// If `full` is `true`, this must be the full path to the `provider-metadata.json`, otherwise
-    /// it `/.well-known/csaf/provider-metadata.json` will be appended.
     pub source: String,
-
-    /// Mark the source as a full path to the metadata.
-    pub full: bool,
 
     /// Only report documents which have changed since the provided date. If a document has no
     /// change information, or this field is [`None`], it wil always be reported.
@@ -74,12 +67,9 @@ impl From<DiscoverArguments> for DiscoverConfig {
         Self {
             since: None,
             source: value.source,
-            full: value.full,
         }
     }
 }
-
-const WELL_KNOWN_METADATA: &str = ".well-known/csaf/provider-metadata.json";
 
 pub async fn new_source(
     discover: impl Into<DiscoverConfig>,
@@ -87,21 +77,34 @@ pub async fn new_source(
 ) -> anyhow::Result<DispatchSource> {
     let discover = discover.into();
 
-    match Url::parse(&discover.source) {
-        Ok(mut url) => {
-            if !discover.full && !url.path().ends_with("/provider-metadata.json") {
-                url = url.join(WELL_KNOWN_METADATA)?;
-                log::info!("Discovery URL: {url}");
-            } else {
-                log::info!("Fully provided discovery URL: {url}");
-            }
-            let fetcher = client.new_fetcher().await?;
-            Ok(HttpSource::new(url, fetcher, HttpOptions::new().since(discover.since)).into())
+    if discover.source.starts_with("file:///") {
+        if let Some(file_path) = discover.source.clone().strip_prefix("file:///") {
+            // use a path
+            Ok(FileSource::new(file_path, FileOptions::new().since(discover.since))?.into())
+        } else {
+            Err(anyhow::Error::msg(format!(
+                "This is not a standard path, please check again carefully. : {}",
+                discover.source.clone()
+            )))
         }
-        Err(_) => {
-            // use as path
-            Ok(FileSource::new(&discover.source, FileOptions::new().since(discover.since))?.into())
+    } else {
+        if discover.source.clone().starts_with("http://")
+            || discover.source.clone().starts_with("ftp://")
+        {
+            return Err(anyhow::Error::msg(format!(
+                "This URL does not meet the definition of provider metadata sources according to CSAF standards. The URL {} not begin with 'https://'.",
+                &discover.source
+            )));
         }
+        // use a URL
+        log::info!("Fully provided discovery URL: {}", discover.source.clone());
+        let fetcher = client.new_fetcher().await?;
+        Ok(HttpSource::new(
+            discover.source,
+            fetcher,
+            HttpOptions::new().since(discover.since),
+        )
+        .into())
     }
 }
 

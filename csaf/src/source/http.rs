@@ -24,6 +24,8 @@ use walker_common::{
     validate::source::{Key, KeySource, KeySourceError},
 };
 
+pub const WELL_KNOWN_METADATA: &str = ".well-known/csaf/provider-metadata.json";
+
 #[non_exhaustive]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct HttpOptions {
@@ -44,28 +46,18 @@ impl HttpOptions {
 #[derive(Clone)]
 pub struct HttpSource {
     fetcher: Fetcher,
-    url: Url,
+    url: String,
     options: HttpOptions,
 }
 
 impl HttpSource {
-    pub fn new(url: Url, fetcher: Fetcher, options: HttpOptions) -> Self {
+    pub fn new(url: String, fetcher: Fetcher, options: HttpOptions) -> Self {
         Self {
             url,
             fetcher,
             options,
         }
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum MetadataLookupError {
-    #[error("The CSAF does not exist: {0}")]
-    CsafNotExist(String),
-    #[error("The provider metadata obtained from this URL is 'None': {0}")]
-    EmptyProviderMetadata(String),
-    #[error("The Security Text obtained from this URL is 'None': {0}")]
-    EmptySecurityText(String),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -80,8 +72,8 @@ pub enum HttpSourceError {
     SecurityTextError(#[from] sectxtlib::ParseError),
     #[error("JSON parse error: {0}")]
     Json(#[from] serde_json::Error),
-    #[error("Metadata lookup error: {0}")]
-    MetadataLookup(#[from] MetadataLookupError),
+    #[error("The provider metadata obtained from this URL is 'None': {0}")]
+    EmptyProviderMetadata(String),
 }
 
 impl From<changes::Error> for HttpSourceError {
@@ -100,9 +92,21 @@ impl Source for HttpSource {
 
     async fn load_metadata(&self) -> Result<ProviderMetadata, Self::Error> {
         let metadata_retriever = MetadataRetriever {
-            provider_metadata_url: self.url.clone(),
+            base_url: self.url.clone(),
             fetcher: self.fetcher.clone(),
         };
+
+        if self.url.contains(WELL_KNOWN_METADATA) {
+            if let Some(metadata) = metadata_retriever
+                .fetch_metadata_from_url(Url::parse(self.url.clone().as_str())?)
+                .await?
+            {
+                return Ok(metadata.into_inner());
+            } else {
+                return Err(Self::Error::EmptyProviderMetadata(self.url.clone()));
+            }
+        }
+
         match metadata_retriever.retrieve().await? {
             DetectionType::WellKnowPath(provider_metadata) => {
                 log::info!("Finally get provider metadata from fully provided discovery URL");
