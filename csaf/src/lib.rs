@@ -33,7 +33,7 @@
 //!
 //! async fn walk() -> Result<()> {
 //!   let fetcher = Fetcher::new(Default::default()).await?;
-//!   let url = Url::parse("https://www.redhat.com/.well-known/csaf/provider-metadata.json")?;
+//!   let url = "https://www.redhat.com/.well-known/csaf/provider-metadata.json".to_string();
 //!   let source = HttpSource::new(url, fetcher, Default::default());
 //!
 //!   Walker::new(source.clone())

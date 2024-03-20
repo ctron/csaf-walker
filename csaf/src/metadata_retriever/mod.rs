@@ -1,36 +1,11 @@
 use crate::model::metadata::ProviderMetadata;
-use crate::source::{HttpSourceError, MetadataLookupError};
+use crate::source::{HttpSourceError, WELL_KNOWN_METADATA};
 use sectxtlib::SecurityTxt;
 use url::{ParseError, Url};
 use walker_common::fetcher;
 use walker_common::fetcher::{Fetcher, Json};
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("Fetch error: {0}")]
-    Fetcher(#[from] fetcher::Error),
-    #[error("URL error: {0}")]
-    Url(#[from] ParseError),
-    #[error("securityTxtParseError error: {0}")]
-    SecurityTextError(#[from] sectxtlib::ParseError),
-    #[error("JSON parse error: {0}")]
-    Json(#[from] serde_json::Error),
-    #[error("Metadata lookup error: {0}")]
-    MetadataLookup(#[from] MetadataLookupError),
-}
-
-impl From<Error> for HttpSourceError {
-    fn from(value: Error) -> Self {
-        match value {
-            Error::Fetcher(err) => Self::Fetcher(err),
-            Error::Url(err) => Self::Url(err),
-            Error::SecurityTextError(err) => Self::SecurityTextError(err),
-            Error::Json(err) => Self::Json(err),
-            Error::MetadataLookup(err) => Self::MetadataLookup(err),
-        }
-    }
-}
-
+type Error = HttpSourceError;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum DetectionType {
     WellKnowPath(ProviderMetadata),
@@ -40,7 +15,7 @@ pub enum DetectionType {
 
 #[derive(Clone)]
 pub struct MetadataRetriever {
-    pub provider_metadata_url: Url,
+    pub base_url: String,
     pub fetcher: Fetcher,
 }
 
@@ -60,19 +35,19 @@ impl MetadataRetriever {
                 .find(|_| true)
                 .map(|ext| ext.value);
 
-            return Ok(url);
+            Ok(url)
+        } else {
+            Ok(None)
         }
-        Err(Error::MetadataLookup(
-            MetadataLookupError::EmptySecurityText(host_url.clone().to_string()),
-        ))
     }
 
-    async fn fetch_metadata_from_url(
-        fetcher: &Fetcher,
+    pub async fn fetch_metadata_from_url(
+        &self,
         provider_metadata_url: Url,
     ) -> Result<Option<Json<ProviderMetadata>>, Error> {
-        let metadata = fetcher
-            .fetch::<Option<Json<ProviderMetadata>>>(provider_metadata_url.clone())
+        let metadata = self
+            .fetcher
+            .fetch::<Option<Json<ProviderMetadata>>>(provider_metadata_url)
             .await?;
         Ok(metadata)
     }
@@ -80,27 +55,46 @@ impl MetadataRetriever {
     /// Retrieve provider metadata through the full well known URL.
     pub async fn retrieve_metadata_by_well_known_url(
         &self,
-    ) -> Result<Option<Json<ProviderMetadata>>, Error>
-    where
-        Self: Sized + Send,
-    {
+        provider_metadata_url: Url,
+    ) -> Result<Option<Json<ProviderMetadata>>, Error> {
         log::trace!("Starting retrieve provider metadata from full provided discovery URL");
-        Self::fetch_metadata_from_url(&self.fetcher, self.provider_metadata_url.clone()).await
+        match provider_metadata_url.host_str() {
+            None => Err(Error::Url(ParseError::EmptyHost)),
+            Some(host_url) => {
+                let url =
+                    Url::parse(format!("https://{}/{}", host_url, WELL_KNOWN_METADATA).as_str())?;
+                self.fetch_metadata_from_url(url).await
+            }
+        }
     }
 
     /// Retrieve provider metadata through the DNS path of provided URL.
-    pub async fn retrieve_metadata_by_dns(&self) -> Result<Option<Json<ProviderMetadata>>, Error>
-    where
-        Self: Sized + Send,
-    {
+    pub async fn retrieve_metadata_by_dns(
+        &self,
+        provider_metadata_url: Url,
+    ) -> Result<Option<Json<ProviderMetadata>>, Error> {
         log::trace!("Starting retrieve provider_metadata from DNS path of provided discovery URL ");
-        if let Some(host_url) = self.provider_metadata_url.clone().host_str() {
+        if let Some(host_url) = provider_metadata_url.host_str() {
             log::info!("Querying provider metadata url DNS  {:?}", host_url);
-            let host_url_string = host_url.replace("www.", "");
-            let host_url_string = format!("https://csaf.data.security.{}", &host_url_string);
+            let host_url_string = format!("https://csaf.data.security.{}", host_url);
             let dns_path = Url::parse(host_url_string.as_str())?;
 
-            Ok(Self::fetch_metadata_from_url(&self.fetcher, dns_path.clone()).await?)
+            match self.fetch_metadata_from_url(dns_path).await {
+                Ok(provider_metadata) => Ok(provider_metadata),
+                Err(err) => match err {
+                    Error::Fetcher(fetch_error) => match fetch_error {
+                        fetcher::Error::Request(reqwest_error) => {
+                            if reqwest_error.is_connect() {
+                                log::warn!("When DNS path URL {} fetch provider metadata fails due to a fetch error, which is a DNS error, the process will proceed to the next discovery rule. {:?}", provider_metadata_url.clone().to_string(), reqwest_error,);
+                                Ok(None)
+                            } else {
+                                Err(Error::Fetcher(fetcher::Error::Request(reqwest_error)))
+                            }
+                        }
+                    },
+                    _ => Err(err),
+                },
+            }
         } else {
             Err(Error::Url(ParseError::EmptyHost))
         }
@@ -109,38 +103,34 @@ impl MetadataRetriever {
     /// Retrieve provider metadata through the security text of provided URL.
     pub async fn retrieve_metadata_by_security_text(
         &self,
+        provider_metadata_url: Url,
         security_txt_path: &str,
-    ) -> Result<Option<Json<ProviderMetadata>>, Error>
-    where
-        Self: Sized + Send,
-    {
+    ) -> Result<Option<Json<ProviderMetadata>>, Error> {
         log::trace!(
             "Starting retrieve provider metadata from security text of provided discovery URL "
         );
-        if let Some(host_url) = self.provider_metadata_url.clone().host_str() {
+        if let Some(host_url) = provider_metadata_url.clone().host_str() {
             let host_url_string = format!("https://{}", &host_url);
             let host_url = Url::parse(host_url_string.as_str())?;
             log::info!(
                 "Querying provider metadata url from security text of {:?}",
                 host_url_string
             );
-            let provider_metadata_path = Self::get_metadata_url_from_security_text(
+            if let Some(path) = Self::get_metadata_url_from_security_text(
                 &self.fetcher,
                 host_url.join(security_txt_path)?,
             )
-            .await?;
-            match provider_metadata_path {
-                None => Err(Error::MetadataLookup(MetadataLookupError::CsafNotExist(
-                    host_url_string,
-                ))),
-                Some(provider_metadata_path) => {
-                    let provider_metadata_url = Url::parse(provider_metadata_path.as_str())?;
+            .await?
+            {
+                let provider_metadata_url = Url::parse(path.as_str())?;
 
-                    Ok(
-                        Self::fetch_metadata_from_url(&self.fetcher, provider_metadata_url.clone())
-                            .await?,
-                    )
-                }
+                Ok(self.fetch_metadata_from_url(provider_metadata_url).await?)
+            } else {
+                log::warn!(
+                    "The Security Text obtained from this URL is 'None': {} ",
+                    host_url_string
+                );
+                Ok(None)
             }
         } else {
             Err(Error::Url(ParseError::EmptyHost))
@@ -148,103 +138,63 @@ impl MetadataRetriever {
     }
 
     ///For the provided metadata URL, retrieve the provider metadata using three different discovery methods in a specified order.
-    pub async fn retrieve(self) -> Result<DetectionType, Error>
-    where
-        Self: Sized + Send,
-    {
-        let well_known_result = self.retrieve_metadata_by_well_known_url().await;
-        if let Ok(provider_metadata) = &well_known_result {
-            if let Some(metadata) = provider_metadata {
-                return Ok(DetectionType::WellKnowPath(metadata.clone().into_inner()));
-            } else {
-                log::warn!(
-                    "The provider metadata obtained from this well known URL is 'None': {}",
-                    self.provider_metadata_url.clone().to_string(),
-                );
-            }
-        }
-        if let Err(err) = &well_known_result {
+    pub async fn retrieve(&self) -> Result<DetectionType, Error> {
+        let actually_url = if self.base_url.clone().starts_with("https://") {
+            Url::parse(&self.base_url)?
+        } else {
+            Url::parse(&format!("https://{}", self.base_url.clone()))?
+        };
+
+        if let Some(provider_metadata) = self
+            .retrieve_metadata_by_well_known_url(actually_url.clone())
+            .await?
+        {
+            return Ok(DetectionType::WellKnowPath(provider_metadata.into_inner()));
+        } else {
             log::warn!(
-                "The provided discovery URL {} fetch provider metadata failed: {:?}",
-                self.provider_metadata_url.clone().to_string(),
-                err
-            );
+                    "The provider metadata obtained from this well known URL is 'None': {}，the process will proceed to the next discovery rule.",
+                    self.base_url.clone().to_string(),
+                );
         }
 
         // If the first method (full well-known URL) fails, attempt again using the DNS path method.
-        let dns_result = self.retrieve_metadata_by_dns().await;
-        if let Ok(provider_metadata) = &dns_result {
-            if let Some(metadata) = provider_metadata {
-                return Ok(DetectionType::DnsPath(metadata.clone().into_inner()));
-            } else {
-                log::warn!(
-                    "The provider metadata obtained from this DNS path URL is 'None': {}",
-                    self.provider_metadata_url.clone().to_string(),
-                );
-            }
-        }
-
-        if let Err(err) = &dns_result {
+        if let Some(provider_metadata) = self.retrieve_metadata_by_dns(actually_url.clone()).await?
+        {
+            return Ok(DetectionType::DnsPath(
+                provider_metadata.clone().into_inner(),
+            ));
+        } else {
             log::warn!(
-                "The DNS path URL {} fetch provider metadata failed : {:?}",
-                self.provider_metadata_url.to_string(),
-                err
+                "The provider metadata obtained from this DNS path URL is 'None': {}",
+                self.base_url.clone().to_string(),
             );
         }
 
         // If the second method (dns path) fails, attempt again using the short security text method
-        let security_result = self
-            .retrieve_metadata_by_security_text("/security.txt")
-            .await;
-        if let Ok(provider_metadata) = &security_result {
-            if let Some(metadata) = provider_metadata {
-                return Ok(DetectionType::SecurityTextPath(
-                    metadata.clone().into_inner(),
-                ));
-            } else {
-                log::warn!(
-                    "The provider metadata obtained from this security text URL is 'None': {}",
-                    self.provider_metadata_url.clone().to_string(),
-                );
-            }
-        }
-
-        if let Err(err) = &dns_result {
+        if let Some(provider_metadata) = self
+            .retrieve_metadata_by_security_text(actually_url.clone(), "/security.txt")
+            .await?
+        {
+            return Ok(DetectionType::SecurityTextPath(
+                provider_metadata.clone().into_inner(),
+            ));
+        } else {
             log::warn!(
-                "The security text URL {} fetch provider metadata failed : {:?}",
-                self.provider_metadata_url.clone().to_string(),
-                err
+                "The provider metadata obtained from this security text URL is 'None': {}",
+                self.base_url.clone().to_string(),
             );
         }
 
         // If the third method (short security text) fails, attempt again using the full security text method.
-        let full_path_security_result = self
-            .retrieve_metadata_by_security_text("/.well-known/security.txt")
-            .await;
-
-        if let Ok(provider_metadata) = &full_path_security_result {
-            if let Some(metadata) = provider_metadata {
-                return Ok(DetectionType::SecurityTextPath(
-                    metadata.clone().into_inner(),
-                ));
-            } else {
-                log::warn!(
-                    "The provider metadata obtained from this full security text URL is 'None': {}",
-                    self.provider_metadata_url.clone().to_string(),
-                );
-            }
+        if let Some(provider_metadata) = self
+            .retrieve_metadata_by_security_text(actually_url.clone(), "/.well-known/security.txt")
+            .await?
+        {
+            return Ok(DetectionType::SecurityTextPath(
+                provider_metadata.clone().into_inner(),
+            ));
         }
 
-        if let Err(err) = &full_path_security_result {
-            log::warn!(
-                "The full security text URL {} fetch provider metadata failed : {:?}",
-                self.provider_metadata_url.clone().to_string(),
-                err
-            );
-        }
-
-        Err(Error::MetadataLookup(
-            MetadataLookupError::EmptyProviderMetadata(self.provider_metadata_url.to_string()),
-        ))
+        Err(Error::EmptyProviderMetadata(self.base_url.to_string()))
     }
 }
