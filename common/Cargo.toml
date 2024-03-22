@@ -27,7 +27,7 @@ humantime = "2"
 indicatif = "0.17.6"
 log = "0.4"
 openid = "0.12"
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.11", features = ["json"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10.7"
@@ -37,7 +37,7 @@ tokio = { version = "1", features = ["sync", "fs"] }
 tracing = "0.1"
 url = "2"
 
-sequoia-openpgp = { version = "1", default-features = false }
+sequoia-openpgp = { version = "1", default-features = false, optional = true }
 
 bzip2 = { version = "0.4", optional = true }
 bzip2-rs = { version = "0.1", optional = true, features = ["rustc_1_51"] }
@@ -50,6 +50,7 @@ xattr = { version = "1" }
 
 [features]
 default = ["bzip2"]
+openpgp = ["sequoia-openpgp"]
 _crypto-nettle = ["sequoia-openpgp/crypto-nettle"]
 
 [package.metadata.cargo-all-features]

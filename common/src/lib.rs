@@ -11,6 +11,8 @@ pub mod since;
 pub mod source;
 pub mod store;
 pub mod utils;
+
+#[cfg(feature = "openpgp")]
 pub mod validate;
 
 #[cfg(feature = "clap")]
