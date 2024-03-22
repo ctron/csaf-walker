@@ -4,6 +4,7 @@ use crate::model::metadata::SourceMetadata;
 use async_trait::async_trait;
 use std::fmt::Debug;
 use std::future::Future;
+use std::ops::{Deref, DerefMut};
 use std::time::SystemTime;
 use url::Url;
 use walker_common::utils::url::Urlify;
@@ -25,6 +26,14 @@ impl Urlify for DiscoveredSbom {
 #[derive(Debug)]
 pub struct DiscoveredContext<'c> {
     pub metadata: &'c SourceMetadata,
+}
+
+impl<'c> Deref for DiscoveredContext<'c> {
+    type Target = SourceMetadata;
+
+    fn deref(&self) -> &Self::Target {
+        &self.metadata
+    }
 }
 
 /// Visiting discovered SBOMs
