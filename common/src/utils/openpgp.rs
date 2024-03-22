@@ -1,8 +1,6 @@
 //! Helpers for working with "OpenPGP".
 use bytes::Bytes;
-use sequoia_openpgp::cert::CertParser;
-use sequoia_openpgp::parse::Parse;
-use sequoia_openpgp::Cert;
+use sequoia_openpgp::{cert::CertParser, parse::Parse, Cert};
 use std::fmt::Debug;
 
 #[derive(Debug, thiserror::Error)]

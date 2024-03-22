@@ -1,7 +1,5 @@
 //! Working with the source in the context of validation.
-use crate::fetcher::Fetcher;
-use crate::utils::openpgp::PublicKey;
-use crate::{fetcher, utils};
+use crate::{fetcher, fetcher::Fetcher, utils, utils::openpgp::PublicKey};
 use async_trait::async_trait;
 use bytes::Bytes;
 use std::fmt::{Debug, Display};
