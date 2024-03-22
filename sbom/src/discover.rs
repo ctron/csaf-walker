@@ -4,7 +4,7 @@ use crate::model::metadata::SourceMetadata;
 use async_trait::async_trait;
 use std::fmt::Debug;
 use std::future::Future;
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
 use std::time::SystemTime;
 use url::Url;
 use walker_common::utils::url::Urlify;
@@ -32,7 +32,7 @@ impl<'c> Deref for DiscoveredContext<'c> {
     type Target = SourceMetadata;
 
     fn deref(&self) -> &Self::Target {
-        &self.metadata
+        self.metadata
     }
 }
 
