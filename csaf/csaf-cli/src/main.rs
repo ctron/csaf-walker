@@ -142,9 +142,20 @@ async fn main() -> ExitCode {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use reqwest::Url;
 
     #[test]
     fn verify_cli() {
+        let a = "file:../../xiabai/asfas/ccc/";
+        log::error!("url : {:?}", a.clone());
+        println!("url : {:?}", a.clone());
+        match Url::parse(a) {
+            Ok(u) => {
+                println!("full url : {:?}", u.clone().as_str());
+                println!("url : {:?}", u)
+            }
+            Err(e) => println!("error : {:?}", e),
+        }
         use clap::CommandFactory;
         Cli::command().debug_assert();
     }

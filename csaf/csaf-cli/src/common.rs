@@ -7,6 +7,7 @@ use csaf_walker::{
     visitors::filter::{FilterConfig, FilteringVisitor},
     walker::Walker,
 };
+use reqwest::Url;
 use std::future::Future;
 use std::time::SystemTime;
 use walker_common::{
@@ -47,7 +48,7 @@ where
 }
 
 pub struct DiscoverConfig {
-    /// The URL to locate the provider metadata.
+    /// The URL to locate the provider metadata or as a base domain, in order to facilitate automatic querying of provider metadata URL..
     pub source: String,
 
     /// Only report documents which have changed since the provided date. If a document has no
@@ -77,35 +78,81 @@ pub async fn new_source(
 ) -> anyhow::Result<DispatchSource> {
     let discover = discover.into();
 
-    if discover.source.starts_with("file:///") {
-        if let Some(file_path) = discover.source.clone().strip_prefix("file:///") {
-            // use a path
-            Ok(FileSource::new(file_path, FileOptions::new().since(discover.since))?.into())
-        } else {
-            Err(anyhow::Error::msg(format!(
-                "This is not a standard path, please check again carefully. : {}",
-                discover.source.clone()
-            )))
+    let url_parse_result = Url::parse(discover.source.as_str());
+    if let Ok(url) = url_parse_result.clone() {
+        log::info!("The URl {:?}", url.clone());
+        if url.scheme() == "https" {
+            // handle direct URL case
+            log::info!("Fully provided discovery URL: {}", discover.source.clone());
+            let fetcher = client.new_fetcher().await?;
+            return Ok(HttpSource::new(
+                url.to_string(),
+                fetcher,
+                HttpOptions::new().since(discover.since),
+            )
+            .into());
         }
-    } else {
-        if discover.source.clone().starts_with("http://")
-            || discover.source.clone().starts_with("ftp://")
-        {
+        // When the scheme of the input URL is "http" or "ftp", it should be interpreted as a host string.
+        if (url.scheme() == "http") || (url.scheme() == "ftp") {
+            if let Some(host_str) = url.host_str() {
+                let fetcher = client.new_fetcher().await?;
+                return Ok(HttpSource::new(
+                    host_str.to_string(),
+                    fetcher,
+                    HttpOptions::new().since(discover.since),
+                )
+                .into());
+            }
+        }
+    }
+
+    if let Err(e) = url_parse_result.clone() {
+        match e {
+            url::ParseError::RelativeUrlWithoutBase => {
+                log::info!("The URl does not have scheme, will treat it as base domain");
+                let fetcher = client.new_fetcher().await?;
+                return Ok(HttpSource::new(
+                    discover.source.clone(),
+                    fetcher,
+                    HttpOptions::new().since(discover.since),
+                )
+                .into());
+            }
+            _ => {
+                return Err(anyhow::Error::msg(format!(
+                    "This is not a standard URL {}, please check again carefully. : {:?}",
+                    discover.source.clone(),
+                    e
+                )))
+            }
+        }
+    }
+
+    // When the scheme of the input URL is "file", it should be interpreted as a file path.
+    if discover.source.clone().starts_with("file://") {
+        if let Some(path) = discover.source.clone().strip_prefix("file://") {
+            return Ok(FileSource::new(path, FileOptions::new().since(discover.since))?.into());
+        } else {
             return Err(anyhow::Error::msg(format!(
-                "This URL does not meet the definition of provider metadata sources according to CSAF standards. The URL {} not begin with 'https://'.",
-                &discover.source
+                "This is not a standard path or the path does not exist. Please double-check carefully. : {}",
+                discover.source.clone()
             )));
         }
-        // use a URL
-        log::info!("Fully provided discovery URL: {}", discover.source.clone());
-        let fetcher = client.new_fetcher().await?;
-        Ok(HttpSource::new(
-            discover.source,
-            fetcher,
-            HttpOptions::new().since(discover.since),
-        )
-        .into())
     }
+    if discover.source.clone().starts_with("file:") {
+        if let Some(path) = discover.source.clone().strip_prefix("file:") {
+            return Ok(FileSource::new(path, FileOptions::new().since(discover.since))?.into());
+        } else {
+            return Err(anyhow::Error::msg(format!(
+                "This is not a standard path or the path does not exist. Please double-check carefully. : {}",
+                discover.source.clone()
+            )));
+        }
+    }
+    Err(anyhow::Error::msg(format!(
+        "This is not a standard URL or the path does not exist , please check again carefully. : {}",
+        discover.source.clone()
+    )))
 }
 
 /// Create a [`FilteringVisitor`] from a [`FilterConfig`].
