@@ -1,5 +1,6 @@
 use crate::{
     discover::{DiscoveredAdvisory, DistributionContext},
+    metadata_retriever::MetadataRetriever,
     model::metadata::ProviderMetadata,
     retrieve::RetrievedAdvisory,
     rolie::{RolieSource, SourceFile},
@@ -17,7 +18,7 @@ use time::{format_description::well_known::Rfc2822, OffsetDateTime};
 use url::{ParseError, Url};
 use walker_common::{
     changes::{self, ChangeEntry, ChangeSource},
-    fetcher::{self, DataProcessor, Fetcher, Json},
+    fetcher::{self, DataProcessor, Fetcher},
     retrieve::{RetrievalMetadata, RetrievedDigest, RetrievingDigest},
     utils::openpgp::PublicKey,
     validate::source::{Key, KeySource, KeySourceError},
@@ -43,12 +44,12 @@ impl HttpOptions {
 #[derive(Clone)]
 pub struct HttpSource {
     fetcher: Fetcher,
-    url: Url,
+    url: String,
     options: HttpOptions,
 }
 
 impl HttpSource {
-    pub fn new(url: Url, fetcher: Fetcher, options: HttpOptions) -> Self {
+    pub fn new(url: String, fetcher: Fetcher, options: HttpOptions) -> Self {
         Self {
             url,
             fetcher,
@@ -65,8 +66,12 @@ pub enum HttpSourceError {
     Url(#[from] ParseError),
     #[error("CSV error: {0}")]
     Csv(#[from] csv::Error),
+    #[error("securityTxt ParseError error: {0}")]
+    SecurityTextError(#[from] sectxtlib::ParseError),
     #[error("JSON parse error: {0}")]
     Json(#[from] serde_json::Error),
+    #[error("The provider metadata obtained from this URL is 'None': {0}")]
+    EmptyProviderMetadata(String),
 }
 
 impl From<changes::Error> for HttpSourceError {
@@ -84,11 +89,12 @@ impl Source for HttpSource {
     type Error = HttpSourceError;
 
     async fn load_metadata(&self) -> Result<ProviderMetadata, Self::Error> {
-        Ok(self
-            .fetcher
-            .fetch::<Json<ProviderMetadata>>(self.url.clone())
-            .await?
-            .into_inner())
+        let metadata_retriever = MetadataRetriever {
+            base_url: self.url.clone(),
+            fetcher: self.fetcher.clone(),
+        };
+
+        metadata_retriever.retrieve().await
     }
 
     async fn load_index(

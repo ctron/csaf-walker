@@ -2,14 +2,13 @@ use crate::cmd::DiscoverArguments;
 use csaf_walker::{
     discover::DiscoveredVisitor,
     retrieve::RetrievingVisitor,
-    source::{DispatchSource, FileOptions, FileSource, HttpOptions, HttpSource},
+    source::DispatchSource,
+    source::{input_string_dispatch, DiscoverConfig},
     validation::{ValidatedVisitor, ValidationVisitor},
     visitors::filter::{FilterConfig, FilteringVisitor},
     walker::Walker,
 };
-use reqwest::Url;
 use std::future::Future;
-use std::time::SystemTime;
 use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
     progress::Progress,
@@ -47,39 +46,14 @@ where
     .await
 }
 
-pub struct DiscoverConfig {
-    /// The URL to locate the provider metadata.
-    ///
-    /// If `full` is `true`, this must be the full path to the `provider-metadata.json`, otherwise
-    /// it `/.well-known/csaf/provider-metadata.json` will be appended.
-    pub source: String,
-
-    /// Mark the source as a full path to the metadata.
-    pub full: bool,
-
-    /// Only report documents which have changed since the provided date. If a document has no
-    /// change information, or this field is [`None`], it wil always be reported.
-    pub since: Option<SystemTime>,
-}
-
-impl DiscoverConfig {
-    pub fn with_since(mut self, since: impl Into<Option<SystemTime>>) -> Self {
-        self.since = since.into();
-        self
-    }
-}
-
 impl From<DiscoverArguments> for DiscoverConfig {
     fn from(value: DiscoverArguments) -> Self {
         Self {
             since: None,
             source: value.source,
-            full: value.full,
         }
     }
 }
-
-const WELL_KNOWN_METADATA: &str = ".well-known/csaf/provider-metadata.json";
 
 pub async fn new_source(
     discover: impl Into<DiscoverConfig>,
@@ -87,22 +61,7 @@ pub async fn new_source(
 ) -> anyhow::Result<DispatchSource> {
     let discover = discover.into();
 
-    match Url::parse(&discover.source) {
-        Ok(mut url) => {
-            if !discover.full && !url.path().ends_with("/provider-metadata.json") {
-                url = url.join(WELL_KNOWN_METADATA)?;
-                log::info!("Discovery URL: {url}");
-            } else {
-                log::info!("Fully provided discovery URL: {url}");
-            }
-            let fetcher = client.new_fetcher().await?;
-            Ok(HttpSource::new(url, fetcher, HttpOptions::new().since(discover.since)).into())
-        }
-        Err(_) => {
-            // use as path
-            Ok(FileSource::new(&discover.source, FileOptions::new().since(discover.since))?.into())
-        }
-    }
+    input_string_dispatch(discover, client.new_fetcher().await?).await
 }
 
 /// Create a [`FilteringVisitor`] from a [`FilterConfig`].
