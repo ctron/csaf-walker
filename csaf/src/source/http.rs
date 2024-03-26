@@ -1,6 +1,6 @@
-use crate::metadata_retriever::MetadataRetriever;
 use crate::{
     discover::{DiscoveredAdvisory, DistributionContext},
+    metadata_retriever::MetadataRetriever,
     model::metadata::ProviderMetadata,
     retrieve::RetrievedAdvisory,
     rolie::{RolieSource, SourceFile},
@@ -23,8 +23,6 @@ use walker_common::{
     utils::openpgp::PublicKey,
     validate::source::{Key, KeySource, KeySourceError},
 };
-
-pub const WELL_KNOWN_METADATA: &str = ".well-known/csaf/provider-metadata.json";
 
 #[non_exhaustive]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

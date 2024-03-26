@@ -1,9 +1,9 @@
 use crate::cmd::DiscoverArguments;
-use csaf_walker::source::{input_string_dispatch, DiscoverConfig};
 use csaf_walker::{
     discover::DiscoveredVisitor,
     retrieve::RetrievingVisitor,
     source::DispatchSource,
+    source::{input_string_dispatch, DiscoverConfig},
     validation::{ValidatedVisitor, ValidationVisitor},
     visitors::filter::{FilterConfig, FilteringVisitor},
     walker::Walker,

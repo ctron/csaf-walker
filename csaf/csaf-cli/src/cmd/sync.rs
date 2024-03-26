@@ -2,9 +2,9 @@ use crate::{
     cmd::{DiscoverArguments, FilterArguments, SkipArguments, StoreArguments},
     common::walk_visitor,
 };
-use csaf_walker::source::DiscoverConfig;
 use csaf_walker::{
     retrieve::RetrievingVisitor,
+    source::DiscoverConfig,
     validation::ValidationVisitor,
     visitors::{skip::SkipExistingVisitor, store::StoreVisitor},
 };

@@ -60,7 +60,9 @@ pub mod retrieve;
 pub mod rolie;
 pub mod source;
 pub mod validation;
+#[rustfmt::skip]
 pub mod visitors;
+#[rustfmt::skip]
 pub mod walker;
 #[cfg(feature = "csaf")]
 pub mod verification;
