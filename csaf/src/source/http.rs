@@ -1,4 +1,4 @@
-use crate::metadata_retriever::{DetectionType, MetadataRetriever};
+use crate::metadata_retriever::MetadataRetriever;
 use crate::{
     discover::{DiscoveredAdvisory, DistributionContext},
     model::metadata::ProviderMetadata,
@@ -96,33 +96,7 @@ impl Source for HttpSource {
             fetcher: self.fetcher.clone(),
         };
 
-        if self.url.contains(WELL_KNOWN_METADATA) {
-            if let Some(metadata) = metadata_retriever
-                .fetch_metadata_from_url(Url::parse(self.url.clone().as_str())?)
-                .await?
-            {
-                return Ok(metadata.into_inner());
-            } else {
-                return Err(Self::Error::EmptyProviderMetadata(self.url.clone()));
-            }
-        }
-
-        match metadata_retriever.retrieve().await? {
-            DetectionType::WellKnowPath(provider_metadata) => {
-                log::info!("Finally get provider metadata from fully provided discovery URL");
-                Ok(provider_metadata)
-            }
-            DetectionType::DnsPath(provider_metadata) => {
-                log::info!("Finally get provider metadata from dns path of provided discovery URL");
-                Ok(provider_metadata)
-            }
-            DetectionType::SecurityTextPath(provider_metadata) => {
-                log::info!(
-                    "Finally get provider metadata from sercurity text of provided discovery URL"
-                );
-                Ok(provider_metadata)
-            }
-        }
+        metadata_retriever.retrieve().await
     }
 
     async fn load_index(
