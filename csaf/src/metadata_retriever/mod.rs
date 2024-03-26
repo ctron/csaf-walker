@@ -1,5 +1,5 @@
 use crate::model::metadata::ProviderMetadata;
-use crate::source::{HttpSourceError, WELL_KNOWN_METADATA};
+use crate::source::HttpSourceError;
 use sectxtlib::SecurityTxt;
 use walker_common::fetcher;
 use walker_common::fetcher::{Fetcher, Json};
@@ -49,14 +49,17 @@ impl MetadataRetriever {
     pub async fn retrieve_metadata_by_well_known_url(
         &self,
     ) -> Result<Option<Json<ProviderMetadata>>, Error> {
-        log::trace!("Starting retrieve provider metadata from full provided discovery URL");
-        let url = format!("https://{}/{}", self.base_url, WELL_KNOWN_METADATA);
+        log::trace!("Initiating retrieval of provider metadata from the provided discovery URL.");
+        let url = format!(
+            "https://{}/{}",
+            self.base_url, ".well-known/csaf/provider-metadata.json"
+        );
         self.fetch_metadata_from_url(url).await
     }
 
     /// Retrieve provider metadata through the DNS path of provided URL.
     pub async fn retrieve_metadata_by_dns(&self) -> Result<Option<Json<ProviderMetadata>>, Error> {
-        log::trace!("Starting retrieve provider_metadata from DNS path of provided discovery URL ");
+        log::trace!("Initiating retrieval of provider metadata from the DNS path of the provided discovery URL. ");
         let url = format!("https://csaf.data.security.{}", self.base_url);
         match self.fetch_metadata_from_url(url.clone()).await {
             Ok(provider_metadata) => Ok(provider_metadata),
@@ -64,7 +67,7 @@ impl MetadataRetriever {
                 Error::Fetcher(fetch_error) => match fetch_error {
                     fetcher::Error::Request(reqwest_error) => {
                         if reqwest_error.is_connect() {
-                            log::info!("When DNS path URL {} fetch provider metadata fails due to a fetch error, which is a DNS error, the process will proceed to the next discovery rule. {:?}", url.clone(), reqwest_error,);
+                            log::info!("If the retrieval of provider metadata fails from the DNS path URL {} due to a fetch error, specifically a DNS error, the process will proceed to the next discovery rule. {:?}", url.clone(), reqwest_error,);
                             Ok(None)
                         } else {
                             Err(Error::Fetcher(fetcher::Error::Request(reqwest_error)))
@@ -76,13 +79,13 @@ impl MetadataRetriever {
         }
     }
 
-    /// Retrieve provider metadata through the security text of provided URL.
+    /// Retrieving provider metadata via the security text from the provided URL.
     pub async fn retrieve_metadata_by_security_text(
         &self,
         security_txt_path: &str,
     ) -> Result<Option<Json<ProviderMetadata>>, Error> {
         log::trace!(
-            "Starting retrieve provider metadata from security text of provided discovery URL "
+            "Initiating retrieval of provider metadata from the security text of the provided discovery URL. "
         );
         let security_text_url = format!("https://{}/{}", self.base_url, security_txt_path);
 

@@ -36,7 +36,7 @@ pub trait Source: Clone {
 }
 
 pub struct DiscoverConfig {
-    /// The URL to locate the provider metadata or as a base domain, in order to facilitate automatic querying of provider metadata URL..
+    /// The URL serves as the locator for the provider metadata or acts as a base domain, enabling automatic querying of the provider metadata URL.
     pub source: String,
 
     /// Only report documents which have changed since the provided date. If a document has no
@@ -57,7 +57,6 @@ pub async fn input_string_dispatch(
 ) -> anyhow::Result<DispatchSource> {
     let url_parse_result = Url::parse(discover.source.as_str());
     if let Ok(url) = url_parse_result.clone() {
-        log::info!("The URl {:?}", url.clone());
         if url.scheme() == "https" {
             // handle direct URL case
             log::info!("Fully provided discovery URL: {}", discover.source.clone());
@@ -84,7 +83,7 @@ pub async fn input_string_dispatch(
     if let Err(e) = url_parse_result.clone() {
         match e {
             url::ParseError::RelativeUrlWithoutBase => {
-                log::info!("The URl does not have scheme, will treat it as base domain");
+                log::info!("If the URL lacks a scheme, it will be treated as a base domain.");
                 return Ok(HttpSource::new(
                     discover.source.clone(),
                     fetcher,

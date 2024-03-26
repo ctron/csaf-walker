@@ -37,7 +37,6 @@ csaf-walker = { version = "0.6.0-alpha.8", path = "..", default-features = false
 
 # just there for the feature
 openssl = { version = "0.10", optional = true }
-url = "2.5.0"
 
 [features]
 default = ["crypto-nettle"]
