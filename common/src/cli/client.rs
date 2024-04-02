@@ -8,7 +8,7 @@ pub struct ClientArguments {
     pub timeout: humantime::Duration,
 
     /// Per-request retries count
-    #[arg(short, long, default_value = "50")]
+    #[arg(short, long, default_value = "5")]
     pub retries: usize,
 }
 

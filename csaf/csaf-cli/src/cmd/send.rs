@@ -1,10 +1,9 @@
 use crate::{
     cmd::{DiscoverArguments, FilterArguments, SkipArguments},
-    common::walk_visitor,
+    common::{walk_visitor, DiscoverConfig},
 };
 use csaf_walker::{
-    retrieve::RetrievingVisitor, source::DiscoverConfig, validation::ValidationVisitor,
-    visitors::skip::SkipFailedVisitor,
+    retrieve::RetrievingVisitor, validation::ValidationVisitor, visitors::skip::SkipFailedVisitor,
 };
 use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
