@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 pub mod discover;
 pub mod download;
+pub mod metadata;
 pub mod parse;
 pub mod report;
 pub mod scan;

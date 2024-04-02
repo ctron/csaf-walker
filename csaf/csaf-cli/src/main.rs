@@ -3,8 +3,8 @@ mod common;
 
 use clap::Parser;
 use cmd::{
-    discover::Discover, download::Download, parse::Parse, report::Report, scan::Scan, send::Send,
-    sync::Sync,
+    discover::Discover, download::Download, metadata::Metadata, parse::Parse, report::Report,
+    scan::Scan, send::Send, sync::Sync,
 };
 use indicatif::MultiProgress;
 use indicatif_log_bridge::LogWrapper;
@@ -46,6 +46,7 @@ enum Command {
     Sync(Sync),
     Report(Report),
     Send(Send),
+    Metadata(Metadata),
 }
 
 impl Command {
@@ -58,6 +59,7 @@ impl Command {
             Command::Sync(cmd) => cmd.run(progress).await,
             Command::Report(cmd) => cmd.run(progress).await,
             Command::Send(cmd) => cmd.run(progress).await,
+            Command::Metadata(cmd) => cmd.run().await,
         }
     }
 }
@@ -121,7 +123,7 @@ impl Cli {
 
         log::debug!("Setup complete, start processing");
 
-        let time = MeasureTime::new(self.quiet);
+        let time = MeasureTime::new();
         self.command.run(progress).await?;
         drop(time);
 

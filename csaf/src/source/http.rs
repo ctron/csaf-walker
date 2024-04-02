@@ -1,6 +1,7 @@
+use crate::metadata::MetadataSource;
 use crate::{
     discover::{DiscoveredAdvisory, DistributionContext},
-    metadata_retriever::MetadataRetriever,
+    metadata,
     model::metadata::ProviderMetadata,
     retrieve::RetrievedAdvisory,
     rolie::{RolieSource, SourceFile},
@@ -44,14 +45,18 @@ impl HttpOptions {
 #[derive(Clone)]
 pub struct HttpSource {
     fetcher: Fetcher,
-    url: String,
+    metadata_source: Arc<dyn MetadataSource>,
     options: HttpOptions,
 }
 
 impl HttpSource {
-    pub fn new(url: String, fetcher: Fetcher, options: HttpOptions) -> Self {
+    pub fn new<M: MetadataSource + 'static>(
+        metadata: M,
+        fetcher: Fetcher,
+        options: HttpOptions,
+    ) -> Self {
         Self {
-            url,
+            metadata_source: Arc::new(metadata),
             fetcher,
             options,
         }
@@ -60,18 +65,16 @@ impl HttpSource {
 
 #[derive(Debug, thiserror::Error)]
 pub enum HttpSourceError {
+    #[error("Metadata discovery error: {0}")]
+    Metadata(#[from] metadata::Error),
     #[error("Fetch error: {0}")]
     Fetcher(#[from] fetcher::Error),
     #[error("URL error: {0}")]
     Url(#[from] ParseError),
     #[error("CSV error: {0}")]
     Csv(#[from] csv::Error),
-    #[error("securityTxt ParseError error: {0}")]
-    SecurityTextError(#[from] sectxtlib::ParseError),
     #[error("JSON parse error: {0}")]
     Json(#[from] serde_json::Error),
-    #[error("The provider metadata obtained from this URL is 'None': {0}")]
-    EmptyProviderMetadata(String),
 }
 
 impl From<changes::Error> for HttpSourceError {
@@ -89,12 +92,7 @@ impl Source for HttpSource {
     type Error = HttpSourceError;
 
     async fn load_metadata(&self) -> Result<ProviderMetadata, Self::Error> {
-        let metadata_retriever = MetadataRetriever {
-            base_url: self.url.clone(),
-            fetcher: self.fetcher.clone(),
-        };
-
-        metadata_retriever.retrieve().await
+        Ok(self.metadata_source.load_metadata(&self.fetcher).await?)
     }
 
     async fn load_index(

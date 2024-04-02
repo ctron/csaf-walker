@@ -2,11 +2,17 @@
 
 use std::time::{Duration, SystemTime};
 
-pub struct MeasureTime(SystemTime, bool);
+pub struct MeasureTime(SystemTime);
 
 impl MeasureTime {
-    pub fn new(quiet: bool) -> Self {
-        Self(SystemTime::now(), quiet)
+    pub fn new() -> Self {
+        Self(SystemTime::now())
+    }
+}
+
+impl Default for MeasureTime {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -16,13 +22,9 @@ impl Drop for MeasureTime {
             Ok(duration) => {
                 // truncate to seconds, good enough
                 let duration = Duration::from_secs(duration.as_secs());
-                if !self.1 {
-                    println!("Processing took {}", humantime::format_duration(duration))
-                } else {
-                    log::info!("Processing took {}", humantime::format_duration(duration))
-                }
+                log::info!("Processing took {}", humantime::format_duration(duration))
             }
-            Err(err) => log::info!("Unable to measure processing time: {err}"),
+            Err(err) => log::warn!("Unable to measure processing time: {err}"),
         }
     }
 }

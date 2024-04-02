@@ -25,6 +25,7 @@
 //! ```rust
 //! use anyhow::Result;
 //! use url::Url;
+//! use csaf_walker::metadata::MetadataRetriever;
 //! use csaf_walker::source::HttpSource;
 //! use csaf_walker::walker::Walker;
 //! use csaf_walker::retrieve::RetrievingVisitor;
@@ -33,8 +34,8 @@
 //!
 //! async fn walk() -> Result<()> {
 //!   let fetcher = Fetcher::new(Default::default()).await?;
-//!   let url = "https://www.redhat.com/.well-known/csaf/provider-metadata.json".to_string();
-//!   let source = HttpSource::new(url, fetcher, Default::default());
+//!   let metadata = MetadataRetriever::new("redhat.com");
+//!   let source = HttpSource::new(metadata, fetcher, Default::default());
 //!
 //!   Walker::new(source.clone())
 //!     .walk(RetrievingVisitor::new(
@@ -53,16 +54,15 @@
 //! ```
 
 pub mod discover;
-pub mod metadata_retriever;
+pub mod metadata;
 pub mod model;
 pub mod report;
 pub mod retrieve;
 pub mod rolie;
 pub mod source;
 pub mod validation;
-#[rustfmt::skip]
 pub mod visitors;
-#[rustfmt::skip]
 pub mod walker;
+
 #[cfg(feature = "csaf")]
 pub mod verification;

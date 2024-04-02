@@ -115,6 +115,7 @@ impl Fetcher {
             match self.fetch_once(url.clone(), &processor).await {
                 Ok(result) => break Ok(result),
                 Err(err) => {
+                    log::info!("Failed to retrieve (retries: {retries}): {err}");
                     if retries > 0 {
                         // TODO: consider adding a back-off delay
                         retries -= 1;

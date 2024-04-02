@@ -117,7 +117,7 @@ impl Cli {
 
         log::debug!("Setup complete, start processing");
 
-        let time = MeasureTime::new(self.quiet);
+        let time = MeasureTime::new();
         self.command.run(progress).await?;
         drop(time);
 
