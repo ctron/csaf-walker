@@ -208,7 +208,18 @@ fn dns_not_found(err: &fetcher::Error) -> bool {
 
     // TODO: There's room for improvement. However, we get the DNS error as as custom kind
 
-    err.is_connect() && err.to_string().ends_with(": Name or service not known")
+    if !err.is_connect() {
+        return false;
+    }
+
+    let err = err.to_string();
+
+    // linux
+    err.ends_with(": Name or service not known")
+        // macos
+        || err.ends_with(": nodename nor servname provided, or not known")
+        // windows
+        || err == "No such host is known."
 }
 
 #[cfg(test)]
