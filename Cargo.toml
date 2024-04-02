@@ -17,3 +17,4 @@ tag-name = "v{{version}}"
 # csaf = { path = "../csaf-rs" }
 #csaf = { git = "https://github.com/ctron/csaf-rs", rev = "0bbc262c76c50f7ec918e65d1cf9bf4c5dd564d7" }
 #cyclonedx-bom = { path = "../cyclonedx-rust-cargo/cyclonedx-bom" }
+sectxtlib = { git = "https://github.com/ctron/sectxt", rev = "3b63fce9130208214dc1e4e0adcd4855d993db51" } # FIXME: awaiting fix of https://github.com/eikendev/sectxt/issues/16
