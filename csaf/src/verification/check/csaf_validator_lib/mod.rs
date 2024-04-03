@@ -7,8 +7,8 @@ use anyhow::anyhow;
 use async_trait::async_trait;
 use csaf::Csaf;
 use deno_core::{
-    _ops::RustToV8NoScope, op2, serde_v8, v8, Extension, JsRuntime, ModuleCodeString, Op,
-    PollEventLoopOptions, RuntimeOptions, StaticModuleLoader,
+    _ops::RustToV8NoScope, op2, serde_v8, v8, Extension, JsRuntime, Op, PollEventLoopOptions,
+    RuntimeOptions, StaticModuleLoader,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -57,16 +57,13 @@ impl InnerCheck {
         };
 
         let mut runtime = JsRuntime::new(RuntimeOptions {
-            module_loader: Some(Rc::new(StaticModuleLoader::with(
-                specifier,
-                ModuleCodeString::Static(code),
-            ))),
+            module_loader: Some(Rc::new(StaticModuleLoader::with(specifier, code))),
             extensions: vec![ext],
             ..Default::default()
         });
 
         let module = Url::parse(MODULE_ID)?;
-        let mod_id = runtime.load_main_module(&module, None).await?;
+        let mod_id = runtime.load_main_es_module(&module).await?;
         let result = runtime.mod_evaluate(mod_id);
         runtime
             .run_event_loop(PollEventLoopOptions::default())
