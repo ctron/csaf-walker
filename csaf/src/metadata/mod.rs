@@ -140,7 +140,6 @@ impl MetadataRetriever {
         path: &str,
     ) -> Result<Option<ProviderMetadata>, Error> {
         let url = format!("https://{}/{path}", self.base_url);
-
         log::debug!("Trying to retrieve by security.txt approach: {url}");
 
         if let Some(url) = Self::get_metadata_url_from_security_text(fetcher, url).await? {
@@ -161,7 +160,6 @@ impl MetadataRetriever {
 impl MetadataSource for MetadataRetriever {
     async fn load_metadata(&self, fetcher: &Fetcher) -> Result<ProviderMetadata, Error> {
         // try a full URL first
-
         if let Some(metadata) = self.approach_full_url(fetcher).await? {
             return Ok(metadata);
         }
@@ -178,7 +176,7 @@ impl MetadataSource for MetadataRetriever {
         // new security.txt location
 
         if let Some(metadata) = self
-            .approach_security_txt(fetcher, "/.well-known/security.txt")
+            .approach_security_txt(fetcher, ".well-known/security.txt")
             .await?
         {
             return Ok(metadata);
@@ -186,7 +184,7 @@ impl MetadataSource for MetadataRetriever {
 
         // legacy security.txt location
 
-        if let Some(metadata) = self.approach_security_txt(fetcher, "/security.txt").await? {
+        if let Some(metadata) = self.approach_security_txt(fetcher, "security.txt").await? {
             return Ok(metadata);
         }
 
