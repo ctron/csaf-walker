@@ -14,7 +14,8 @@ Commands:
   discover  Discover advisories, just lists the URLs
   sync      Sync only what changed, and alidate
   report    Analyze (and report) the state of the data
-  send      Sync only what changed, and don't validate
+  send      Walk a source and send validated/retrieved documents to a sink
+  metadata  Discover provider metadata
   help      Print this message or the help of the given subcommand(s)
 ```
 
@@ -42,7 +43,7 @@ Discover and download CSAF documents.
 Discover, download, and validate CSAF documents.
 
 This works similar to the `download` command, but will also perform some integrity validation (like digest, signatures).
-It will however not verify the content of documents.
+It will, however, not verify the content of documents.
 
 ### Report
 
@@ -58,6 +59,10 @@ Discover, download, validate, and send CSAF documents to a remote endpoint.
 
 Instead of storing content locally, this forwards content to a remote endpoint.
 
+### Metadata
+
+Take a source and try to discover the provider metadata. Showing the resulting JSON.
+
 ## Common options
 
 ### Sources
@@ -68,8 +73,9 @@ as a file system source.
 
 The idea behind that is that it is possible to split up the process of downloading and processing documents.
 
-If a source string can be parsed as a URL, it is processes as an HTTP/HTTPS source. Otherwise, it will be used
-as a file system location.
+If a source string can be parsed as an `https` URL, it must point to the provider metadata. If the source string is
+a `file` URL, it needs to point to a local file system location created by `sync` or `download`. Otherwise, the source
+must be a domain name that will be used for discovering the CSAF provider metadata according to the specification.
 
 **NOTE:** The structure of the filesystem storage is currently not considered an API. It is only guaranteed that
 whatever is store can be read back by tools of the same version. Also, is it currently not a format which can be
@@ -77,7 +83,7 @@ hosted directly as a new CSAF repository.
 
 ### Signature verification
 
-When signatures get verified it may be possible that signature algorithms are considered "too old". If that's the case,
+When signatures get verified, it may be possible that signature algorithms are considered "too old". If that's the case,
 and you still want to allow them, it is possible to provide the "policy date", which sets the defaults for what is
 still allowed (also see: <https://docs.rs/sequoia-policy-config/latest/sequoia_policy_config/>).
 

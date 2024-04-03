@@ -2,11 +2,12 @@ use crate::common::{new_source, DiscoverConfig};
 use colored_json::write_colored_json;
 use csaf_walker::metadata::MetadataRetriever;
 use csaf_walker::{metadata, model::metadata::ProviderMetadata, source::Source};
+use csaf_walker::{
 use std::fmt::Display;
 use std::io::stdout;
 use walker_common::cli::client::ClientArguments;
 
-/// Discover advisories, just lists the URLs.
+/// Discover provider metadata.
 #[derive(clap::Args, Debug)]
 pub struct Metadata {
     #[command(flatten)]
