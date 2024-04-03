@@ -1,5 +1,8 @@
 use crate::model::metadata::ProviderMetadata;
 use async_trait::async_trait;
+use hickory_resolver::{
+    error::ResolveErrorKind, name_server::TokioConnectionProvider, AsyncResolver,
+};
 use sectxtlib::SecurityTxt;
 use url::Url;
 use walker_common::fetcher::{self, Fetcher, Json};
@@ -12,8 +15,8 @@ pub enum Error {
     Fetch(#[from] fetcher::Error),
     #[error("unable to discover metadata")]
     NotFound,
-    #[error("dns request failed")]
-    Dns(#[source] std::io::Error),
+    #[error("DNS request failed: {0}")]
+    Dns(#[from] hickory_resolver::error::ResolveError),
 }
 
 #[async_trait(?Send)]
@@ -112,21 +115,47 @@ impl MetadataRetriever {
     }
 
     /// Retrieve provider metadata through the DNS path of provided URL.
+    ///
+    /// As it is hard to detect a "host not found" error, compared to any other connection error,
+    /// we do a DNS pre-flight check. If the hostname resolves into an IP address, we assume the
+    /// following HTTP request should not fail due to a "host not found" error.
     pub async fn approach_dns(&self, fetcher: &Fetcher) -> Result<Option<ProviderMetadata>, Error> {
-        let url = format!("https://csaf.data.security.{}", self.base_url);
+        let host = format!("csaf.data.security.{}", self.base_url);
 
-        log::debug!("Trying to retrieve by DNS approach: {url}");
+        log::debug!("Trying to retrieve by DNS approach: {host}");
+
+        // DNS pre-flight check
+
+        #[cfg(not(any(unix, target_os = "windows")))]
+        let resolver = AsyncResolver::new(
+            hickory_resolver::config::ResolverConfig::default(),
+            hickory_resolver::config::ResolverOpts::default(),
+            TokioConnectionProvider::default(),
+        )?;
+        #[cfg(any(unix, target_os = "windows"))]
+        let resolver = AsyncResolver::from_system_conf(TokioConnectionProvider::default())?;
+
+        match resolver.lookup_ip(&host).await {
+            Ok(result) => {
+                if result.iter().count() == 0 {
+                    return Ok(None);
+                }
+            }
+            Err(err) if matches!(err.kind(), ResolveErrorKind::NoRecordsFound { .. }) => {
+                return Ok(None);
+            }
+            Err(err) => {
+                return Err(err.into());
+            }
+        }
+
+        // fetch content
+
+        let url = format!("https://{host}");
 
         Ok(fetcher
             .fetch::<Option<Json<ProviderMetadata>>>(url)
-            .await
-            .or_else(|err| {
-                if dns_not_found(&err) {
-                    Ok(None)
-                } else {
-                    Err(err)
-                }
-            })?
+            .await?
             .map(|value| value.into_inner()))
     }
 
@@ -200,26 +229,6 @@ impl MetadataSource for MetadataRetriever {
 
         Err(Error::NotFound)
     }
-}
-
-/// check if this is a "dns not found" condition
-fn dns_not_found(err: &fetcher::Error) -> bool {
-    let fetcher::Error::Request(err) = err;
-
-    // TODO: There's room for improvement. However, we get the DNS error as as custom kind
-
-    if !err.is_connect() {
-        return false;
-    }
-
-    let err = err.to_string();
-
-    // linux
-    err.ends_with(": Name or service not known")
-        // macos
-        || err.ends_with(": nodename nor servname provided, or not known")
-        // windows
-        || err == "No such host is known."
 }
 
 #[cfg(test)]
