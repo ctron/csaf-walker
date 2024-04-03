@@ -1,8 +1,10 @@
 use crate::common::{new_source, DiscoverConfig};
 use colored_json::write_colored_json;
-use csaf_walker::metadata::MetadataRetriever;
-use csaf_walker::{metadata, model::metadata::ProviderMetadata, source::Source};
 use csaf_walker::{
+    metadata::{self, MetadataRetriever},
+    model::metadata::ProviderMetadata,
+    source::Source,
+};
 use std::fmt::Display;
 use std::io::stdout;
 use walker_common::cli::client::ClientArguments;
