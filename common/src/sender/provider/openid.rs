@@ -1,6 +1,7 @@
 use super::{Credentials, Expires, TokenProvider};
-use crate::sender::Error;
+use crate::{sender::Error, utils::pem::add_cert};
 use core::fmt::{self, Debug, Formatter};
+use std::path::PathBuf;
 use std::{ops::Deref, sync::Arc};
 use tokio::sync::RwLock;
 
@@ -38,13 +39,20 @@ pub struct OpenIdTokenProviderConfigArguments {
         default_value = "30s"
     )]
     pub refresh_before: humantime::Duration,
-    /// Allows to use TLS in an insecure more (DANGER!)
+    /// Allows adding TLS in an insecure more (DANGER!)
     #[arg(
         id = "oidc_tls_insecure",
         long = "oidc-tls-insecure",
         default_value = "false"
     )]
     pub tls_insecure: bool,
+    /// Allows adding additional trust anchors
+    #[arg(
+        id = "oidc_tls_ca_certificates",
+        long = "oidc-tls-ca-certificate",
+        action = clap::ArgAction::Append,
+    )]
+    pub tls_ca_certificates: Vec<PathBuf>,
 }
 
 #[cfg(feature = "clap")]
@@ -62,6 +70,7 @@ pub struct OpenIdTokenProviderConfig {
     pub issuer_url: String,
     pub refresh_before: humantime::Duration,
     pub tls_insecure: bool,
+    pub tls_ca_certificates: Vec<PathBuf>,
 }
 
 #[cfg(feature = "clap")]
@@ -86,6 +95,7 @@ impl OpenIdTokenProviderConfig {
                     issuer_url,
                     refresh_before: arguments.refresh_before,
                     tls_insecure: arguments.tls_insecure,
+                    tls_ca_certificates: arguments.tls_ca_certificates,
                 })
             }
             _ => None,
@@ -141,6 +151,11 @@ impl OpenIdTokenProvider {
             client = client
                 .danger_accept_invalid_hostnames(true)
                 .danger_accept_invalid_certs(true);
+        }
+
+        for cert in config.tls_ca_certificates {
+            client = add_cert(client, &cert)
+                .with_context(|| format!("adding trust anchor: {}", cert.display()))?;
         }
 
         let client = openid::Client::discover_with_client(
