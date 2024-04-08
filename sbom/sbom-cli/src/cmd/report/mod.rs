@@ -1,13 +1,10 @@
-mod render;
-
 use crate::{cmd::DiscoverArguments, common::walk_visitor};
 use reqwest::Url;
+use sbom_walker::report::render::{render_to_html, ReportRenderOption};
+use sbom_walker::report::{inspect, ReportResult, SbomError};
 use sbom_walker::{
-    discover::DiscoveredSbom,
-    model::sbom::ParseAnyError,
-    retrieve::{RetrievedSbom, RetrievingVisitor},
+    retrieve::RetrievingVisitor,
     validation::{ValidatedSbom, ValidationError, ValidationVisitor},
-    Sbom,
 };
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::{
@@ -15,24 +12,12 @@ use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
 };
-use tokio::task;
 use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
-    compression::decompress,
     progress::Progress,
     utils::url::Urlify,
     validate::ValidationOptions,
 };
-
-#[derive(Debug, thiserror::Error)]
-pub enum SbomError {
-    #[error(transparent)]
-    Validation(#[from] ValidationError),
-    #[error(transparent)]
-    Parse(#[from] ParseAnyError),
-    #[error(transparent)]
-    Decompression(anyhow::Error),
-}
 
 /// Analyze (and report) the state of the data.
 #[derive(clap::Args, Debug)]
@@ -64,12 +49,6 @@ pub struct RenderOptions {
     base_url: Option<Url>,
 }
 
-#[derive(Clone, Debug)]
-pub struct ReportResult<'d> {
-    pub errors: &'d BTreeMap<String, SbomError>,
-    pub total: usize,
-}
-
 impl Report {
     pub async fn run(self, progress: Progress) -> anyhow::Result<()> {
         let options: ValidationOptions = self.validation.into();
@@ -97,7 +76,7 @@ impl Report {
                                         Ok(sbom) => sbom.url.to_string(),
                                         Err(sbom) => sbom.url().to_string(),
                                     };
-                                    if let Err(err) = Self::inspect(sbom).await {
+                                    if let Err(err) = inspect(sbom).await {
                                         errors.lock().unwrap().insert(name, err);
                                     }
 
@@ -125,28 +104,14 @@ impl Report {
 
     fn render(render: RenderOptions, report: ReportResult) -> anyhow::Result<()> {
         let mut out = std::fs::File::create(&render.output)?;
-        render::render_to_html(&mut out, &report, &render)?;
-
-        Ok(())
-    }
-
-    async fn inspect(sbom: Result<ValidatedSbom, ValidationError>) -> Result<(), SbomError> {
-        let sbom = sbom?;
-        let ValidatedSbom {
-            retrieved:
-                RetrievedSbom {
-                    data,
-                    discovered: DiscoveredSbom { url, .. },
-                    ..
-                },
-        } = sbom;
-
-        let data = task::spawn_blocking(move || decompress(data, url.path()))
-            .await
-            .expect("unable to spawn decompression")
-            .map_err(SbomError::Decompression)?;
-
-        let _ = Sbom::try_parse_any(&data)?;
+        render_to_html(
+            &mut out,
+            &report,
+            &ReportRenderOption {
+                output: render.output,
+                base_url: render.base_url,
+            },
+        )?;
 
         Ok(())
     }
