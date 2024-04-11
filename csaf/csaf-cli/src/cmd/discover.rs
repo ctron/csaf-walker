@@ -1,7 +1,8 @@
 use crate::{
     cmd::{DiscoverArguments, FilterArguments},
-    common::{filter, new_source},
+    common::filter,
 };
+use csaf_walker::source::new_source;
 use csaf_walker::{discover::DiscoveredAdvisory, walker::Walker};
 use std::convert::Infallible;
 use walker_common::{cli::client::ClientArguments, progress::Progress};

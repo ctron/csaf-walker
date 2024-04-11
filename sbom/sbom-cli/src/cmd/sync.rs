@@ -1,7 +1,8 @@
 use crate::{
     cmd::{DiscoverArguments, SkipArguments, StoreArguments},
-    common::{walk_visitor, DiscoverConfig},
+    common::walk_visitor,
 };
+use sbom_walker::discover::DiscoverConfig;
 use sbom_walker::{
     retrieve::RetrievingVisitor,
     validation::ValidationVisitor,

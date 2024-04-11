@@ -1,15 +1,14 @@
 use crate::cmd::DiscoverArguments;
-use reqwest::Url;
 use sbom_walker::{
-    discover::DiscoveredVisitor,
+    discover::{DiscoverConfig, DiscoveredVisitor},
     model::metadata,
     retrieve::RetrievingVisitor,
-    source::{DispatchSource, FileOptions, FileSource, HttpOptions, HttpSource},
+    source::new_source,
+    source::DispatchSource,
     validation::{ValidatedVisitor, ValidationVisitor},
     walker::Walker,
 };
 use std::future::Future;
-use std::time::SystemTime;
 use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
     progress::Progress,
@@ -45,28 +44,6 @@ where
     .await
 }
 
-pub struct DiscoverConfig {
-    /// The URL to locate the provider metadata.
-    ///
-    /// If `full` is `true`, this must be the full path to the `provider-metadata.json`, otherwise
-    /// it `/.well-known/csaf/provider-metadata.json` will be appended.
-    pub source: String,
-
-    /// Only report documents which have changed since the provided date. If a document has no
-    /// change information, or this field is [`None`], it wil always be reported.
-    pub since: Option<SystemTime>,
-
-    /// Keys which can be used for validation
-    pub keys: Vec<metadata::Key>,
-}
-
-impl DiscoverConfig {
-    pub fn with_since(mut self, since: impl Into<Option<SystemTime>>) -> Self {
-        self.since = since.into();
-        self
-    }
-}
-
 impl From<DiscoverArguments> for DiscoverConfig {
     fn from(value: DiscoverArguments) -> Self {
         Self {
@@ -77,29 +54,6 @@ impl From<DiscoverArguments> for DiscoverConfig {
                 .into_iter()
                 .map(metadata::Key::from)
                 .collect::<Vec<_>>(),
-        }
-    }
-}
-
-pub async fn new_source(
-    discover: impl Into<DiscoverConfig>,
-    client: ClientArguments,
-) -> anyhow::Result<DispatchSource> {
-    let discover = discover.into();
-
-    match Url::parse(&discover.source) {
-        Ok(url) => {
-            let fetcher = client.new_fetcher().await?;
-            Ok(HttpSource::new(
-                url,
-                fetcher,
-                HttpOptions::new().since(discover.since).keys(discover.keys),
-            )
-            .into())
-        }
-        Err(_) => {
-            // use as path
-            Ok(FileSource::new(&discover.source, FileOptions::new().since(discover.since))?.into())
         }
     }
 }

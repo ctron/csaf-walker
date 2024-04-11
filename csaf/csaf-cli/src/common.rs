@@ -1,19 +1,13 @@
 use crate::cmd::DiscoverArguments;
-use anyhow::bail;
 use csaf_walker::{
-    discover::DiscoveredVisitor,
-    metadata::MetadataRetriever,
+    discover::{DiscoverConfig, DiscoveredVisitor},
     retrieve::RetrievingVisitor,
-    source::{DispatchSource, FileOptions, FileSource, HttpOptions, HttpSource},
+    source::{new_source, DispatchSource},
     validation::{ValidatedVisitor, ValidationVisitor},
     visitors::filter::{FilterConfig, FilteringVisitor},
     walker::Walker,
 };
-use fluent_uri::Uri;
-use reqwest::Url;
 use std::future::Future;
-use std::path::PathBuf;
-use std::time::SystemTime;
 use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
     progress::Progress,
@@ -51,25 +45,6 @@ where
     .await
 }
 
-pub struct DiscoverConfig {
-    /// The source to locate the provider metadata.
-    ///
-    /// This can be either a full path to a provider-metadata.json, or a base domain used by the
-    /// CSAF metadata discovery process.
-    pub source: String,
-
-    /// Only report documents which have changed since the provided date. If a document has no
-    /// change information, or this field is [`None`], it will always be reported.
-    pub since: Option<SystemTime>,
-}
-
-impl DiscoverConfig {
-    pub fn with_since(mut self, since: impl Into<Option<SystemTime>>) -> Self {
-        self.since = since.into();
-        self
-    }
-}
-
 impl From<DiscoverArguments> for DiscoverConfig {
     fn from(value: DiscoverArguments) -> Self {
         Self {
@@ -77,76 +52,6 @@ impl From<DiscoverArguments> for DiscoverConfig {
             source: value.source,
         }
     }
-}
-
-impl From<&str> for DiscoverConfig {
-    fn from(value: &str) -> Self {
-        Self {
-            since: None,
-            source: value.to_string(),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-enum SourceDescriptor {
-    File(PathBuf),
-    Url(Url),
-    Lookup(String),
-}
-
-impl SourceDescriptor {
-    pub fn from(source: &str) -> anyhow::Result<Self> {
-        match Uri::parse(source) {
-            Ok(uri) => match uri.scheme().map(|s| s.as_str()) {
-                Some("https") => Ok(SourceDescriptor::Url(Url::parse(source)?)),
-                Some("file") => Ok(SourceDescriptor::File(PathBuf::from(uri.path().as_str()))),
-                Some(other) => bail!("URLs with scheme '{other}' are not supported"),
-                None => Ok(SourceDescriptor::Lookup(source.to_string())),
-            },
-            Err(err) => {
-                log::debug!("Failed to handle source as URL: {err}");
-                Ok(SourceDescriptor::Lookup(source.to_string()))
-            }
-        }
-    }
-
-    pub async fn into_source(
-        self,
-        discover: DiscoverConfig,
-        client: ClientArguments,
-    ) -> anyhow::Result<DispatchSource> {
-        match self {
-            Self::File(path) => {
-                Ok(FileSource::new(path, FileOptions::new().since(discover.since))?.into())
-            }
-            Self::Url(url) => Ok(HttpSource::new(
-                url,
-                client.new_fetcher().await?,
-                HttpOptions::new().since(discover.since),
-            )
-            .into()),
-            Self::Lookup(source) => {
-                let fetcher = client.new_fetcher().await?;
-                Ok(HttpSource::new(
-                    MetadataRetriever::new(source),
-                    fetcher,
-                    HttpOptions::new().since(discover.since),
-                )
-                .into())
-            }
-        }
-    }
-}
-
-pub async fn new_source(
-    discover: impl Into<DiscoverConfig>,
-    client: ClientArguments,
-) -> anyhow::Result<DispatchSource> {
-    let discover = discover.into();
-
-    let descriptor = SourceDescriptor::from(&discover.source)?;
-    descriptor.into_source(discover, client).await
 }
 
 /// Create a [`FilteringVisitor`] from a [`FilterConfig`].
@@ -212,11 +117,12 @@ where
 #[cfg(test)]
 mod test {
 
-    use super::*;
+    use csaf_walker::source::SourceDescriptor;
+    use std::str::FromStr;
 
     #[tokio::test]
     async fn test_file_relative() {
-        let source = SourceDescriptor::from("file:../../foo/bar");
+        let source = SourceDescriptor::from_str("file:../../foo/bar");
         println!("Result: {source:?}");
         assert!(
             matches!(source, Ok(SourceDescriptor::File(path)) if path.to_string_lossy() == "../../foo/bar")
@@ -225,7 +131,7 @@ mod test {
 
     #[tokio::test]
     async fn test_file_absolute() {
-        let source = SourceDescriptor::from("file:/foo/bar");
+        let source = SourceDescriptor::from_str("file:/foo/bar");
         println!("Result: {source:?}");
         assert!(
             matches!(source, Ok(SourceDescriptor::File(path)) if path.to_string_lossy() == "/foo/bar")
@@ -234,7 +140,7 @@ mod test {
 
     #[tokio::test]
     async fn test_file_absolute_double() {
-        let source = SourceDescriptor::from("file:///foo/bar");
+        let source = SourceDescriptor::from_str("file:///foo/bar");
         println!("Result: {source:?}");
         assert!(
             matches!(source, Ok(SourceDescriptor::File(path)) if path.to_string_lossy() == "/foo/bar")
@@ -243,7 +149,7 @@ mod test {
 
     #[tokio::test]
     async fn test_file_absolute_windows() {
-        let source = SourceDescriptor::from("file:///c:/DATA/example");
+        let source = SourceDescriptor::from_str("file:///c:/DATA/example");
         println!("Result: {source:?}");
         assert!(
             matches!(source, Ok(SourceDescriptor::File(path)) if path.to_string_lossy() == "/c:/DATA/example")
@@ -252,14 +158,14 @@ mod test {
 
     #[tokio::test]
     async fn test_base() {
-        let source = SourceDescriptor::from("base.domain");
+        let source = SourceDescriptor::from_str("base.domain");
         println!("Result: {source:?}");
         assert!(matches!(source, Ok(SourceDescriptor::Lookup(base)) if base == "base.domain"));
     }
 
     #[tokio::test]
     async fn test_https() {
-        let source = SourceDescriptor::from("https://base.domain");
+        let source = SourceDescriptor::from_str("https://base.domain");
         println!("Result: {source:?}");
         assert!(
             matches!(source, Ok(SourceDescriptor::Url(url)) if url.as_str() == "https://base.domain/")
@@ -268,7 +174,7 @@ mod test {
 
     #[tokio::test]
     async fn test_gopher() {
-        let source = SourceDescriptor::from("gopher://base.domain");
+        let source = SourceDescriptor::from_str("gopher://base.domain");
         println!("Result: {source:?}");
         assert!(source.is_err());
     }

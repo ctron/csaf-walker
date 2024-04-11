@@ -1,8 +1,7 @@
-use crate::{cmd::DiscoverArguments, common::new_source};
-use sbom_walker::{discover::DiscoveredSbom, walker::Walker};
+use crate::cmd::DiscoverArguments;
+use sbom_walker::{discover::DiscoveredSbom, source::new_source, walker::Walker};
 use std::convert::Infallible;
-use walker_common::cli::client::ClientArguments;
-use walker_common::progress::Progress;
+use walker_common::{cli::client::ClientArguments, progress::Progress};
 
 /// Discover advisories, just lists the URLs.
 #[derive(clap::Args, Debug)]

@@ -1,7 +1,6 @@
 use super::{Credentials, Expires, TokenProvider};
-use crate::{sender::Error, utils::pem::add_cert};
+use crate::sender::Error;
 use core::fmt::{self, Debug, Formatter};
-use std::path::PathBuf;
 use std::{ops::Deref, sync::Arc};
 use tokio::sync::RwLock;
 
@@ -52,7 +51,7 @@ pub struct OpenIdTokenProviderConfigArguments {
         long = "oidc-tls-ca-certificate",
         action = clap::ArgAction::Append,
     )]
-    pub tls_ca_certificates: Vec<PathBuf>,
+    pub tls_ca_certificates: Vec<std::path::PathBuf>,
 }
 
 #[cfg(feature = "clap")]
@@ -70,7 +69,7 @@ pub struct OpenIdTokenProviderConfig {
     pub issuer_url: String,
     pub refresh_before: humantime::Duration,
     pub tls_insecure: bool,
-    pub tls_ca_certificates: Vec<PathBuf>,
+    pub tls_ca_certificates: Vec<std::path::PathBuf>,
 }
 
 #[cfg(feature = "clap")]
@@ -154,7 +153,7 @@ impl OpenIdTokenProvider {
         }
 
         for cert in config.tls_ca_certificates {
-            client = add_cert(client, &cert)
+            client = crate::utils::pem::add_cert(client, &cert)
                 .with_context(|| format!("adding trust anchor: {}", cert.display()))?;
         }
 
