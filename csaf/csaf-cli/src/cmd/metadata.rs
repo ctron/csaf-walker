@@ -1,9 +1,9 @@
-use crate::common::{new_source, DiscoverConfig};
 use colored_json::write_colored_json;
 use csaf_walker::{
+    discover::DiscoverConfig,
     metadata::{self, MetadataRetriever},
     model::metadata::ProviderMetadata,
-    source::Source,
+    source::{new_source, Source},
 };
 use std::fmt::Display;
 use std::io::stdout;

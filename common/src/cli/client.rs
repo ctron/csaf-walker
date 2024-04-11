@@ -12,13 +12,18 @@ pub struct ClientArguments {
     pub retries: usize,
 }
 
+impl From<ClientArguments> for FetcherOptions {
+    fn from(value: ClientArguments) -> Self {
+        FetcherOptions {
+            timeout: value.timeout.into(),
+            retries: value.retries,
+        }
+    }
+}
+
 impl ClientArguments {
     /// Create a new [`Fetcher`] from arguments.
     pub async fn new_fetcher(self) -> Result<Fetcher, anyhow::Error> {
-        Fetcher::new(FetcherOptions {
-            timeout: self.timeout.into(),
-            retries: self.retries,
-        })
-        .await
+        Fetcher::new(self.into()).await
     }
 }

@@ -17,10 +17,6 @@ pub mod sync;
 pub struct DiscoverArguments {
     /// Source to scan from, will be suffixed with "/.well-known/csaf/provider-metadata.json" unless "--full" is used.
     pub source: String,
-
-    #[arg(long)]
-    /// Treat the "source" as a full URL to the metadata.
-    pub full: bool,
 }
 
 #[derive(Debug, clap::Parser)]

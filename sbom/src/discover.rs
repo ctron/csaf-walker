@@ -1,5 +1,6 @@
 //! Discovering
 
+use crate::model::metadata;
 use crate::model::metadata::SourceMetadata;
 use async_trait::async_trait;
 use std::fmt::Debug;
@@ -8,6 +9,29 @@ use std::ops::Deref;
 use std::time::SystemTime;
 use url::Url;
 use walker_common::utils::url::Urlify;
+
+/// Discovery configuration
+pub struct DiscoverConfig {
+    /// The URL to locate the provider metadata.
+    ///
+    /// If `full` is `true`, this must be the full path to the `provider-metadata.json`, otherwise
+    /// it `/.well-known/csaf/provider-metadata.json` will be appended.
+    pub source: String,
+
+    /// Only report documents which have changed since the provided date. If a document has no
+    /// change information, or this field is [`None`], it wil always be reported.
+    pub since: Option<SystemTime>,
+
+    /// Keys which can be used for validation
+    pub keys: Vec<metadata::Key>,
+}
+
+impl DiscoverConfig {
+    pub fn with_since(mut self, since: impl Into<Option<SystemTime>>) -> Self {
+        self.since = since.into();
+        self
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DiscoveredSbom {

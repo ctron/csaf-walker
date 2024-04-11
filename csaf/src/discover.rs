@@ -9,6 +9,35 @@ use std::time::SystemTime;
 use url::Url;
 use walker_common::utils::url::Urlify;
 
+/// Discovery configuration
+pub struct DiscoverConfig {
+    /// The source to locate the provider metadata.
+    ///
+    /// This can be either a full path to a provider-metadata.json, or a base domain used by the
+    /// CSAF metadata discovery process.
+    pub source: String,
+
+    /// Only report documents which have changed since the provided date. If a document has no
+    /// change information, or this field is [`None`], it will always be reported.
+    pub since: Option<SystemTime>,
+}
+
+impl DiscoverConfig {
+    pub fn with_since(mut self, since: impl Into<Option<SystemTime>>) -> Self {
+        self.since = since.into();
+        self
+    }
+}
+
+impl From<&str> for DiscoverConfig {
+    fn from(value: &str) -> Self {
+        Self {
+            since: None,
+            source: value.to_string(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum DistributionContext {
     Directory(Url),

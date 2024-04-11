@@ -38,7 +38,7 @@ impl FileOptions {
     }
 }
 
-/// A file based source, possibly created by the [`crate::visitors::store::StoreVisitor`].
+/// A file-based source, possibly created by the [`crate::visitors::store::StoreVisitor`].
 #[derive(Clone)]
 pub struct FileSource {
     /// the path to the storage base, an absolute path

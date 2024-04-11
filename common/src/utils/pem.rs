@@ -1,6 +1,7 @@
 use reqwest::Certificate;
 use std::{fs::File, io::Read, path::Path};
 
+#[allow(unused)]
 pub fn add_cert<P: AsRef<Path>>(
     mut client: reqwest::ClientBuilder,
     cert: P,
