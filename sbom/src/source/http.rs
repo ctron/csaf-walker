@@ -103,7 +103,6 @@ impl Source for HttpSource {
 
     async fn load_metadata(&self) -> Result<SourceMetadata, Self::Error> {
         Ok(SourceMetadata {
-            url: self.url.clone(),
             keys: self.options.keys.clone(),
         })
     }

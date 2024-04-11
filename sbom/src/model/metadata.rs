@@ -19,7 +19,6 @@ impl From<Url> for Key {
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct SourceMetadata {
-    pub url: Url,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub keys: Vec<Key>,
 }
