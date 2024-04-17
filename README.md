@@ -44,8 +44,9 @@ csaf sync -3 -v -d out/ https://www.redhat.com
 
 > [!NOTE]
 > In cases where data is signed with a GPG v3 signature, you can use the `-3` flag, which considers this still valid.
-> 
-> An alternative is to use the `--policy-date` argument, and provide a manual policy date. Also see: <https://docs.sequoia-pgp.org/sequoia_openpgp/policy/struct.StandardPolicy.html>. 
+>
+> An alternative is to use the `--policy-date` argument, and provide a manual policy date. Also
+> see: <https://docs.sequoia-pgp.org/sequoia_openpgp/policy/struct.StandardPolicy.html>.
 
 ### Differential sync
 
@@ -93,28 +94,24 @@ use csaf_walker::validation::{ValidatedAdvisory, ValidationError, ValidationVisi
 use walker_common::fetcher::Fetcher;
 
 async fn walk() -> Result<()> {
-  let fetcher = Fetcher::new(Default::default()).await?;
-  let source = HttpSource {
-    url: Url::parse("https://www.redhat.com/.well-known/csaf/provider-metadata.json")?,
-    fetcher,
-  };
+    let fetcher = Fetcher::new(Default::default()).await?;
+    let source = HttpSource {
+        url: Url::parse("https://www.redhat.com/.well-known/csaf/provider-metadata.json")?,
+        fetcher,
+    };
 
-  Walker::new(source.clone())
-    .walk(RetrievingVisitor::new(
-        source.clone(),
-        ValidationVisitor::new(
-            move |advisory: Result<ValidatedAdvisory, ValidationError>| async move {
-                log::info!("Found advisory: {advisory:?}");
-                Ok::<_, anyhow::Error>(())
-            },
-        )
-    ))
-    .await?;
+    Walker::new(source.clone())
+        .walk(RetrievingVisitor::new(
+            source.clone(),
+            ValidationVisitor::new(
+                move |advisory: Result<ValidatedAdvisory, ValidationError>| async move {
+                    log::info!("Found advisory: {advisory:?}");
+                    Ok::<_, anyhow::Error>(())
+                },
+            )
+        ))
+        .await?;
 
-  Ok(())
+    Ok(())
 }
 ```
-
-## TODOs
-
-* [ ] Support ROLIE
