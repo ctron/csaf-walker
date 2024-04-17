@@ -1,9 +1,8 @@
 use std::time::SystemTime;
-use time::OffsetDateTime;
 
 /// Check if something expired or expires soon.
 pub trait Expires {
-    /// Check if the resources expires before the duration elapsed.
+    /// Check if the resource expires before the duration elapsed.
     fn expires_before(&self, duration: time::Duration) -> bool {
         match self.expires_in() {
             Some(expires) => expires <= duration,
@@ -25,7 +24,7 @@ impl Expires for openid::Bearer {
     fn expires(&self) -> Option<time::OffsetDateTime> {
         self.expires.map(|e| {
             let expires: SystemTime = e.into();
-            OffsetDateTime::from(expires)
+            time::OffsetDateTime::from(expires)
         })
     }
 }
