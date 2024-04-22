@@ -60,7 +60,10 @@ impl Cli {
 #[tokio::main]
 async fn main() -> ExitCode {
     if let Err(err) = Cli::parse().run().await {
-        eprintln!("{err}");
+        log::error!("Failed to execute: {err}");
+        for (n, cause) in err.chain().enumerate().skip(1) {
+            log::info!("  {n}: {cause}");
+        }
         ExitCode::FAILURE
     } else {
         ExitCode::SUCCESS

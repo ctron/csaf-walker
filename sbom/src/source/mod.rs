@@ -42,9 +42,11 @@ pub async fn new_source(
             match uri.scheme().map(|s| s.as_str()) {
                 Some("file") => {
                     let source = uri.path().as_str();
+                    log::debug!("Creating file source: {source}");
                     Ok(FileSource::new(source, FileOptions::new().since(discover.since))?.into())
                 }
                 Some(_scheme) => {
+                    log::debug!("Creating HTTP source: {source}");
                     let fetcher = Fetcher::new(fetcher.into()).await?;
                     Ok(HttpSource::new(
                         Url::parse(&source)?,

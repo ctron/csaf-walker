@@ -54,6 +54,8 @@ impl Send {
                 .unwrap_or_default(),
         )?;
 
+        log::debug!("Start walking");
+
         walk_visitor(
             progress,
             self.client,

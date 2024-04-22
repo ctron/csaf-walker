@@ -22,43 +22,65 @@ pub struct Logging {
     /// Disable progress bar
     #[arg(long, global = true)]
     pub no_progress: bool,
+
+    /// Provide a RUST_LOG filter, conflicts with --verbose and --quiet
+    #[arg(long, global = true, conflicts_with_all(["verbose", "quiet"]), env("RUST_LOG"))]
+    pub log: Option<String>,
 }
 
 impl Logging {
     pub fn init(self, app_modules: &[&'static str]) -> Progress {
         // init logging
 
-        let mut builder = env_logger::builder();
+        let mut builder = Builder::new();
 
-        // remove timestamps
-
-        if !self.log_timestamps {
-            builder.format(|buf, record| writeln!(buf, "{}", record.args()));
-        }
-
-        // for app modules
-        let app_modules = |builder: &mut Builder, level| {
-            builder.filter_module("walker_common", level);
-            for module in app_modules {
-                builder.filter_module(module, level);
+        match self.log {
+            Some(log) => {
+                builder.parse_filters(&log);
             }
-        };
+            None => {
+                // remove timestamps
 
-        // log level
+                if !self.log_timestamps {
+                    builder.format(|buf, record| writeln!(buf, "{}", record.args()));
+                }
 
-        match (self.quiet, self.verbose) {
-            (true, _) => {
-                builder.filter_level(LevelFilter::Off);
-            }
-            (_, 0) => app_modules(builder.filter_level(LevelFilter::Warn), LevelFilter::Info),
-            (_, 1) => app_modules(builder.filter_level(LevelFilter::Warn), LevelFilter::Debug),
-            (_, 2) => app_modules(builder.filter_level(LevelFilter::Info), LevelFilter::Debug),
-            (_, 3) => {
-                builder.filter_level(LevelFilter::Debug);
-            }
-            (_, 4) => app_modules(builder.filter_level(LevelFilter::Debug), LevelFilter::Trace),
-            (_, _) => {
-                builder.filter_level(LevelFilter::Trace);
+                // for app modules
+                let app_modules = |builder: &mut Builder, level| {
+                    builder.filter_module("walker_common", level);
+                    for module in app_modules {
+                        builder.filter_module(module, level);
+                    }
+                };
+
+                // log level
+
+                match (self.quiet, self.verbose) {
+                    (true, _) => {
+                        builder.filter_level(LevelFilter::Off);
+                    }
+                    (_, 0) => {
+                        builder.filter_level(LevelFilter::Warn);
+                    }
+                    (_, 1) => {
+                        app_modules(builder.filter_level(LevelFilter::Warn), LevelFilter::Info)
+                    }
+                    (_, 2) => {
+                        app_modules(builder.filter_level(LevelFilter::Warn), LevelFilter::Debug)
+                    }
+                    (_, 3) => {
+                        app_modules(builder.filter_level(LevelFilter::Info), LevelFilter::Debug)
+                    }
+                    (_, 4) => {
+                        builder.filter_level(LevelFilter::Debug);
+                    }
+                    (_, 5) => {
+                        app_modules(builder.filter_level(LevelFilter::Debug), LevelFilter::Trace)
+                    }
+                    (_, _) => {
+                        builder.filter_level(LevelFilter::Trace);
+                    }
+                };
             }
         };
 
