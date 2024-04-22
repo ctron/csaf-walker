@@ -21,8 +21,6 @@ csaf = { version = "0.5.0", default-features = false }
 env_logger = "0.11.2"
 flexible-time = "0.1.1"
 humantime = "2"
-indicatif = { version = "0.17.3", features = [] }
-indicatif-log-bridge = "0.2.1"
 log = "0.4.17"
 reqwest = { version = "0.11", features = ["json"] }
 serde = { version = "1", features = ["derive"] }
@@ -31,7 +29,7 @@ thiserror = "1"
 time = "0.3.20"
 tokio = { version = "1", features = ["full"] }
 
-walker-common = { version = "0.6.0-rc.1", path = "../../common", features = ["openpgp"] }
+walker-common = { version = "0.6.0-rc.1", path = "../../common", features = ["openpgp", "cli"] }
 walker-extras = { version = "0.6.0-rc.1", path = "../../extras" }
 csaf-walker = { version = "0.6.0-rc.1", path = "..", default-features = false, features = ["csaf"] }
 
