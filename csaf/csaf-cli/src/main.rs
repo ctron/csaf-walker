@@ -6,12 +6,8 @@ use cmd::{
     discover::Discover, download::Download, metadata::Metadata, parse::Parse, report::Report,
     scan::Scan, send::Send, sync::Sync,
 };
-use indicatif::MultiProgress;
-use indicatif_log_bridge::LogWrapper;
-use log::LevelFilter;
-use std::io::Write;
 use std::process::ExitCode;
-use walker_common::{progress::Progress, utils::measure::MeasureTime};
+use walker_common::{cli::log::Logging, progress::Progress, utils::measure::MeasureTime};
 
 #[derive(Debug, Parser)]
 #[command(version, about = "CSAF Tool", author, long_about = None)]
@@ -19,21 +15,8 @@ struct Cli {
     #[command(subcommand)]
     command: Command,
 
-    /// Be quiet. Conflicts with 'verbose'.
-    #[arg(short, long, conflicts_with = "verbose", global = true)]
-    quiet: bool,
-
-    /// Be more verbose. May be repeated multiple times to increase verbosity.
-    #[arg(short, long, action = clap::ArgAction::Count, global = true)]
-    verbose: u8,
-
-    /// Add timestamps to the output messages
-    #[arg(long, global = true)]
-    log_timestamps: bool,
-
-    /// Disable progress bar
-    #[arg(long, global = true)]
-    no_progress: bool,
+    #[command(flatten)]
+    logging: Logging,
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -66,58 +49,7 @@ impl Command {
 
 impl Cli {
     pub async fn run(self) -> anyhow::Result<()> {
-        // init logging
-
-        let mut builder = env_logger::builder();
-
-        // remove timestamps
-
-        if !self.log_timestamps {
-            builder.format(|buf, record| writeln!(buf, "{}", record.args()));
-        }
-
-        // log level
-
-        match (self.quiet, self.verbose) {
-            (true, _) => builder.filter_level(LevelFilter::Off),
-            (_, 0) => builder
-                .filter_level(LevelFilter::Warn)
-                .filter_module("csaf", LevelFilter::Info),
-            (_, 1) => builder
-                .filter_level(LevelFilter::Warn)
-                .filter_module("csaf", LevelFilter::Info)
-                .filter_module("csaf_walker", LevelFilter::Info),
-            (_, 2) => builder
-                .filter_level(LevelFilter::Warn)
-                .filter_module("csaf", LevelFilter::Debug)
-                .filter_module("csaf_walker", LevelFilter::Debug),
-            (_, 3) => builder
-                .filter_level(LevelFilter::Info)
-                .filter_module("csaf", LevelFilter::Debug)
-                .filter_module("csaf_walker", LevelFilter::Debug),
-            (_, 4) => builder.filter_level(LevelFilter::Debug),
-            (_, _) => builder.filter_level(LevelFilter::Trace),
-        };
-
-        // init the progress meter
-
-        let progress = match self.quiet | self.no_progress {
-            true => {
-                builder.init();
-                Progress::default()
-            }
-            false => {
-                let logger = builder.build();
-                let max_level = logger.filter();
-                let multi = MultiProgress::new();
-                let log = LogWrapper::new(multi.clone(), logger);
-                // NOTE: LogWrapper::try_init is buggy and messes up the log levels
-                log::set_boxed_logger(Box::new(log)).unwrap();
-                log::set_max_level(max_level);
-
-                multi.into()
-            }
-        };
+        let progress = self.logging.init(&["csaf", "csaf_walker"]);
 
         // run
 

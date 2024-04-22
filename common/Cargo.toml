@@ -25,6 +25,7 @@ futures-util = "0.3"
 html-escape = "0.2"
 humantime = "2"
 indicatif = "0.17.6"
+indicatif-log-bridge = "0.2.1"
 log = "0.4"
 openid = "0.12"
 pem = "3"
@@ -44,6 +45,7 @@ bzip2 = { version = "0.4", optional = true }
 bzip2-rs = { version = "0.1", optional = true, features = ["rustc_1_51"] }
 
 clap = { version = "4.5.0", features = ["derive", "env"], optional = true }
+env_logger = { version = "0.11.3", optional = true }
 
 # workaround until xattr fixes its win32 compilation issues.
 [target.'cfg(any(unix, macos))'.dependencies]
@@ -52,6 +54,8 @@ xattr = { version = "1" }
 [features]
 default = ["bzip2"]
 openpgp = ["sequoia-openpgp"]
+cli = ["clap", "env_logger"]
+
 _crypto-nettle = ["sequoia-openpgp/crypto-nettle"]
 
 [package.metadata.cargo-all-features]
