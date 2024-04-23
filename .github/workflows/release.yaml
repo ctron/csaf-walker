@@ -94,9 +94,6 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/bin/
-            ~/.cargo/.crates.toml
-            ~/.cargo/.crates2.json
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
@@ -242,7 +239,7 @@ jobs:
 
       - name: Install convco
         run: |
-          curl -sLO https://github.com/convco/convco/releases/download/v0.4.2/convco-ubuntu.zip
+          curl -sLO https://github.com/convco/convco/releases/download/v0.5.1/convco-ubuntu.zip
           unzip convco-ubuntu.zip
           chmod a+x convco
           sudo mv convco /usr/local/bin
