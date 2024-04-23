@@ -9,6 +9,7 @@ use {anyhow::Context, url::Url};
 
 #[cfg(feature = "clap")]
 #[derive(Clone, Debug, PartialEq, Eq, clap::Args)]
+#[cfg_attr(feature = "clap", command(next_help_heading = "OIDC"))]
 pub struct OpenIdTokenProviderConfigArguments {
     /// The client ID for using Open ID connect
     #[arg(

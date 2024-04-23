@@ -17,6 +17,10 @@ use walker_extras::visitors::{SendArguments, SendVisitor};
 /// Walk a source and send validated/retrieved documents to a sink.
 #[derive(clap::Args, Debug)]
 pub struct Send {
+    /// Skip (with a warning) documents which failed processing
+    #[arg(long)]
+    skip_failures: bool,
+
     #[command(flatten)]
     client: ClientArguments,
 
@@ -34,10 +38,6 @@ pub struct Send {
 
     #[command(flatten)]
     send: SendArguments,
-
-    /// Skip (with a warning) documents which failed processing
-    #[arg(long)]
-    skip_failures: bool,
 }
 
 impl Send {
