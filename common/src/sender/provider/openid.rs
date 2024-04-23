@@ -38,7 +38,7 @@ pub struct OpenIdTokenProviderConfigArguments {
         default_value = "30s"
     )]
     pub refresh_before: humantime::Duration,
-    /// Allows adding TLS in an insecure more (DANGER!)
+    /// Allows using TLS in an insecure mode when connecting the OIDC issuer (DANGER!)
     #[arg(
         id = "oidc_tls_insecure",
         long = "oidc-tls-insecure",

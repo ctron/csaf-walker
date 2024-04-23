@@ -20,8 +20,12 @@ pub struct SendArguments {
     pub timeout: humantime::Duration,
 
     /// Additional root certificates
-    #[arg(id = "sender-root-certificate", long)]
+    #[arg(id = "sender-tls-ca-certificate", long)]
     pub additional_root_certificates: Vec<PathBuf>,
+
+    /// Allow using TLS in an insecure mode when contacting the target (DANGER!)
+    #[arg(id = "sender-tls-insecure", long)]
+    pub tls_insecure: Vec<PathBuf>,
 
     /// Number of retries in case of temporary failures
     #[arg(id = "sender-retries", long, default_value = "0")]

@@ -26,6 +26,7 @@ pub struct HttpSenderOptions {
     pub connect_timeout: Option<Duration>,
     pub timeout: Option<Duration>,
     pub additional_root_certificates: Vec<PathBuf>,
+    pub tls_insecure: bool,
 }
 
 impl HttpSenderOptions {
@@ -68,6 +69,11 @@ impl HttpSenderOptions {
             .extend(additional_root_certificates);
         self
     }
+
+    pub fn tls_insecure(mut self, tls_insecure: bool) -> Self {
+        self.tls_insecure = tls_insecure;
+        self
+    }
 }
 
 const USER_AGENT: &str = concat!("CSAF-Walker/", env!("CARGO_PKG_VERSION"));
@@ -95,6 +101,13 @@ impl HttpSender {
                 .with_context(|| format!("Reading certificate: {}", cert.display()))?;
             let cert = reqwest::tls::Certificate::from_pem(&cert)?;
             client = client.add_root_certificate(cert);
+        }
+
+        if options.tls_insecure {
+            log::warn!("Disabling TLS validation");
+            client = client
+                .danger_accept_invalid_hostnames(true)
+                .danger_accept_invalid_certs(true);
         }
 
         Ok(Self {
