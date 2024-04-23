@@ -25,7 +25,7 @@ pub struct SendArguments {
 
     /// Allow using TLS in an insecure mode when contacting the target (DANGER!)
     #[arg(id = "sender-tls-insecure", long)]
-    pub tls_insecure: Vec<PathBuf>,
+    pub tls_insecure: bool,
 
     /// Number of retries in case of temporary failures
     #[arg(id = "sender-retries", long, default_value = "0")]
@@ -41,21 +41,33 @@ pub struct SendArguments {
 
 impl SendArguments {
     pub async fn into_visitor(self) -> Result<SendVisitor, anyhow::Error> {
-        let provider = self.oidc.into_provider().await?;
+        let SendArguments {
+            target,
+            connect_timeout,
+            timeout,
+            additional_root_certificates,
+            tls_insecure,
+            retries,
+            retry_delay,
+            oidc,
+        } = self;
+
+        let provider = oidc.into_provider().await?;
         let sender = HttpSender::new(
             provider,
             HttpSenderOptions::default()
-                .connect_timeout(Some(self.connect_timeout.into()))
-                .timeout(Some(self.timeout.into()))
-                .additional_root_certificates(self.additional_root_certificates),
+                .connect_timeout(Some(connect_timeout.into()))
+                .timeout(Some(timeout.into()))
+                .tls_insecure(tls_insecure)
+                .additional_root_certificates(additional_root_certificates),
         )
         .await?;
 
         Ok(SendVisitor {
-            url: self.target,
+            url: target,
             sender,
-            retries: self.retries,
-            retry_delay: Some(self.retry_delay.into()),
+            retries,
+            retry_delay: Some(retry_delay.into()),
         })
     }
 }
