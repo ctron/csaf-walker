@@ -30,16 +30,19 @@ cargo binstall sbom-cli
 
 ### Usage
 
-You can download all documents be providing a link to the metadata endpoint:
+You can download all documents by providing a domain of the CSAF trusted provider:
 
 ```shell
-csaf download -3 -v -d out/ https://www.redhat.com
+mkdir out
+csaf sync -3 -v -d out/ redhat.com
 ```
 
-It is also possible to only download validated files:
+It is also possible to only download files, skipping the validation step (which can be done later using an already
+downloaded copy):
 
 ```shell
-csaf sync -3 -v -d out/ https://www.redhat.com
+mkdir out
+csaf download -3 -v -d out/ redhat.com
 ```
 
 > [!NOTE]
@@ -71,13 +74,13 @@ act as a fallback if the file is not present.
 Instead of storing, it is also possible to send data to a remote instance (using the Vexination or Bombastic API).
 
 ```shell
-csaf send -3 https://www.redhat.com http://localhost:8083
+csaf send -3 redhat.com http://localhost:8083
 ```
 
-Of course, it is also possible use the filesystem as source:
+Of course, it is also possible to use the filesystem as a source:
 
 ```shell
-csaf send -3 out/ http://localhost:8083
+csaf send -3 file:out/ http://localhost:8083
 ```
 
 ## As a library
@@ -95,10 +98,8 @@ use walker_common::fetcher::Fetcher;
 
 async fn walk() -> Result<()> {
     let fetcher = Fetcher::new(Default::default()).await?;
-    let source = HttpSource {
-        url: Url::parse("https://www.redhat.com/.well-known/csaf/provider-metadata.json")?,
-        fetcher,
-    };
+    let metadata = MetadataRetriever::new("redhat.com");
+    let source = HttpSource::new(metadata, fetcher, Default::default());
 
     Walker::new(source.clone())
         .walk(RetrievingVisitor::new(
