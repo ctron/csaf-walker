@@ -15,7 +15,7 @@ use walker_common::{
     validate::ValidationOptions,
 };
 
-/// Sync only what changed, and don't validate.
+/// Sync only what changed.
 #[derive(clap::Args, Debug)]
 pub struct Sync {
     #[command(flatten)]

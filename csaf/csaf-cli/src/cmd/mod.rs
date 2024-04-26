@@ -15,7 +15,9 @@ pub mod sync;
 #[derive(Debug, clap::Parser)]
 #[command(next_help_heading = "Discovery")]
 pub struct DiscoverArguments {
-    /// Source to scan from, will be suffixed with "/.well-known/csaf/provider-metadata.json" unless "--full" is used.
+    /// Source to scan from.
+    ///
+    /// CSAF trusted provider base domain (e.g. `redhat.com`), the full URL to the provider metadata file, or a local `file:` source.
     pub source: String,
 }
 
@@ -82,7 +84,7 @@ impl TryFrom<StoreArguments> for StoreVisitor {
 #[derive(Debug, clap::Parser)]
 #[command(next_help_heading = "Skipping")]
 pub struct SkipArguments {
-    /// Provide a timestamp since when files will be considered changed.
+    /// Provide a timestamp since when files are considered changed.
     #[arg(short, long)]
     pub since: Option<StartTimestamp>,
 
@@ -90,7 +92,7 @@ pub struct SkipArguments {
     #[arg(short = 'S', long)]
     pub since_file: Option<PathBuf>,
 
-    /// A delta to add to the value loaded from the since state file.
+    /// A delta to add to the value loaded from the since-state file.
     #[arg(long)]
     pub since_file_offset: Option<humantime::Duration>,
 }

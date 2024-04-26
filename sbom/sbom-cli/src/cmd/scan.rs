@@ -12,7 +12,7 @@ use walker_common::{
     progress::Progress,
 };
 
-/// Scan advisories
+/// Scan SBOMs
 #[derive(clap::Args, Debug)]
 pub struct Scan {
     #[command(flatten)]

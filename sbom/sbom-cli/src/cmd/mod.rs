@@ -14,13 +14,10 @@ pub mod sync;
 #[derive(Debug, clap::Parser)]
 #[command(next_help_heading = "Discovery")]
 pub struct DiscoverArguments {
-    /// Source to scan from, will be suffixed with "/.well-known/csaf/provider-metadata.json" unless "--full" is used.
+    /// Source to scan from
     pub source: String,
-    #[arg(long)]
-    /// Treat the "source" as a full URL to the metadata.
-    pub full: bool,
     #[arg(short = 'k', long = "key")]
-    /// URLs to keys which should be used for validation. The fragment part of a key can be used as fingerprint.
+    /// URLs to keys which should be used for validation. The fragment part of a key can be used as the fingerprint.
     pub keys: Vec<Url>,
 }
 
@@ -42,7 +39,7 @@ impl TryFrom<StoreArguments> for StoreVisitor {
     fn try_from(value: StoreArguments) -> Result<Self, Self::Error> {
         let base = match value.data {
             Some(base) => base,
-            None => std::env::current_dir().context("Get current working directory")?,
+            None => std::env::current_dir().context("Get the current working directory")?,
         };
 
         Ok(Self::new(base).no_timestamps(value.no_timestamps))
@@ -52,7 +49,7 @@ impl TryFrom<StoreArguments> for StoreVisitor {
 #[derive(Debug, clap::Parser)]
 #[command(next_help_heading = "Skipping")]
 pub struct SkipArguments {
-    /// Provide a timestamp since when files will be considered changed.
+    /// Provide a timestamp since when files are considered changed.
     #[arg(short, long)]
     pub since: Option<StartTimestamp>,
 
@@ -60,7 +57,7 @@ pub struct SkipArguments {
     #[arg(short = 'S', long)]
     pub since_file: Option<PathBuf>,
 
-    /// A delta to add to the value loaded from the since state file.
+    /// A delta to add to the value loaded from the since-state file.
     #[arg(long)]
     pub since_file_offset: Option<humantime::Duration>,
 }

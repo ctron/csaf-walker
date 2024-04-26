@@ -1,6 +1,6 @@
-# csaf
+# sbom
 
-A tool to work with CSAF data from the command line.
+A tool to work with SBOM data from the command line.
 
 This tool can also be used as a library: <https://crates.io/crates/csaf-walker>
 
@@ -31,7 +31,7 @@ and emit a URL per line with the discovered documents.
 Example:
 
 ```
-cargo run -- discover redhat.com
+cargo run -- discover https://redhat.com
 ```
 
 ### Download
@@ -78,7 +78,7 @@ a `file` URL, it needs to point to a local file system location created by `sync
 must be a domain name that will be used for discovering the CSAF provider metadata according to the specification.
 
 **NOTE:** The structure of the filesystem storage is currently not considered an API. It is only guaranteed that
-whatever is store can be read back by tools of the same version. Also, it is currently not a format which can be
+whatever is store can be read back by tools of the same version. Also, is it currently not a format which can be
 hosted directly as a new CSAF repository.
 
 ### Signature verification

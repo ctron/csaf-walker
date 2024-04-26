@@ -3,7 +3,7 @@ use sbom_walker::{discover::DiscoveredSbom, source::new_source, walker::Walker};
 use std::convert::Infallible;
 use walker_common::{cli::client::ClientArguments, progress::Progress};
 
-/// Discover advisories, just lists the URLs.
+/// Discover SBOMs, just lists the URLs.
 #[derive(clap::Args, Debug)]
 pub struct Discover {
     #[command(flatten)]
