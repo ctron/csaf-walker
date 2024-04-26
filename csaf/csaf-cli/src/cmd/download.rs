@@ -8,7 +8,7 @@ use csaf_walker::{
     visitors::{skip::SkipExistingVisitor, store::StoreVisitor},
 };
 use walker_common::{
-    cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
+    cli::{client::ClientArguments, runner::RunnerArguments},
     progress::Progress,
     since::Since,
 };
@@ -27,9 +27,6 @@ pub struct Download {
 
     #[command(flatten)]
     runner: RunnerArguments,
-
-    #[command(flatten)]
-    validation: ValidationArguments,
 
     #[command(flatten)]
     skip: SkipArguments,
