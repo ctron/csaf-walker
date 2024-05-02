@@ -14,12 +14,11 @@ pub enum SendRetrievedSbomError {
     Retrieval(#[from] RetrievalError),
 }
 
-#[async_trait(?Send)]
 impl RetrievedVisitor for SendVisitor {
     type Error = SendRetrievedSbomError;
     type Context = ();
 
-    async fn visit_context(&self, _: &RetrievalContext) -> Result<Self::Context, Self::Error> {
+    async fn visit_context(&self, _: &RetrievalContext<'_>) -> Result<Self::Context, Self::Error> {
         Ok(())
     }
 
@@ -41,12 +40,11 @@ pub enum SendValidatedSbomError {
     Validation(#[from] ValidationError),
 }
 
-#[async_trait(?Send)]
 impl ValidatedVisitor for SendVisitor {
     type Error = SendValidatedSbomError;
     type Context = ();
 
-    async fn visit_context(&self, _: &ValidationContext) -> Result<Self::Context, Self::Error> {
+    async fn visit_context(&self, _: &ValidationContext<'_>) -> Result<Self::Context, Self::Error> {
         Ok(())
     }
 

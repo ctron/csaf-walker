@@ -9,8 +9,8 @@ repository = "https://github.com/ctron/csaf-walker"
 categories = ["command-line-utilities", "data-structures"]
 keywords = ["csaf", "vex", "cli"]
 readme = "README.md"
-# based on clap
-rust-version = "1.74"
+# based on async traits
+rust-version = "1.75"
 
 [dependencies]
 anyhow = "1"

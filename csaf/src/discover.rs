@@ -1,7 +1,6 @@
 //! Discovering
 
 use crate::model::metadata::ProviderMetadata;
-use async_trait::async_trait;
 use std::fmt::Debug;
 use std::future::Future;
 use std::sync::Arc;
@@ -94,24 +93,22 @@ pub struct DiscoveredContext<'c> {
 }
 
 /// Visiting discovered advisories
-#[async_trait(?Send)]
 pub trait DiscoveredVisitor {
     type Error: std::fmt::Display + Debug;
     type Context;
 
-    async fn visit_context(
+    fn visit_context(
         &self,
         context: &DiscoveredContext,
-    ) -> Result<Self::Context, Self::Error>;
+    ) -> impl Future<Output = Result<Self::Context, Self::Error>>;
 
-    async fn visit_advisory(
+    fn visit_advisory(
         &self,
         context: &Self::Context,
         advisory: DiscoveredAdvisory,
-    ) -> Result<(), Self::Error>;
+    ) -> impl Future<Output = Result<(), Self::Error>>;
 }
 
-#[async_trait(?Send)]
 impl<F, E, Fut> DiscoveredVisitor for F
 where
     F: Fn(DiscoveredAdvisory) -> Fut,
@@ -123,7 +120,7 @@ where
 
     async fn visit_context(
         &self,
-        _context: &DiscoveredContext,
+        _context: &DiscoveredContext<'_>,
     ) -> Result<Self::Context, Self::Error> {
         Ok(())
     }

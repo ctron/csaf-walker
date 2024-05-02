@@ -2,7 +2,6 @@ use crate::discover::DiscoveredSbom;
 use crate::model::metadata::SourceMetadata;
 use crate::retrieve::RetrievedSbom;
 use crate::source::{FileSource, HttpSource, Source};
-use async_trait::async_trait;
 use walker_common::{
     utils::openpgp::PublicKey,
     validate::source::{Key, KeySource, KeySourceError, MapSourceError},
@@ -33,7 +32,6 @@ impl From<FileSource> for DispatchSource {
     }
 }
 
-#[async_trait(?Send)]
 impl Source for DispatchSource {
     type Error = anyhow::Error;
 
@@ -59,7 +57,6 @@ impl Source for DispatchSource {
     }
 }
 
-#[async_trait(?Send)]
 impl KeySource for DispatchSource {
     type Error = anyhow::Error;
 

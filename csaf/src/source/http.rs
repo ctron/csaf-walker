@@ -7,7 +7,6 @@ use crate::{
     rolie::{RolieSource, SourceFile},
     source::Source,
 };
-use async_trait::async_trait;
 use bytes::{BufMut, Bytes, BytesMut};
 use digest::Digest;
 use futures::try_join;
@@ -87,7 +86,6 @@ impl From<changes::Error> for HttpSourceError {
     }
 }
 
-#[async_trait(?Send)]
 impl Source for HttpSource {
     type Error = HttpSourceError;
 
@@ -234,7 +232,6 @@ pub struct FetchingRetrievedAdvisory {
     pub sha512: Option<RetrievingDigest<Sha512>>,
 }
 
-#[async_trait(?Send)]
 impl DataProcessor for FetchingRetrievedAdvisory {
     type Type = FetchedRetrievedAdvisory;
 
@@ -279,7 +276,6 @@ impl DataProcessor for FetchingRetrievedAdvisory {
     }
 }
 
-#[async_trait(?Send)]
 impl KeySource for HttpSource {
     type Error = fetcher::Error;
 

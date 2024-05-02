@@ -3,7 +3,6 @@ use crate::discover::{DiscoveredAdvisory, DistributionContext};
 use crate::model::metadata::ProviderMetadata;
 use crate::retrieve::RetrievedAdvisory;
 use crate::source::{FileSource, HttpSource};
-use async_trait::async_trait;
 use walker_common::{
     utils::openpgp::PublicKey,
     validate::source::{Key, KeySource, KeySourceError, MapSourceError},
@@ -34,7 +33,6 @@ impl From<HttpSource> for DispatchSource {
     }
 }
 
-#[async_trait(?Send)]
 impl Source for DispatchSource {
     type Error = anyhow::Error;
 
@@ -69,7 +67,6 @@ impl Source for DispatchSource {
     }
 }
 
-#[async_trait(?Send)]
 impl KeySource for DispatchSource {
     type Error = anyhow::Error;
 

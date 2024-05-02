@@ -6,7 +6,6 @@ use crate::{
     visitors::store::DIR_METADATA,
 };
 use anyhow::{anyhow, Context};
-use async_trait::async_trait;
 use bytes::Bytes;
 use std::fs;
 use std::io::ErrorKind;
@@ -97,7 +96,6 @@ impl FileSource {
     }
 }
 
-#[async_trait(?Send)]
 impl Source for FileSource {
     type Error = anyhow::Error;
 
@@ -188,7 +186,6 @@ impl Source for FileSource {
     }
 }
 
-#[async_trait(?Send)]
 impl KeySource for FileSource {
     type Error = anyhow::Error;
 

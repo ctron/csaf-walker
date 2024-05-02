@@ -3,7 +3,6 @@ use crate::csaf::{
     retrieve::{RetrievalContext, RetrievalError, RetrievedAdvisory, RetrievedVisitor},
     validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, ValidationError},
 };
-use async_trait::async_trait;
 use csaf_walker::discover::DiscoveredAdvisory;
 
 #[derive(Debug, thiserror::Error)]
@@ -14,12 +13,11 @@ pub enum SendRetrievedAdvisoryError {
     Retrieval(#[from] RetrievalError),
 }
 
-#[async_trait(?Send)]
 impl RetrievedVisitor for SendVisitor {
     type Error = SendRetrievedAdvisoryError;
     type Context = ();
 
-    async fn visit_context(&self, _: &RetrievalContext) -> Result<Self::Context, Self::Error> {
+    async fn visit_context(&self, _: &RetrievalContext<'_>) -> Result<Self::Context, Self::Error> {
         Ok(())
     }
 
@@ -41,12 +39,11 @@ pub enum SendValidatedAdvisoryError {
     Validation(#[from] ValidationError),
 }
 
-#[async_trait(?Send)]
 impl ValidatedVisitor for SendVisitor {
     type Error = SendValidatedAdvisoryError;
     type Context = ();
 
-    async fn visit_context(&self, _: &ValidationContext) -> Result<Self::Context, Self::Error> {
+    async fn visit_context(&self, _: &ValidationContext<'_>) -> Result<Self::Context, Self::Error> {
         Ok(())
     }
 

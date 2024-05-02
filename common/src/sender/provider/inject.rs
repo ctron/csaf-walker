@@ -1,16 +1,17 @@
 use super::{Credentials, TokenProvider};
 use crate::sender::Error;
-use async_trait::async_trait;
+use std::future::Future;
 use tracing::instrument;
 
 /// Allows injecting tokens.
-#[async_trait]
 pub trait TokenInjector: Sized + Send + Sync {
-    async fn inject_token(self, token_provider: &dyn TokenProvider) -> Result<Self, Error>;
+    fn inject_token(
+        self,
+        token_provider: &dyn TokenProvider,
+    ) -> impl Future<Output = Result<Self, Error>>;
 }
 
 /// Injects tokens into a request by setting the authorization header to a "bearer" token.
-#[async_trait]
 impl TokenInjector for reqwest::RequestBuilder {
     // Workaround until https://github.com/tokio-rs/tracing/issues/2876 is fixed
     #[allow(clippy::blocks_in_conditions)]

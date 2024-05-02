@@ -4,7 +4,6 @@ use crate::{
     retrieve::RetrievedSbom,
     source::Source,
 };
-use async_trait::async_trait;
 use bytes::{BufMut, Bytes, BytesMut};
 use digest::Digest;
 use futures::try_join;
@@ -97,7 +96,6 @@ impl From<changes::Error> for HttpSourceError {
     }
 }
 
-#[async_trait(?Send)]
 impl Source for HttpSource {
     type Error = HttpSourceError;
 
@@ -198,7 +196,6 @@ pub struct FetchingRetrievedSbom {
     pub sha512: Option<RetrievingDigest<Sha512>>,
 }
 
-#[async_trait(?Send)]
 impl DataProcessor for FetchingRetrievedSbom {
     type Type = FetchedRetrievedSbom;
 
@@ -243,7 +240,6 @@ impl DataProcessor for FetchingRetrievedSbom {
     }
 }
 
-#[async_trait(?Send)]
 impl KeySource for HttpSource {
     type Error = fetcher::Error;
 

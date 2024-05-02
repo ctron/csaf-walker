@@ -1,6 +1,5 @@
 //! Ignore discovered content
 
-use async_trait::async_trait;
 use std::collections::HashSet;
 use walker_common::utils::url::Urlify;
 
@@ -43,14 +42,13 @@ impl<'s, V> Ignore<'s, V> {
 }
 
 #[cfg(feature = "sbom-walker")]
-#[async_trait(?Send)]
 impl<'s, V: sbom::DiscoveredVisitor> sbom::DiscoveredVisitor for Ignore<'s, V> {
     type Error = V::Error;
     type Context = V::Context;
 
     async fn visit_context(
         &self,
-        context: &sbom::DiscoveredContext,
+        context: &sbom::DiscoveredContext<'_>,
     ) -> Result<Self::Context, Self::Error> {
         self.visitor.visit_context(context).await
     }
@@ -69,14 +67,13 @@ impl<'s, V: sbom::DiscoveredVisitor> sbom::DiscoveredVisitor for Ignore<'s, V> {
 }
 
 #[cfg(feature = "csaf-walker")]
-#[async_trait(?Send)]
 impl<'s, V: csaf::DiscoveredVisitor> csaf::DiscoveredVisitor for Ignore<'s, V> {
     type Error = V::Error;
     type Context = V::Context;
 
     async fn visit_context(
         &self,
-        context: &csaf::DiscoveredContext,
+        context: &csaf::DiscoveredContext<'_>,
     ) -> Result<Self::Context, Self::Error> {
         self.visitor.visit_context(context).await
     }

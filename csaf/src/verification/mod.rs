@@ -10,7 +10,6 @@ use crate::{
     validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, ValidationError},
     verification::check::{Check, CheckError},
 };
-use async_trait::async_trait;
 use csaf::Csaf;
 use serde::de::Error as _;
 use std::collections::{HashMap, HashSet};
@@ -106,7 +105,6 @@ where
 pub struct VerificationContext {}
 
 /// A visitor accepting a verified advisory
-#[async_trait(?Send)]
 pub trait VerifiedVisitor<A, E, I>
 where
     A: AsRetrieved,
@@ -116,16 +114,16 @@ where
     type Error: Display + Debug;
     type Context;
 
-    async fn visit_context(
+    fn visit_context(
         &self,
         context: &VerificationContext,
-    ) -> Result<Self::Context, Self::Error>;
+    ) -> impl Future<Output = Result<Self::Context, Self::Error>>;
 
-    async fn visit_advisory(
+    fn visit_advisory(
         &self,
         context: &Self::Context,
         result: Result<VerifiedAdvisory<A, I>, VerificationError<E, A>>,
-    ) -> Result<(), Self::Error>;
+    ) -> impl Future<Output = Result<(), Self::Error>>;
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -218,7 +216,6 @@ where
     }
 }
 
-#[async_trait(?Send)]
 impl<V, I> RetrievedVisitor for VerifyingVisitor<RetrievedAdvisory, RetrievalError, V, I>
 where
     V: VerifiedVisitor<RetrievedAdvisory, RetrievalError, I>,
@@ -229,7 +226,7 @@ where
 
     async fn visit_context(
         &self,
-        _context: &RetrievalContext,
+        _context: &RetrievalContext<'_>,
     ) -> Result<Self::Context, Self::Error> {
         self.visitor
             .visit_context(&VerificationContext {})
@@ -256,7 +253,6 @@ where
     }
 }
 
-#[async_trait(?Send)]
 impl<V, I> ValidatedVisitor for VerifyingVisitor<ValidatedAdvisory, ValidationError, V, I>
 where
     V: VerifiedVisitor<ValidatedAdvisory, ValidationError, I>,
@@ -267,7 +263,7 @@ where
 
     async fn visit_context(
         &self,
-        _context: &ValidationContext,
+        _context: &ValidationContext<'_>,
     ) -> Result<Self::Context, Self::Error> {
         self.visitor
             .visit_context(&VerificationContext {})
@@ -294,7 +290,6 @@ where
     }
 }
 
-#[async_trait(?Send)]
 impl<F, E, Fut, A, I, UE> VerifiedVisitor<A, UE, I> for F
 where
     UE: Debug + Display + 'static,

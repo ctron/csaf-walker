@@ -1,8 +1,8 @@
 //! Working with the source in the context of validation.
 use crate::{fetcher, fetcher::Fetcher, utils, utils::openpgp::PublicKey};
-use async_trait::async_trait;
 use bytes::Bytes;
 use std::fmt::{Debug, Display};
+use std::future::Future;
 use url::Url;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -50,17 +50,15 @@ impl<SE: Display + Debug> KeySourceError<SE> {
 }
 
 /// A source of CSAF public keys
-#[async_trait(?Send)]
 pub trait KeySource: Clone {
     type Error: Display + Debug;
 
-    async fn load_public_key<'a>(
+    fn load_public_key<'a>(
         &self,
         key: Key<'a>,
-    ) -> Result<PublicKey, KeySourceError<Self::Error>>;
+    ) -> impl Future<Output = Result<PublicKey, KeySourceError<Self::Error>>>;
 }
 
-#[async_trait(?Send)]
 impl KeySource for Fetcher {
     type Error = fetcher::Error;
 

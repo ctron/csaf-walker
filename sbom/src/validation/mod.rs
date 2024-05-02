@@ -1,7 +1,6 @@
 //! Validation
 
 use crate::retrieve::{RetrievalContext, RetrievalError, RetrievedSbom, RetrievedVisitor};
-use async_trait::async_trait;
 use digest::Digest;
 use std::fmt::{Debug, Display, Formatter};
 use std::future::Future;
@@ -100,24 +99,22 @@ impl<'c> Deref for ValidationContext<'c> {
     }
 }
 
-#[async_trait(?Send)]
 pub trait ValidatedVisitor {
     type Error: Display + Debug;
     type Context;
 
-    async fn visit_context(
+    fn visit_context(
         &self,
         context: &ValidationContext,
-    ) -> Result<Self::Context, Self::Error>;
+    ) -> impl Future<Output = Result<Self::Context, Self::Error>>;
 
-    async fn visit_sbom(
+    fn visit_sbom(
         &self,
         context: &Self::Context,
         result: Result<ValidatedSbom, ValidationError>,
-    ) -> Result<(), Self::Error>;
+    ) -> impl Future<Output = Result<(), Self::Error>>;
 }
 
-#[async_trait(?Send)]
 impl<F, E, Fut> ValidatedVisitor for F
 where
     F: Fn(Result<ValidatedSbom, ValidationError>) -> Fut,
@@ -129,7 +126,7 @@ where
 
     async fn visit_context(
         &self,
-        _context: &ValidationContext,
+        _context: &ValidationContext<'_>,
     ) -> Result<Self::Context, Self::Error> {
         Ok(())
     }
@@ -247,7 +244,6 @@ pub struct InnerValidationContext<VC> {
     keys: Vec<PublicKey>,
 }
 
-#[async_trait(?Send)]
 impl<V> RetrievedVisitor for ValidationVisitor<V>
 where
     V: ValidatedVisitor,
@@ -257,7 +253,7 @@ where
 
     async fn visit_context(
         &self,
-        context: &RetrievalContext,
+        context: &RetrievalContext<'_>,
     ) -> Result<Self::Context, Self::Error> {
         let keys = context.keys.clone();
 

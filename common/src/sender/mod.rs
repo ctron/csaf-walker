@@ -5,11 +5,11 @@ pub mod provider;
 mod error;
 
 pub use error::*;
-use std::path::PathBuf;
 
 use crate::sender::provider::{TokenInjector, TokenProvider};
 use anyhow::Context;
 use reqwest::{header, IntoUrl, Method, RequestBuilder};
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 

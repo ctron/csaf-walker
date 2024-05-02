@@ -4,7 +4,6 @@ use crate::{
     validation::{ValidatedSbom, ValidatedVisitor, ValidationContext, ValidationError},
 };
 use anyhow::Context;
-use async_trait::async_trait;
 use sequoia_openpgp::{armor::Kind, serialize::SerializeInto, Cert};
 use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
@@ -68,14 +67,13 @@ pub enum StoreValidatedError {
     Validation(#[from] ValidationError),
 }
 
-#[async_trait(?Send)]
 impl RetrievedVisitor for StoreVisitor {
     type Error = StoreRetrievedError;
     type Context = ();
 
     async fn visit_context(
         &self,
-        context: &RetrievalContext,
+        context: &RetrievalContext<'_>,
     ) -> Result<Self::Context, Self::Error> {
         self.store_provider_metadata(context.metadata).await?;
         self.store_keys(context.keys).await?;
@@ -92,14 +90,13 @@ impl RetrievedVisitor for StoreVisitor {
     }
 }
 
-#[async_trait(?Send)]
 impl ValidatedVisitor for StoreVisitor {
     type Error = StoreValidatedError;
     type Context = ();
 
     async fn visit_context(
         &self,
-        context: &ValidationContext,
+        context: &ValidationContext<'_>,
     ) -> Result<Self::Context, Self::Error> {
         self.store_provider_metadata(context.metadata).await?;
         self.store_keys(context.retrieval.keys).await?;

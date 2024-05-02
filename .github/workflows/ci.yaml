@@ -65,7 +65,7 @@ jobs:
 
         rust:
           - stable
-          - "1.74" # MSRV
+          - "1.75" # MSRV
 
         os:
           - ubuntu-latest

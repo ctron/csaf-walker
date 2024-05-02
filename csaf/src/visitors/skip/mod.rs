@@ -1,7 +1,6 @@
 use crate::discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor};
 use crate::model::store::distribution_base;
 use crate::validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, ValidationError};
-use async_trait::async_trait;
 use std::fmt::{Debug, Display};
 use std::path::PathBuf;
 use std::time::SystemTime;
@@ -28,14 +27,13 @@ pub struct SkipExistingVisitor<V: DiscoveredVisitor> {
     pub since: Option<SystemTime>,
 }
 
-#[async_trait(?Send)]
 impl<V: DiscoveredVisitor> DiscoveredVisitor for SkipExistingVisitor<V> {
     type Error = Error<V::Error>;
     type Context = V::Context;
 
     async fn visit_context(
         &self,
-        context: &DiscoveredContext,
+        context: &DiscoveredContext<'_>,
     ) -> Result<Self::Context, Self::Error> {
         self.visitor
             .visit_context(context)
@@ -99,14 +97,13 @@ impl<V> SkipFailedVisitor<V> {
     }
 }
 
-#[async_trait(?Send)]
 impl<V: ValidatedVisitor> ValidatedVisitor for SkipFailedVisitor<V> {
     type Error = V::Error;
     type Context = V::Context;
 
     async fn visit_context(
         &self,
-        context: &ValidationContext,
+        context: &ValidationContext<'_>,
     ) -> Result<Self::Context, Self::Error> {
         self.visitor.visit_context(context).await
     }

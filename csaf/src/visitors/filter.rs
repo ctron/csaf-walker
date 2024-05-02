@@ -1,5 +1,4 @@
 use crate::discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor};
-use async_trait::async_trait;
 use std::collections::HashSet;
 
 /// A visitor, skipping advisories for existing files.
@@ -91,14 +90,13 @@ impl FilterConfig {
     }
 }
 
-#[async_trait(?Send)]
 impl<V: DiscoveredVisitor> DiscoveredVisitor for FilteringVisitor<V> {
     type Error = V::Error;
     type Context = V::Context;
 
     async fn visit_context(
         &self,
-        discovered: &DiscoveredContext,
+        discovered: &DiscoveredContext<'_>,
     ) -> Result<Self::Context, Self::Error> {
         self.visitor.visit_context(discovered).await
     }

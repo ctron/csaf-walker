@@ -4,9 +4,9 @@ mod data;
 
 pub use data::*;
 
-use async_trait::async_trait;
 use reqwest::{Client, ClientBuilder, IntoUrl, Method, Response};
 use std::fmt::Debug;
+use std::future::Future;
 use std::marker::PhantomData;
 use std::time::Duration;
 use url::Url;
@@ -139,10 +139,12 @@ impl Fetcher {
 }
 
 /// Processing data returned by a request.
-#[async_trait(?Send)]
 pub trait DataProcessor {
     type Type: Sized;
-    async fn process(&self, response: reqwest::Response) -> Result<Self::Type, reqwest::Error>;
+    fn process(
+        &self,
+        response: reqwest::Response,
+    ) -> impl Future<Output = Result<Self::Type, reqwest::Error>>;
 }
 
 struct TypedProcessor<D: Data> {
@@ -158,7 +160,6 @@ impl<D: Data> TypedProcessor<D> {
 }
 
 /// Extract response payload which implements [`Data`].
-#[async_trait(?Send)]
 impl<D: Data> DataProcessor for TypedProcessor<D> {
     type Type = D;
 

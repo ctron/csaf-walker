@@ -4,7 +4,6 @@ use crate::{
     discover::{DiscoveredContext, DiscoveredSbom, DiscoveredVisitor},
     source::Source,
 };
-use async_trait::async_trait;
 use bytes::Bytes;
 use reqwest::StatusCode;
 use sha2::{Sha256, Sha512};
@@ -92,22 +91,22 @@ impl<'c> Deref for RetrievalContext<'c> {
     }
 }
 
-#[async_trait(?Send)]
 pub trait RetrievedVisitor {
     type Error: std::fmt::Display + Debug;
     type Context;
 
-    async fn visit_context(&self, context: &RetrievalContext)
-        -> Result<Self::Context, Self::Error>;
+    fn visit_context(
+        &self,
+        context: &RetrievalContext,
+    ) -> impl Future<Output = Result<Self::Context, Self::Error>>;
 
-    async fn visit_sbom(
+    fn visit_sbom(
         &self,
         context: &Self::Context,
         result: Result<RetrievedSbom, RetrievalError>,
-    ) -> Result<(), Self::Error>;
+    ) -> impl Future<Output = Result<(), Self::Error>>;
 }
 
-#[async_trait(?Send)]
 impl<F, E, Fut> RetrievedVisitor for F
 where
     F: Fn(Result<RetrievedSbom, RetrievalError>) -> Fut,
@@ -119,7 +118,7 @@ where
 
     async fn visit_context(
         &self,
-        _context: &RetrievalContext,
+        _context: &RetrievalContext<'_>,
     ) -> Result<Self::Context, Self::Error> {
         Ok(())
     }
@@ -163,7 +162,6 @@ where
     Visitor(VE),
 }
 
-#[async_trait(?Send)]
 impl<V, S> DiscoveredVisitor for RetrievingVisitor<V, S>
 where
     V: RetrievedVisitor,
@@ -174,7 +172,7 @@ where
 
     async fn visit_context(
         &self,
-        context: &DiscoveredContext,
+        context: &DiscoveredContext<'_>,
     ) -> Result<Self::Context, Self::Error> {
         let mut keys = Vec::with_capacity(context.metadata.keys.len());
 

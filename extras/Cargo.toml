@@ -9,8 +9,8 @@ repository = "https://github.com/ctron/csaf-walker"
 categories = ["data-structures"]
 keywords = ["csaf", "sbom"]
 readme = "../README.md"
-# based on clap
-rust-version = "1.74"
+# based on async traits
+rust-version = "1.75"
 
 [dependencies]
 anyhow = "1.0.71"

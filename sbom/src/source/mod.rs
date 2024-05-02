@@ -14,20 +14,22 @@ use crate::{
     retrieve::RetrievedSbom,
 };
 use anyhow::bail;
-use async_trait::async_trait;
 use fluent_uri::Uri;
 use std::fmt::{Debug, Display};
+use std::future::Future;
 use url::Url;
 use walker_common::fetcher::{Fetcher, FetcherOptions};
 
 /// A source of SBOM documents
-#[async_trait(?Send)]
 pub trait Source: Clone {
     type Error: Display + Debug;
 
-    async fn load_metadata(&self) -> Result<SourceMetadata, Self::Error>;
-    async fn load_index(&self) -> Result<Vec<DiscoveredSbom>, Self::Error>;
-    async fn load_sbom(&self, sbom: DiscoveredSbom) -> Result<RetrievedSbom, Self::Error>;
+    fn load_metadata(&self) -> impl Future<Output = Result<SourceMetadata, Self::Error>>;
+    fn load_index(&self) -> impl Future<Output = Result<Vec<DiscoveredSbom>, Self::Error>>;
+    fn load_sbom(
+        &self,
+        sbom: DiscoveredSbom,
+    ) -> impl Future<Output = Result<RetrievedSbom, Self::Error>>;
 }
 
 pub async fn new_source(

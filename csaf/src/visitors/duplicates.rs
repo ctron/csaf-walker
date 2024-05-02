@@ -1,6 +1,5 @@
 use crate::discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor};
 use crate::report::{DocumentKey, Duplicates};
-use async_trait::async_trait;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -10,14 +9,13 @@ pub struct DetectDuplicatesVisitor<D: DiscoveredVisitor> {
     pub duplicates: Arc<Mutex<Duplicates>>,
 }
 
-#[async_trait(?Send)]
 impl<V: DiscoveredVisitor> DiscoveredVisitor for DetectDuplicatesVisitor<V> {
     type Error = V::Error;
     type Context = V::Context;
 
     async fn visit_context(
         &self,
-        context: &DiscoveredContext,
+        context: &DiscoveredContext<'_>,
     ) -> Result<Self::Context, Self::Error> {
         self.visitor.visit_context(context).await
     }

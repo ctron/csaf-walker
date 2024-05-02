@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use bytes::Bytes;
 use reqwest::{header, Body, Method, StatusCode, Url};
 use std::time::Duration;
