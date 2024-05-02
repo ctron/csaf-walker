@@ -17,6 +17,7 @@ anyhow = "1"
 async-trait = "0.1"
 base64 = "0.22"
 bytes = "1"
+chrono = { version = "0.4", default-features = false, features = ["std"] }
 csv = "1"
 digest = "0.10.7"
 filetime = "0.2"
@@ -27,9 +28,9 @@ humantime = "2"
 indicatif = "0.17.6"
 indicatif-log-bridge = "0.2.1"
 log = "0.4"
-openid = "0.12"
+openid = "0.14"
 pem = "3"
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.12", features = ["json"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10.7"
