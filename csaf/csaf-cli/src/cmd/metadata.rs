@@ -25,9 +25,6 @@ pub struct Metadata {
 
 impl Metadata {
     pub async fn run(self) -> anyhow::Result<()> {
-        #[cfg(windows)]
-        let enabled = colored_json::enable_ansi_support();
-
         if self.all {
             self.all().await
         } else {
