@@ -7,7 +7,7 @@ use anyhow::anyhow;
 use async_trait::async_trait;
 use csaf::Csaf;
 use deno_core::{
-    _ops::RustToV8NoScope, op2, serde_v8, v8, Extension, JsRuntime, Op, PollEventLoopOptions,
+    _ops::RustToV8NoScope, op2, serde_v8, v8, Extension, JsRuntime, OpDecl, PollEventLoopOptions,
     RuntimeOptions, StaticModuleLoader,
 };
 use serde::{Deserialize, Serialize};
@@ -49,7 +49,10 @@ impl InnerCheck {
         let code = include_str!("js/bundle.js");
 
         let ext = Extension {
-            ops: std::borrow::Cow::Borrowed(&[op_register_func::DECL]),
+            ops: std::borrow::Cow::Borrowed(&[{
+                const DECL: OpDecl = op_register_func();
+                DECL
+            }]),
             op_state_fn: Some(Box::new(|state| {
                 state.put(FunctionsState::default());
             })),
