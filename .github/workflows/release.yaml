@@ -10,6 +10,8 @@ on:
 
 permissions:
   contents: write # for creating a release
+  id-token: write # for attestations
+  attestations: write # for attestations
 
 jobs:
 
@@ -270,6 +272,10 @@ jobs:
           mkdir -p staging
           cp -pv ~/download/*/csaf-* staging/
           cp -pv ~/download/*/sbom-* staging/
+
+      - uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: 'staging/*'
 
       - name: Display staging area
         run: ls -R staging
