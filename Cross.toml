@@ -3,9 +3,3 @@ pre-build = [
     "dpkg --add-architecture $CROSS_DEB_ARCH",
     "apt-get update && apt-get install --assume-yes libssl-dev:$CROSS_DEB_ARCH libssl-dev"
 ]
-
-[target.aarch64-unknown-linux-musl]
-pre-build = [
-    "dpkg --add-architecture $CROSS_DEB_ARCH",
-    "apt-get update && apt-get install --assume-yes libssl-dev:$CROSS_DEB_ARCH libssl-dev"
-]
