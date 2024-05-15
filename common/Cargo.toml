@@ -1,6 +1,6 @@
 [package]
 name = "walker-common"
-description = "A common functionality for SBOM and CSAF walker"
+description = "Common functionality for SBOM and CSAF walker"
 version = "0.7.1"
 edition = "2021"
 authors = ["Jens Reimann <ctron@dentrassi.de>"]
