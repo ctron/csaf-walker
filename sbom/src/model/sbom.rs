@@ -83,7 +83,7 @@ pub enum ParserKind {
     Spdx23Tag,
 }
 
-impl std::fmt::Display for ParserKind {
+impl Display for ParserKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Cyclone13DxJson => write!(f, "CycloneDX 1.3 JSON"),
@@ -121,54 +121,58 @@ impl Sbom {
         Ok(version)
     }
 
-    /// try parsing with all possible kinds which make sense.
+    pub fn try_parse_any_json(json: Value) -> Result<Self, ParseAnyError> {
+        let err = ParseAnyError::new();
+
+        #[cfg(feature = "cyclonedx-bom")]
+        let err = match Self::is_cyclondx_json(&json) {
+            Ok("1.2" | "1.3" | "1.4") => {
+                return Self::try_cyclonedx_json(JsonPayload::Value(json)).map_err(|e| {
+                    // drop any previous error, as we know what format and version it is
+                    ParseAnyError::from((ParserKind::Cyclone13DxJson, e.into()))
+                });
+            }
+            Ok(version) => {
+                // We can stop here, and drop any previous error, as we know what the format is.
+                // But we disagree with the version.
+                return Err(ParseAnyError::from((
+                    ParserKind::Cyclone13DxJson,
+                    anyhow!("Unsupported CycloneDX version: {version}"),
+                )));
+            }
+            // failed to detect as CycloneDX, record error and move on
+            Err(e) => err.add(ParserKind::Cyclone13DxJson, e),
+        };
+
+        #[cfg(feature = "spdx-rs")]
+        let err = match Self::is_spdx_json(&json) {
+            Ok("SPDX-2.2" | "SPDX-2.3") => {
+                return Self::try_spdx_json(JsonPayload::Value(json)).map_err(|e| {
+                    // drop any previous error, as we know what format and version it is
+                    ParseAnyError::from((ParserKind::Spdx23Json, e.into()))
+                });
+            }
+            Ok(version) => {
+                // We can stop here, and drop any previous error, as we know what the format is.
+                // But we disagree with the version.
+                return Err(ParseAnyError::from((
+                    ParserKind::Spdx23Json,
+                    anyhow!("Unsupported SPDX version: {version}"),
+                )));
+            }
+            Err(e) => err.add(ParserKind::Spdx23Json, e),
+        };
+
+        Err(err)
+    }
+
+    /// try parsing with all possible kinds that make sense.
     pub fn try_parse_any(data: &[u8]) -> Result<Self, ParseAnyError> {
         #[allow(unused)]
-        if let Ok(json) = serde_json::from_slice::<Value>(data) {
+        if let Ok(json) = serde_json::from_slice(data) {
             // try to parse this as JSON, which eliminates e.g. the "tag" format, which seems to just parse anything
 
-            let err = ParseAnyError::new();
-
-            #[cfg(feature = "cyclonedx-bom")]
-            let err = match Self::is_cyclondx_json(&json) {
-                Ok("1.2" | "1.3") => {
-                    return Self::try_cyclonedx_json(data).map_err(|e| {
-                        // drop any previous error, as we know what format and version it is
-                        ParseAnyError::from((ParserKind::Cyclone13DxJson, e.into()))
-                    });
-                }
-                Ok(version) => {
-                    // We can stop here, and drop any previous error, as we know what the format is.
-                    // But we disagree with the version.
-                    return Err(ParseAnyError::from((
-                        ParserKind::Cyclone13DxJson,
-                        anyhow!("Unsupported CycloneDX version: {version}"),
-                    )));
-                }
-                // failed to detect as CycloneDX, record error and move on
-                Err(e) => err.add(ParserKind::Cyclone13DxJson, e),
-            };
-
-            #[cfg(feature = "spdx-rs")]
-            let err = match Self::is_spdx_json(&json) {
-                Ok("SPDX-2.2" | "SPDX-2.3") => {
-                    return Self::try_spdx_json(JsonPayload::Value(json)).map_err(|e| {
-                        // drop any previous error, as we know what format and version it is
-                        ParseAnyError::from((ParserKind::Spdx23Json, e.into()))
-                    });
-                }
-                Ok(version) => {
-                    // We can stop here, and drop any previous error, as we know what the format is.
-                    // But we disagree with the version.
-                    return Err(ParseAnyError::from((
-                        ParserKind::Spdx23Json,
-                        anyhow!("Unsupported SPDX version: {version}"),
-                    )));
-                }
-                Err(e) => err.add(ParserKind::Spdx23Json, e),
-            };
-
-            Err(err)
+            Self::try_parse_any_json(json)
         } else {
             // it is not JSON, it could be XML or "tagged"
             let err = ParseAnyError::new();
@@ -206,10 +210,34 @@ impl Sbom {
     }
 
     #[cfg(feature = "cyclonedx-bom")]
-    pub fn try_cyclonedx_json(data: &[u8]) -> Result<Self, cyclonedx_bom::errors::JsonReadError> {
-        Ok(Self::CycloneDx(
-            cyclonedx_bom::prelude::Bom::parse_from_json_v1_3(data)?,
-        ))
+    pub fn try_cyclonedx_json<'a>(
+        data: impl Into<JsonPayload<'a>>,
+    ) -> Result<Self, cyclonedx_bom::errors::JsonReadError> {
+        use cyclonedx_bom::{errors::BomError, prelude::Bom};
+
+        match data.into() {
+            JsonPayload::Value(json) => {
+                match json.get("specVersion").and_then(|v| v.as_str()) {
+                    Some("1.2") | Some("1.3") => {
+                        Ok(Self::CycloneDx(Bom::parse_from_json_value_v1_3(json)?))
+                    }
+                    Some("1.4") => {
+                        // TODO: cleanup once https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/705 is merged
+                        let data = serde_json::to_vec(&json)?;
+                        Ok(Self::CycloneDx(Bom::parse_from_json_v1_4(data.as_slice())?))
+                    }
+                    Some(v) => Err(BomError::UnsupportedSpecVersion(format!(
+                        "Unsupported version: {v}"
+                    ))
+                    .into()),
+                    None => Err(BomError::UnsupportedSpecVersion(
+                        "No field 'specVersion' found".to_string(),
+                    )
+                    .into()),
+                }
+            }
+            JsonPayload::Bytes(data) => Ok(Self::CycloneDx(Bom::parse_from_json(data)?)),
+        }
     }
 
     #[cfg(feature = "cyclonedx-bom")]
@@ -234,5 +262,22 @@ impl JsonPayload<'_> {
             Self::Value(data) => serde_json::from_value(data),
             Self::Bytes(data) => serde_json::from_slice(data),
         }
+    }
+}
+
+impl From<Value> for JsonPayload<'static> {
+    fn from(value: Value) -> Self {
+        Self::Value(value)
+    }
+}
+
+impl<'a> From<&'a [u8]> for JsonPayload<'a> {
+    fn from(value: &'a [u8]) -> Self {
+        Self::Bytes(value)
+    }
+}
+impl<'a, const N: usize> From<&'a [u8; N]> for JsonPayload<'a> {
+    fn from(value: &'a [u8; N]) -> Self {
+        Self::Bytes(value)
     }
 }

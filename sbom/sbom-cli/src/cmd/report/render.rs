@@ -37,7 +37,7 @@ impl HtmlReport<'_> {
                 <th scope="col">Error</th>
             </tr>
         </thead>
-        
+
         <tbody>
 "#
             )?;
@@ -51,16 +51,36 @@ impl HtmlReport<'_> {
                     _ => Cow::Borrowed(k),
                 };
 
+                let k = k.rsplit_once('/').map(|r| r.1).unwrap_or(&k);
+
                 writeln!(
                     f,
                     r#"
             <tr>
                 <td><a href="{k}" target="_blank" style="white-space: nowrap;">{k}</a></td>
-                <td><code>{v}</code></td>
-            </tr>
+                <td><ul>
             "#,
                     k = html_escape::encode_quoted_attribute(&k),
-                    v = html_escape::encode_text(&v.to_string()),
+                )?;
+
+                for msg in v {
+                    writeln!(
+                        f,
+                        r#"
+                            <li>
+                              <code>{msg}</code>
+                            </li>
+                        "#,
+                        msg = html_escape::encode_text(&msg),
+                    )?;
+                }
+
+                writeln!(
+                    f,
+                    r#"
+                </ul></td>
+            </tr>
+            "#,
                 )?;
             }
 

@@ -17,6 +17,7 @@ pub trait Extractable: Sized + Send {
 pub trait Returnable: Sized + Send {
     type Error: std::error::Error + Send + Sync;
 
+    #[allow(unused)]
     fn r#return(
         runtime: &mut JsRuntime,
         global: v8::Global<v8::Value>,

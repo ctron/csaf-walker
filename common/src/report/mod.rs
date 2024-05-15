@@ -4,11 +4,11 @@ use std::fmt::Display;
 use std::io::Write;
 use time::macros::format_description;
 
-const BOOTSTRAP_VERSION: &str = "5.2.3";
+const BOOTSTRAP_VERSION: &str = "5.3.3";
 const BOOTSTRAP_CSS_SRI: &str =
-    "sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65";
+    "sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH";
 const BOOTSTRAP_JS_SRI: &str =
-    "sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4";
+    "sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy";
 
 /// Options for rendering reports.
 #[derive(Clone, Debug, Default)]
@@ -92,7 +92,7 @@ pub fn render(
     <link href="{css}" rel="stylesheet" {css_integrity} crossorigin="anonymous">
   </head>
   <body>
-    <div class="container">
+    <div class="container-fluid">
       <h1>
         {title} <span class="badge bg-secondary">{date}</span>
       </h1>
