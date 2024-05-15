@@ -24,7 +24,8 @@ struct HtmlReport<'r>(&'r ReportResult<'r>, &'r RenderOptions);
 
 impl HtmlReport<'_> {
     fn render_errors(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Self::title(f, "Errors", self.0.errors.len())?;
+        let total = self.0.errors.iter().map(|(_, v)| v.len()).sum();
+        Self::title(f, "Errors", &[self.0.errors.len(), total])?;
 
         if !self.0.errors.is_empty() {
             writeln!(
@@ -110,19 +111,24 @@ impl HtmlReport<'_> {
         )
     }
 
-    fn title(f: &mut Formatter<'_>, title: &str, count: usize) -> std::fmt::Result {
+    fn title(f: &mut Formatter<'_>, title: &str, count: &[usize]) -> std::fmt::Result {
         write!(f, "<h2>{title}")?;
 
-        let (class, text) = if count > 0 {
-            ("text-bg-danger", count.to_string())
+        let total: usize = count.iter().sum();
+
+        let class = if total > 0 {
+            "text-bg-danger"
         } else {
-            ("text-bg-light", "None".to_string())
+            "text-bg-light"
         };
 
-        write!(
-            f,
-            r#" <span class="badge {class} rounded-pill">{text}</span>"#,
-        )?;
+        for v in count {
+            let v: Cow<'static, str> = match v {
+                0 => "None".into(),
+                n => n.to_string().into(),
+            };
+            write!(f, r#" <span class="badge {class} rounded-pill">{v}</span>"#)?;
+        }
 
         writeln!(f, "</h2>")?;
 
