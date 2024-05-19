@@ -16,16 +16,20 @@ There's a command line tool, which can be used right away.
 
 ### Installation
 
-```shell
-cargo install csaf-cli
-cargo install sbom-cli
-```
+Download a ready-to-run binary from the GitHub release page: <https://github.com/ctron/csaf-walker/releases>
 
-You can also install this using `cargo binstall`:
+You can also use `cargo binstall` to install such a binary:
 
 ```shell
 cargo binstall csaf-cli
 cargo binstall sbom-cli
+```
+
+Or compile it yourself, using plain `cargo install`:
+
+```shell
+cargo install csaf-cli
+cargo install sbom-cli
 ```
 
 ### Usage
