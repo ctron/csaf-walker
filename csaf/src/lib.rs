@@ -66,3 +66,6 @@ pub mod walker;
 
 #[cfg(feature = "csaf")]
 pub mod verification;
+
+/// re-export common
+pub use walker_common as common;

@@ -9,3 +9,6 @@ pub mod visitors;
 pub mod walker;
 
 pub use model::sbom::Sbom;
+
+/// re-export common
+pub use walker_common as common;
