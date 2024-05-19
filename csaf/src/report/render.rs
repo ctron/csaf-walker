@@ -91,7 +91,9 @@ impl HtmlReport<'_> {
     }
 
     fn render_errors(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let count = self.result.errors.len();
+        let file_count = self.result.errors.len();
+        let total_count = self.result.errors.iter().map(|(_, e)| e.len()).sum();
+
         let data = |f: &mut Formatter<'_>| {
             for (k, v) in self.result.errors {
                 let (url, label) = self.link_document(k);
@@ -113,9 +115,13 @@ impl HtmlReport<'_> {
         };
         Self::render_table(
             f,
-            [count],
+            [file_count, total_count],
             Title::Errors,
-            &format!("{count} error(s) detected", count = Formatted(count)),
+            &format!(
+                "{total_count} error(s) detected in {file_count}",
+                file_count = Formatted(file_count),
+                total_count = Formatted(total_count),
+            ),
             data,
         )?;
         Ok(())
