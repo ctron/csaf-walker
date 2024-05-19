@@ -1,8 +1,9 @@
 use crate::report::{DocumentKey, ReportResult};
+use num_format::ToFormattedString;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use url::Url;
-use walker_common::report;
+use walker_common::{locale::LOCALE, report};
 
 #[derive(Clone, Debug)]
 pub struct ReportRenderOption {
@@ -76,11 +77,12 @@ impl HtmlReport<'_> {
 
             Self::render_table(
                 f,
-                count,
+                [count],
                 Title::Duplicates,
                 format!(
-                    "{:?} duplicates URLs found, totalling {:?} redundant entries",
-                    count, total
+                    "{count} duplicates URLs found, totaling {total} redundant entries",
+                    count = count.to_formatted_string(&*LOCALE),
+                    total = total.to_formatted_string(&*LOCALE),
                 )
                 .as_str(),
                 data,
@@ -112,9 +114,12 @@ impl HtmlReport<'_> {
         };
         Self::render_table(
             f,
-            count,
+            [count],
             Title::Errors,
-            format!("{:?} error(s) detected", count).as_str(),
+            &format!(
+                "{count} error(s) detected",
+                count = count.to_formatted_string(&*LOCALE)
+            ),
             data,
         )?;
         Ok(())
@@ -122,7 +127,7 @@ impl HtmlReport<'_> {
 
     fn render_table<F>(
         f: &mut Formatter<'_>,
-        count: usize,
+        count: impl IntoIterator<Item = usize>,
         title: Title,
         sub_title: &str,
         data: F,
@@ -153,10 +158,8 @@ impl HtmlReport<'_> {
     }
 
     fn render_warnings(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let mut count = 0;
-        for warnings in self.result.warnings.values() {
-            count += warnings.len();
-        }
+        let file_count = self.result.warnings.len();
+        let total_count = self.result.warnings.values().map(|w| w.len()).sum();
 
         let data = |f: &mut Formatter<'_>| {
             for (k, v) in self.result.warnings {
@@ -199,9 +202,13 @@ impl HtmlReport<'_> {
         };
         Self::render_table(
             f,
-            count,
+            [file_count, total_count],
             Title::Warnings,
-            format!("{:?} warning(s) detected", count).as_str(),
+            &format!(
+                "{total_count} warning(s) (in {file_count} files) detected",
+                total_count = total_count.to_formatted_string(&*LOCALE),
+                file_count = file_count.to_formatted_string(&*LOCALE),
+            ),
             data,
         )?;
         Ok(())
@@ -229,25 +236,31 @@ impl HtmlReport<'_> {
             .unwrap_or_else(|| (key.url.clone(), key.url.clone()))
     }
 
-    fn title(f: &mut Formatter<'_>, title: Title, count: usize) -> std::fmt::Result {
+    fn title(
+        f: &mut Formatter<'_>,
+        title: Title,
+        count: impl IntoIterator<Item = usize>,
+    ) -> std::fmt::Result {
         write!(f, "<h2>{title}")?;
 
-        let (class, text) = if count > 0 {
-            (
-                match title {
-                    Title::Warnings => "text-bg-warning",
-                    _ => "text-bg-danger",
-                },
-                count.to_string(),
-            )
-        } else {
-            ("text-bg-light", "None".to_string())
-        };
+        for count in count {
+            let (class, text) = if count > 0 {
+                (
+                    match title {
+                        Title::Warnings => "text-bg-warning",
+                        _ => "text-bg-danger",
+                    },
+                    count.to_formatted_string(&*LOCALE),
+                )
+            } else {
+                ("text-bg-light", "None".to_string())
+            };
 
-        write!(
-            f,
-            r#" <span class="badge {class} rounded-pill">{text}</span>"#,
-        )?;
+            write!(
+                f,
+                r#" <span class="badge {class} rounded-pill">{text}</span>"#,
+            )?;
+        }
 
         writeln!(f, "</h2>")?;
 
@@ -264,7 +277,7 @@ impl HtmlReport<'_> {
     <dd class="col-sm-10">{total}</dd>
 </dl>
 "#,
-            total = self.result.total
+            total = self.result.total.to_formatted_string(&*LOCALE)
         )
     }
 }
