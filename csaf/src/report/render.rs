@@ -1,9 +1,8 @@
 use crate::report::{DocumentKey, ReportResult};
-use num_format::ToFormattedString;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use url::Url;
-use walker_common::{locale::LOCALE, report};
+use walker_common::{locale::Formatted, report};
 
 #[derive(Clone, Debug)]
 pub struct ReportRenderOption {
@@ -81,8 +80,8 @@ impl HtmlReport<'_> {
                 Title::Duplicates,
                 format!(
                     "{count} duplicates URLs found, totaling {total} redundant entries",
-                    count = count.to_formatted_string(&*LOCALE),
-                    total = total.to_formatted_string(&*LOCALE),
+                    count = Formatted(count),
+                    total = Formatted(total),
                 )
                 .as_str(),
                 data,
@@ -116,10 +115,7 @@ impl HtmlReport<'_> {
             f,
             [count],
             Title::Errors,
-            &format!(
-                "{count} error(s) detected",
-                count = count.to_formatted_string(&*LOCALE)
-            ),
+            &format!("{count} error(s) detected", count = Formatted(count)),
             data,
         )?;
         Ok(())
@@ -206,8 +202,8 @@ impl HtmlReport<'_> {
             Title::Warnings,
             &format!(
                 "{total_count} warning(s) (in {file_count} files) detected",
-                total_count = total_count.to_formatted_string(&*LOCALE),
-                file_count = file_count.to_formatted_string(&*LOCALE),
+                total_count = Formatted(total_count),
+                file_count = Formatted(file_count),
             ),
             data,
         )?;
@@ -250,7 +246,7 @@ impl HtmlReport<'_> {
                         Title::Warnings => "text-bg-warning",
                         _ => "text-bg-danger",
                     },
-                    count.to_formatted_string(&*LOCALE),
+                    Formatted(count).to_string(),
                 )
             } else {
                 ("text-bg-light", "None".to_string())
@@ -277,7 +273,7 @@ impl HtmlReport<'_> {
     <dd class="col-sm-10">{total}</dd>
 </dl>
 "#,
-            total = self.result.total.to_formatted_string(&*LOCALE)
+            total = Formatted(self.result.total)
         )
     }
 }

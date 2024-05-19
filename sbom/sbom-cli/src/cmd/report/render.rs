@@ -1,10 +1,9 @@
 use super::ReportResult;
 use crate::cmd::report::RenderOptions;
-use num_format::ToFormattedString;
 use reqwest::Url;
 use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
-use walker_common::{locale::LOCALE, report};
+use walker_common::{locale::Formatted, report};
 
 pub fn render_to_html<W: std::io::Write>(
     out: &mut W,
@@ -108,7 +107,7 @@ impl HtmlReport<'_> {
     <dd class="col-sm-10">{total}</dd>
 </dl>
 "#,
-            total = self.0.total.to_formatted_string(&*LOCALE)
+            total = Formatted(self.0.total)
         )
     }
 
@@ -126,7 +125,7 @@ impl HtmlReport<'_> {
         for v in count {
             let v: Cow<'static, str> = match v {
                 0 => "None".into(),
-                n => n.to_formatted_string(&*LOCALE).into(),
+                n => Formatted(*n).to_string().into(),
             };
             write!(f, r#" <span class="badge {class} rounded-pill">{v}</span>"#)?;
         }

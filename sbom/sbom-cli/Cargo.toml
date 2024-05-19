@@ -23,7 +23,6 @@ flexible-time = "0.1.1"
 html-escape = "0.2.13"
 humantime = "2"
 log = "0.4.17"
-num-format = "0.4"
 parking_lot = "0.12"
 reqwest = { version = "0.12", features = ["json"] }
 serde = { version = "1", features = ["derive"] }

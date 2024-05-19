@@ -29,7 +29,6 @@ indicatif = "0.17.6"
 indicatif-log-bridge = "0.2.1"
 lazy_static = "1.4"
 log = "0.4"
-num-format = { version = "0.4.4", features = ["with-system-locale", "lazy_static"] }
 openid = "0.14"
 pem = "3"
 reqwest = { version = "0.12", features = ["json"] }
