@@ -163,6 +163,8 @@ impl Sbom {
             Err(e) => err.add(ParserKind::Spdx23Json, e),
         };
 
+        // mark as unused for clippy
+        let _json = json;
         Err(err)
     }
 
