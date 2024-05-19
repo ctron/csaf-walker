@@ -1,10 +1,10 @@
 use csaf_walker::{
+    common::fetcher::{Fetcher, FetcherOptions},
     retrieve::RetrievingVisitor,
     source::{HttpOptions, HttpSource},
     validation::ValidationVisitor,
     walker::Walker,
 };
-use walker_common::fetcher::{Fetcher, FetcherOptions};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
