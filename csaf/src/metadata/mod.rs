@@ -34,6 +34,20 @@ impl MetadataSource for Url {
     }
 }
 
+#[async_trait(?Send)]
+impl MetadataSource for &str {
+    async fn load_metadata(&self, fetcher: &Fetcher) -> Result<ProviderMetadata, Error> {
+        MetadataRetriever::new(*self).load_metadata(fetcher).await
+    }
+}
+
+#[async_trait(?Send)]
+impl MetadataSource for String {
+    async fn load_metadata(&self, fetcher: &Fetcher) -> Result<ProviderMetadata, Error> {
+        MetadataRetriever::new(self).load_metadata(fetcher).await
+    }
+}
+
 /// A metadata source implementing the CSAF metadata discovery process.
 #[derive(Clone)]
 pub struct MetadataRetriever {
