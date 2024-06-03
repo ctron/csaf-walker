@@ -38,7 +38,7 @@ walker-common = { version = "0.7.5", path = "../common", features = ["openpgp"] 
 
 sequoia-openpgp = { version = "1", default-features = false }
 
-cyclonedx-bom = { version = "0.5", optional = true }
+cyclonedx-bom = { version = "0.6", optional = true }
 spdx-rs = { version = "0.5.4", optional = true }
 
 [features]

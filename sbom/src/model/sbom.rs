@@ -215,29 +215,10 @@ impl Sbom {
     pub fn try_cyclonedx_json<'a>(
         data: impl Into<JsonPayload<'a>>,
     ) -> Result<Self, cyclonedx_bom::errors::JsonReadError> {
-        use cyclonedx_bom::{errors::BomError, prelude::Bom};
+        use cyclonedx_bom::prelude::Bom;
 
         match data.into() {
-            JsonPayload::Value(json) => {
-                match json.get("specVersion").and_then(|v| v.as_str()) {
-                    Some("1.2") | Some("1.3") => {
-                        Ok(Self::CycloneDx(Bom::parse_from_json_value_v1_3(json)?))
-                    }
-                    Some("1.4") => {
-                        // TODO: cleanup once https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/705 is merged
-                        let data = serde_json::to_vec(&json)?;
-                        Ok(Self::CycloneDx(Bom::parse_from_json_v1_4(data.as_slice())?))
-                    }
-                    Some(v) => Err(BomError::UnsupportedSpecVersion(format!(
-                        "Unsupported version: {v}"
-                    ))
-                    .into()),
-                    None => Err(BomError::UnsupportedSpecVersion(
-                        "No field 'specVersion' found".to_string(),
-                    )
-                    .into()),
-                }
-            }
+            JsonPayload::Value(json) => Ok(Self::CycloneDx(Bom::parse_json_value(json)?)),
             JsonPayload::Bytes(data) => Ok(Self::CycloneDx(Bom::parse_from_json(data)?)),
         }
     }
