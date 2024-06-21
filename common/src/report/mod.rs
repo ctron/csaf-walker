@@ -1,5 +1,9 @@
 //! Common functionality for creating the reports
 
+mod summary;
+
+pub use summary::*;
+
 use std::fmt::Display;
 use std::io::Write;
 use time::macros::format_description;

@@ -2,6 +2,7 @@ use crate::report::{DocumentKey, ReportResult};
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use url::Url;
+use walker_common::report::Summary;
 use walker_common::{locale::Formatted, report};
 
 #[derive(Clone, Debug)]
@@ -112,13 +113,15 @@ impl HtmlReport<'_> {
             }
             Ok(())
         };
-        Self::render_table(
-            f,
-            [count],
-            Title::Errors,
-            &format!("{count} file(s) with errors", count = Formatted(count),),
-            data,
-        )?;
+        if count > 0 {
+            Self::render_table(
+                f,
+                [count],
+                Title::Errors,
+                &format!("{count} file(s) with errors", count = Formatted(count),),
+                data,
+            )?;
+        }
         Ok(())
     }
 
@@ -134,6 +137,7 @@ impl HtmlReport<'_> {
     {
         Self::title(f, title, count)?;
         writeln!(f, "<p>{sub_title}</p>")?;
+
         writeln!(
             f,
             r#"
@@ -197,17 +201,19 @@ impl HtmlReport<'_> {
 
             Ok(())
         };
-        Self::render_table(
-            f,
-            [file_count, total_count],
-            Title::Warnings,
-            &format!(
-                "{total_count} warning(s) (in {file_count} files) detected",
-                total_count = Formatted(total_count),
-                file_count = Formatted(file_count),
-            ),
-            data,
-        )?;
+        if total_count > 0 {
+            Self::render_table(
+                f,
+                [file_count, total_count],
+                Title::Warnings,
+                &format!(
+                    "{total_count} warning(s) in {file_count} file(s) detected",
+                    total_count = Formatted(total_count),
+                    file_count = Formatted(file_count),
+                ),
+                data,
+            )?;
+        }
         Ok(())
     }
 
@@ -265,17 +271,14 @@ impl HtmlReport<'_> {
     }
 
     fn render_total(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        writeln!(
-            f,
-            r#"
-<h2>Summary</h2>
-<dl class="row">
-    <dt class="col-sm-2">Total</dt>
-    <dd class="col-sm-10">{total}</dd>
-</dl>
-"#,
-            total = Formatted(self.result.total)
-        )
+        let mut summary = Vec::new();
+
+        summary.push(("Total", Formatted(self.result.total).to_string()));
+        if let Some(base_url) = self.base_url {
+            summary.push(("Source", base_url.to_string()));
+        }
+
+        Summary(summary).fmt(f)
     }
 }
 

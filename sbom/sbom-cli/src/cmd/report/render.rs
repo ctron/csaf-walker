@@ -3,6 +3,7 @@ use crate::cmd::report::RenderOptions;
 use reqwest::Url;
 use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
+use walker_common::report::Summary;
 use walker_common::{locale::Formatted, report};
 
 pub fn render_to_html<W: std::io::Write>(
@@ -98,17 +99,14 @@ impl HtmlReport<'_> {
     }
 
     fn render_total(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        writeln!(
-            f,
-            r#"
-<h2>Summary</h2>
-<dl class="row">
-    <dt class="col-sm-2">Total</dt>
-    <dd class="col-sm-10">{total}</dd>
-</dl>
-"#,
-            total = Formatted(self.0.total)
-        )
+        let mut summary = Vec::new();
+
+        summary.push(("Total", Formatted(self.0.total).to_string()));
+        if let Some(base_url) = &self.1.base_url {
+            summary.push(("Source", base_url.to_string()));
+        }
+
+        Summary(summary).fmt(f)
     }
 
     fn title(f: &mut Formatter<'_>, title: &str, count: &[usize]) -> std::fmt::Result {
