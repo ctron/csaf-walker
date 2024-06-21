@@ -1,7 +1,7 @@
 [package]
 name = "sbom-cli"
 description = "A CLI to work with SBOM data"
-version = "0.8.1"
+version = "0.8.2"
 edition = "2021"
 authors = ["Jens Reimann <ctron@dentrassi.de>"]
 license = "Apache-2.0"
@@ -33,9 +33,9 @@ thiserror = "1"
 time = "0.3.20"
 tokio = { version = "1", features = ["full"] }
 
-walker-common = { version = "0.8.1", path = "../../common", features = ["openpgp", "cli"] }
-walker-extras = { version = "0.8.1", path = "../../extras" }
-sbom-walker = { version = "0.8.1", path = "..", default-features = false, features = ["cyclonedx-bom", "spdx-rs"] }
+walker-common = { version = "0.8.2", path = "../../common", features = ["openpgp", "cli"] }
+walker-extras = { version = "0.8.2", path = "../../extras" }
+sbom-walker = { version = "0.8.2", path = "..", default-features = false, features = ["cyclonedx-bom", "spdx-rs"] }
 
 # just there for the feature
 openssl = { version = "0.10", optional = true }
