@@ -1,15 +1,17 @@
 use crate::report::{DocumentKey, ReportResult};
-use std::fmt::{Display, Formatter};
-use std::path::PathBuf;
+use std::{
+    fmt::{Display, Formatter},
+    path::PathBuf,
+};
 use url::Url;
-use walker_common::report::Summary;
-use walker_common::{locale::Formatted, report};
+use walker_common::{locale::Formatted, report, report::Summary};
 
 #[derive(Clone, Debug)]
 pub struct ReportRenderOption {
     pub output: PathBuf,
 
     pub base_url: Option<Url>,
+    pub source_url: Option<Url>,
 }
 
 pub fn render_to_html<W: std::io::Write>(
@@ -23,6 +25,7 @@ pub fn render_to_html<W: std::io::Write>(
         HtmlReport {
             result: report,
             base_url: &options.base_url,
+            source_url: &options.source_url,
         },
         &Default::default(),
     )?;
@@ -49,7 +52,10 @@ impl Display for Title {
 
 struct HtmlReport<'r> {
     result: &'r ReportResult<'r>,
+    /// The base of the source, used to generate a relative URL
     base_url: &'r Option<Url>,
+    /// Override source URL
+    source_url: &'r Option<Url>,
 }
 
 impl HtmlReport<'_> {
@@ -274,8 +280,8 @@ impl HtmlReport<'_> {
         let mut summary = Vec::new();
 
         summary.push(("Total", Formatted(self.result.total).to_string()));
-        if let Some(base_url) = self.base_url {
-            summary.push(("Source", base_url.to_string()));
+        if let Some(source) = self.source_url.as_ref().or(self.base_url.as_ref()) {
+            summary.push(("Source", source.to_string()));
         }
 
         Summary(summary).fmt(f)
@@ -310,6 +316,7 @@ mod test {
         let report = HtmlReport {
             result: &details,
             base_url: &base_url,
+            source_url: &None,
         };
 
         let (url, _label) = report.link_document(&DocumentKey {

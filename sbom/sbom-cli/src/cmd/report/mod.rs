@@ -65,6 +65,10 @@ pub struct RenderOptions {
     /// Make links relative to this URL.
     #[arg(short = 'B', long)]
     base_url: Option<Url>,
+
+    /// Override source URL
+    #[arg(long)]
+    source_url: Option<Url>,
 }
 
 #[derive(Clone, Debug)]

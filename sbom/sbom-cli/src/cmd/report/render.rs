@@ -102,8 +102,8 @@ impl HtmlReport<'_> {
         let mut summary = Vec::new();
 
         summary.push(("Total", Formatted(self.0.total).to_string()));
-        if let Some(base_url) = &self.1.base_url {
-            summary.push(("Source", base_url.to_string()));
+        if let Some(source) = self.1.source_url.as_ref().or(self.1.base_url.as_ref()) {
+            summary.push(("Source", source.to_string()));
         }
 
         Summary(summary).fmt(f)

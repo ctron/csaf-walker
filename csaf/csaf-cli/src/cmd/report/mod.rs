@@ -65,6 +65,10 @@ pub struct RenderOptions {
     /// Make links relative to this URL.
     #[arg(short = 'B', long)]
     pub base_url: Option<Url>,
+
+    /// The original source URL, used for the summary.
+    #[arg(long)]
+    pub source_url: Option<Url>,
 }
 
 impl Report {
@@ -189,6 +193,7 @@ impl Report {
             ReportRenderOption {
                 output: render.output,
                 base_url: render.base_url,
+                source_url: render.source_url,
             },
         )?;
 
