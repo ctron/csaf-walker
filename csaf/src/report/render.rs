@@ -104,14 +104,17 @@ impl HtmlReport<'_> {
             for (k, v) in self.result.errors {
                 let (url, label) = self.link_document(k);
 
+                let id = format!("error-{url}");
+                let id = html_escape::encode_quoted_attribute(&id);
+
                 writeln!(
                     f,
-                    r#"
+                    r##"
             <tr>
-                <td><a href="{url}" target="_blank" style="white-space: nowrap;">{label}</a></td>
+                <td id="{id}"><a href="{url}" target="_blank" style="white-space: nowrap;">{label}</a> <a class="link-secondary" href="#{id}">§</a></td>
                 <td><code>{v}</code></td>
             </tr>
-            "#,
+            "##,
                     url = html_escape::encode_quoted_attribute(&url),
                     label = html_escape::encode_text(&label),
                     v = html_escape::encode_text(&v),
@@ -172,13 +175,16 @@ impl HtmlReport<'_> {
             for (k, v) in self.result.warnings {
                 let (url, label) = self.link_document(k);
 
+                let id = format!("warning-{url}");
+                let id = html_escape::encode_quoted_attribute(&id);
+
                 writeln!(
                     f,
-                    r#"
+                    r##"
             <tr>
-                <td><a href="{url}" target="_blank" style="white-space: nowrap;">{label}</a></td>
+                <td id="{id}"><a href="{url}" target="_blank" style="white-space: nowrap;">{label}</a> <a class="link-secondary" href="#{id}">§</a></td>
                 <td><ul>
-"#,
+"##,
                     url = html_escape::encode_quoted_attribute(&url),
                     label = html_escape::encode_text(&label),
                 )?;

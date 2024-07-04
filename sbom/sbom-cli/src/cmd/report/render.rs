@@ -1,10 +1,11 @@
 use super::ReportResult;
 use crate::cmd::report::RenderOptions;
 use reqwest::Url;
-use std::borrow::Cow;
-use std::fmt::{Display, Formatter};
-use walker_common::report::Summary;
-use walker_common::{locale::Formatted, report};
+use std::{
+    borrow::Cow,
+    fmt::{Display, Formatter},
+};
+use walker_common::{locale::Formatted, report, report::Summary};
 
 pub fn render_to_html<W: std::io::Write>(
     out: &mut W,
@@ -54,14 +55,16 @@ impl HtmlReport<'_> {
                 };
 
                 let k = k.rsplit_once('/').map(|r| r.1).unwrap_or(&k);
+                let id = format!("error-{k}");
+                let id = html_escape::encode_quoted_attribute(&id);
 
                 writeln!(
                     f,
-                    r#"
+                    r##"
             <tr>
-                <td><a href="{k}" target="_blank" style="white-space: nowrap;">{k}</a></td>
+                <td id="{id}"><a href="{k}" target="_blank" style="white-space: nowrap;">{k}</a> <a class="link-secondary" href="#{id}">§</a></td>
                 <td><ul>
-            "#,
+            "##,
                     k = html_escape::encode_quoted_attribute(&k),
                 )?;
 
