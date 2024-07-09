@@ -1,4 +1,4 @@
-use crate::cmd::report::ReportSink;
+use crate::report::ReportSink;
 use spdx_rs::models::SPDX;
 use std::collections::{HashMap, HashSet};
 

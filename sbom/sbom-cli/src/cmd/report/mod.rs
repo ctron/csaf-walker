@@ -1,4 +1,3 @@
-mod check;
 mod render;
 
 use crate::{cmd::DiscoverArguments, common::walk_visitor};
@@ -7,6 +6,7 @@ use reqwest::Url;
 use sbom_walker::{
     discover::DiscoveredSbom,
     model::sbom::ParseAnyError,
+    report::{check, ReportResult, ReportSink},
     retrieve::{RetrievedSbom, RetrievingVisitor},
     validation::{ValidatedSbom, ValidationError, ValidationVisitor},
     Sbom,
@@ -69,22 +69,6 @@ pub struct RenderOptions {
     /// Override source URL
     #[arg(long)]
     source_url: Option<Url>,
-}
-
-#[derive(Clone, Debug)]
-pub struct ReportResult<'d> {
-    pub errors: &'d BTreeMap<String, Vec<String>>,
-    pub total: usize,
-}
-
-pub trait ReportSink {
-    fn error(&self, msg: String);
-}
-
-impl ReportSink for (String, Arc<Mutex<BTreeMap<String, Vec<String>>>>) {
-    fn error(&self, msg: String) {
-        self.1.lock().entry(self.0.clone()).or_default().push(msg);
-    }
 }
 
 impl Report {
