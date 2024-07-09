@@ -12,7 +12,7 @@ const BOOTSTRAP_VERSION: &str = "5.3.3";
 const BOOTSTRAP_CSS_SRI: &str =
     "sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH";
 const BOOTSTRAP_JS_SRI: &str =
-    "sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy";
+    "sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz";
 
 /// Options for rendering reports.
 #[derive(Clone, Debug, Default)]
@@ -124,7 +124,7 @@ pub fn render(
             .unwrap_or_default(),
         js_integrity = options
             .bootstrap
-            .css_integrity()
+            .js_integrity()
             .map(|sri| format!(
                 r#"integrity="{sri}""#,
                 sri = html_escape::encode_quoted_attribute(&sri)
