@@ -3,12 +3,8 @@ use spdx_rs::models::SPDX;
 use std::collections::{HashMap, HashSet};
 
 /// Run all SPDX sbom checks
-pub fn all(report: &dyn ReportSink, spdx: SPDX) {
-    SpdxChecks {
-        report,
-        spdx: &spdx,
-    }
-    .all();
+pub fn all(report: &dyn ReportSink, spdx: &SPDX) {
+    SpdxChecks { report, spdx }.all();
 }
 
 struct SpdxChecks<'c> {

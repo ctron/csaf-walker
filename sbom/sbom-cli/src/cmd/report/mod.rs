@@ -185,7 +185,7 @@ impl Report {
             }
         };
 
-        check::all(report, sbom);
+        check::all(report, &sbom);
     }
 }
 
