@@ -13,6 +13,11 @@ pub trait ReportSink {
     fn error(&self, msg: String);
 }
 
+/// A no-op report sink
+impl ReportSink for () {
+    fn error(&self, _msg: String) {}
+}
+
 impl ReportSink for (String, Arc<Mutex<BTreeMap<String, Vec<String>>>>) {
     fn error(&self, msg: String) {
         self.1.lock().entry(self.0.clone()).or_default().push(msg);
