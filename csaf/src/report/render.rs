@@ -308,6 +308,7 @@ impl<'r> Display for HtmlReport<'r> {
 mod test {
     use super::*;
     use reqwest::Url;
+    use std::path::PathBuf;
 
     #[test]
     fn test_link() {
