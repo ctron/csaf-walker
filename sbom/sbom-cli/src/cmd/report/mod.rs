@@ -25,6 +25,7 @@ use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
     compression::decompress,
     progress::Progress,
+    report::{self, Statistics},
     utils::url::Urlify,
     validate::ValidationOptions,
 };
@@ -69,6 +70,10 @@ pub struct RenderOptions {
     /// Override source URL
     #[arg(long)]
     source_url: Option<Url>,
+
+    /// Statistics file to append to
+    #[arg(long)]
+    statistics_file: Option<PathBuf>,
 }
 
 impl Report {
@@ -116,20 +121,34 @@ impl Report {
             .await?;
         }
 
+        let total = total.load(Ordering::SeqCst);
+        let errors = errors.lock();
+
         Self::render(
-            self.render,
-            ReportResult {
-                errors: &errors.lock(),
-                total: total.load(Ordering::SeqCst),
+            &self.render,
+            &ReportResult {
+                errors: &errors,
+                total,
+            },
+        )?;
+
+        report::record_now(
+            self.render.statistics_file.as_deref(),
+            Statistics {
+                total,
+                errors: errors.len(),
+                total_errors: errors.iter().map(|(_, v)| v.len()).sum(),
+                warnings: 0,
+                total_warnings: 0,
             },
         )?;
 
         Ok(())
     }
 
-    fn render(render: RenderOptions, report: ReportResult) -> anyhow::Result<()> {
+    fn render(render: &RenderOptions, report: &ReportResult) -> anyhow::Result<()> {
         let mut out = std::fs::File::create(&render.output)?;
-        render::render_to_html(&mut out, &report, &render)?;
+        render::render_to_html(&mut out, report, render)?;
 
         Ok(())
     }

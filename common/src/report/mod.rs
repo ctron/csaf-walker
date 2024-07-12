@@ -1,7 +1,9 @@
 //! Common functionality for creating the reports
 
+mod stats;
 mod summary;
 
+pub use stats::*;
 pub use summary::*;
 
 use std::fmt::Display;

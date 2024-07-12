@@ -1,17 +1,17 @@
 use crate::report::{DocumentKey, ReportResult};
 use std::{
     fmt::{Display, Formatter},
-    path::PathBuf,
+    path::Path,
 };
 use url::Url;
 use walker_common::{locale::Formatted, report, report::Summary};
 
 #[derive(Clone, Debug)]
-pub struct ReportRenderOption {
-    pub output: PathBuf,
+pub struct ReportRenderOption<'a> {
+    pub output: &'a Path,
 
-    pub base_url: Option<Url>,
-    pub source_url: Option<Url>,
+    pub base_url: &'a Option<Url>,
+    pub source_url: &'a Option<Url>,
 }
 
 pub fn render_to_html<W: std::io::Write>(
@@ -24,8 +24,8 @@ pub fn render_to_html<W: std::io::Write>(
         "CSAF Report",
         HtmlReport {
             result: report,
-            base_url: &options.base_url,
-            source_url: &options.source_url,
+            base_url: options.base_url,
+            source_url: options.source_url,
         },
         &Default::default(),
     )?;

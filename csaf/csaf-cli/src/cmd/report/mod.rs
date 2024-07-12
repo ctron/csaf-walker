@@ -26,6 +26,7 @@ use tokio::sync::Mutex;
 use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
     progress::Progress,
+    report::{self, Statistics},
     utils::url::Urlify,
     validate::ValidationOptions,
 };
@@ -69,6 +70,10 @@ pub struct RenderOptions {
     /// The original source URL, used for the summary.
     #[arg(long)]
     pub source_url: Option<Url>,
+
+    /// Statistics file to append to
+    #[arg(long)]
+    statistics_file: Option<PathBuf>,
 }
 
 impl Report {
@@ -170,30 +175,43 @@ impl Report {
         }
 
         let total = (*total).load(Ordering::Acquire);
+        let errors = errors.lock().await;
+        let warnings = warnings.lock().await;
 
         Self::render(
-            self.render,
-            ReportResult {
+            &self.render,
+            &ReportResult {
                 total,
                 duplicates: &*duplicates.lock().await,
-                errors: &*errors.lock().await,
-                warnings: &*warnings.lock().await,
+                errors: &errors,
+                warnings: &warnings,
+            },
+        )?;
+
+        report::record_now(
+            self.render.statistics_file.as_deref(),
+            Statistics {
+                total,
+                errors: errors.len(),
+                total_errors: errors.len(),
+                warnings: warnings.len(),
+                total_warnings: warnings.iter().map(|(_, v)| v.len()).sum(),
             },
         )?;
 
         Ok(())
     }
 
-    fn render(render: RenderOptions, report: ReportResult) -> anyhow::Result<()> {
+    fn render(render: &RenderOptions, report: &ReportResult) -> anyhow::Result<()> {
         let mut out = std::fs::File::create(&render.output)?;
 
         render_to_html(
             &mut out,
-            &report,
+            report,
             ReportRenderOption {
-                output: render.output,
-                base_url: render.base_url,
-                source_url: render.source_url,
+                output: &render.output,
+                base_url: &render.base_url,
+                source_url: &render.source_url,
             },
         )?;
 
