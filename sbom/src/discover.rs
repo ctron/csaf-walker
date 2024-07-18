@@ -1,20 +1,13 @@
 //! Discovering
 
-use crate::model::metadata;
-use crate::model::metadata::SourceMetadata;
-use std::fmt::Debug;
-use std::future::Future;
-use std::ops::Deref;
-use std::time::SystemTime;
+use crate::{model::metadata, model::metadata::SourceMetadata};
+use std::{fmt::Debug, future::Future, ops::Deref, time::SystemTime};
 use url::Url;
 use walker_common::utils::url::Urlify;
 
 /// Discovery configuration
 pub struct DiscoverConfig {
-    /// The URL to locate the provider metadata.
-    ///
-    /// If `full` is `true`, this must be the full path to the `provider-metadata.json`, otherwise
-    /// it `/.well-known/csaf/provider-metadata.json` will be appended.
+    /// The URL to locate the SBOM metadata.
     pub source: String,
 
     /// Only report documents which have changed since the provided date. If a document has no
