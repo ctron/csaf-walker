@@ -26,7 +26,7 @@ impl RetrievedVisitor for SendVisitor {
         _context: &Self::Context,
         result: Result<RetrievedAdvisory, RetrievalError>,
     ) -> Result<(), Self::Error> {
-        self.send_csaf(result?).await?;
+        self.send_retrieved_advisory(result?).await?;
         Ok(())
     }
 }
@@ -52,13 +52,13 @@ impl ValidatedVisitor for SendVisitor {
         _context: &Self::Context,
         result: Result<ValidatedAdvisory, ValidationError>,
     ) -> Result<(), Self::Error> {
-        self.send_csaf(result?.retrieved).await?;
+        self.send_retrieved_advisory(result?.retrieved).await?;
         Ok(())
     }
 }
 
 impl SendVisitor {
-    async fn send_csaf(&self, advisory: RetrievedAdvisory) -> Result<(), SendError> {
+    async fn send_retrieved_advisory(&self, advisory: RetrievedAdvisory) -> Result<(), SendError> {
         log::debug!(
             "Sending: {} (modified: {:?})",
             advisory.url,
@@ -71,7 +71,11 @@ impl SendVisitor {
             ..
         } = advisory;
 
-        self.send(url.as_str(), data, |request| {
+        self.send_advisory(url.as_str(), data).await
+    }
+
+    pub async fn send_advisory(&self, name: &str, data: Bytes) -> Result<(), SendError> {
+        self.send(name, data, |request| {
             request.header(header::CONTENT_TYPE, "application/json")
         })
         .await

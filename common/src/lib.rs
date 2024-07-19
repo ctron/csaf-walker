@@ -7,6 +7,7 @@ pub mod locale;
 pub mod progress;
 pub mod report;
 pub mod retrieve;
+pub mod scoop;
 pub mod sender;
 pub mod since;
 pub mod source;

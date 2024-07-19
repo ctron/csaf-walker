@@ -2,7 +2,8 @@ mod cmd;
 mod common;
 
 use crate::cmd::{
-    discover::Discover, download::Download, report::Report, scan::Scan, send::Send, sync::Sync,
+    discover::Discover, download::Download, report::Report, scan::Scan, scoop::Scoop, send::Send,
+    sync::Sync,
 };
 use clap::Parser;
 use std::process::ExitCode;
@@ -27,6 +28,7 @@ enum Command {
     Scan(Scan),
     Report(Report),
     Send(Send),
+    Scoop(Scoop),
 }
 
 impl Command {
@@ -38,6 +40,7 @@ impl Command {
             Command::Scan(cmd) => cmd.run(progress).await,
             Command::Report(cmd) => cmd.run(progress).await,
             Command::Send(cmd) => cmd.run(progress).await,
+            Command::Scoop(cmd) => cmd.run(progress).await,
         }
     }
 }

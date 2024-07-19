@@ -10,6 +10,7 @@ pub mod report;
 pub mod scan;
 pub mod send;
 pub mod sync;
+pub mod scoop;
 
 #[derive(Debug, clap::Parser)]
 #[command(next_help_heading = "Discovery")]
