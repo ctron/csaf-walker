@@ -2,9 +2,9 @@ use crate::{
     cmd::{DiscoverArguments, SkipArguments},
     common::walk_visitor,
 };
-use sbom_walker::discover::DiscoverConfig;
 use sbom_walker::{
-    retrieve::RetrievingVisitor, validation::ValidationVisitor, visitors::skip::SkipFailedVisitor,
+    discover::DiscoverConfig, retrieve::RetrievingVisitor, validation::ValidationVisitor,
+    visitors::skip::SkipFailedVisitor,
 };
 use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},

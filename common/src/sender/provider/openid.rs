@@ -15,6 +15,7 @@ pub struct OpenIdTokenProviderConfigArguments {
     #[arg(
         id = "oidc_client_id",
         long = "oidc-client-id",
+        env = "OIDC_CLIENT_ID",
         requires("OpenIdTokenProviderConfigArguments")
     )]
     pub client_id: Option<String>,
@@ -22,6 +23,7 @@ pub struct OpenIdTokenProviderConfigArguments {
     #[arg(
         id = "oidc_client_secret",
         long = "oidc-client-secret",
+        env = "OIDC_CLIENT_SECRET",
         requires("OpenIdTokenProviderConfigArguments")
     )]
     pub client_secret: Option<String>,
@@ -29,6 +31,7 @@ pub struct OpenIdTokenProviderConfigArguments {
     #[arg(
         id = "oidc_issuer_url",
         long = "oidc-issuer-url",
+        env = "OIDC_ISSUER_URL",
         requires("OpenIdTokenProviderConfigArguments")
     )]
     pub issuer_url: Option<String>,
@@ -36,6 +39,7 @@ pub struct OpenIdTokenProviderConfigArguments {
     #[arg(
         id = "oidc_refresh_before",
         long = "oidc-refresh-before",
+        env = "OIDC_REFRESH_BEFORE",
         default_value = "30s"
     )]
     pub refresh_before: humantime::Duration,

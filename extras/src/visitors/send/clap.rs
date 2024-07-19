@@ -12,11 +12,21 @@ pub struct SendArguments {
     pub target: Url,
 
     /// Sender connect timeout
-    #[arg(id = "sender-connect-timeout", long, default_value = "15s")]
+    #[arg(
+        id = "sender-connect-timeout",
+        long,
+        env = "SENDER_CONNECT_TIMEOUT",
+        default_value = "15s"
+    )]
     pub connect_timeout: humantime::Duration,
 
     /// Sender request timeout
-    #[arg(id = "sender-timeout", long, default_value = "5m")]
+    #[arg(
+        id = "sender-timeout",
+        long,
+        env = "SENDER_TIMEOUT",
+        default_value = "5m"
+    )]
     pub timeout: humantime::Duration,
 
     /// Additional root certificates
@@ -28,11 +38,21 @@ pub struct SendArguments {
     pub tls_insecure: bool,
 
     /// Number of retries in case of temporary failures
-    #[arg(id = "sender-retries", long, default_value = "0")]
+    #[arg(
+        id = "sender-retries",
+        long,
+        env = "SENDER_RETRIES",
+        default_value = "0"
+    )]
     pub retries: usize,
 
     /// Delay between retries
-    #[arg(id = "sender-retry-delay", long, default_value = "5s")]
+    #[arg(
+        id = "sender-retry-delay",
+        long,
+        env = "SENDER_RETRY_DELAY",
+        default_value = "5s"
+    )]
     pub retry_delay: humantime::Duration,
 
     #[command(flatten)]
