@@ -55,6 +55,15 @@ pub struct SendArguments {
     )]
     pub retry_delay: humantime::Duration,
 
+    /// Custom query parameters
+    #[arg(
+        id = "sender-query-parameter",
+        long,
+        env = "SENDER_QUERY_PARAMETER",
+        value_delimiter = ','
+    )]
+    pub query: Vec<String>,
+
     #[command(flatten)]
     pub oidc: OpenIdTokenProviderConfigArguments,
 }
@@ -70,6 +79,7 @@ impl SendArguments {
             retries,
             retry_delay,
             oidc,
+            query,
         } = self;
 
         let provider = oidc.into_provider().await?;
@@ -79,7 +89,11 @@ impl SendArguments {
                 .connect_timeout(Some(connect_timeout.into()))
                 .timeout(Some(timeout.into()))
                 .tls_insecure(tls_insecure)
-                .additional_root_certificates(additional_root_certificates),
+                .additional_root_certificates(additional_root_certificates)
+                .query_parameters(query.into_iter().map(|entry| match entry.split_once('=') {
+                    Some((key, value)) => (key.to_string(), value.to_string()),
+                    None => (entry, "".to_string()),
+                })),
         )
         .await?;
 

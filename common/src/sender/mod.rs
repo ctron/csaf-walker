@@ -9,14 +9,13 @@ pub use error::*;
 use crate::sender::provider::{TokenInjector, TokenProvider};
 use anyhow::Context;
 use reqwest::{header, IntoUrl, Method, RequestBuilder};
-use std::path::PathBuf;
-use std::sync::Arc;
-use std::time::Duration;
+use std::{collections::HashMap, path::PathBuf, sync::Arc, time::Duration};
 
 #[derive(Clone)]
 pub struct HttpSender {
     client: reqwest::Client,
     provider: Arc<dyn TokenProvider>,
+    query_parameters: HashMap<String, String>,
 }
 
 /// Options for the [`HttpSender`].
@@ -27,6 +26,7 @@ pub struct HttpSenderOptions {
     pub timeout: Option<Duration>,
     pub additional_root_certificates: Vec<PathBuf>,
     pub tls_insecure: bool,
+    pub query_parameters: HashMap<String, String>,
 }
 
 impl HttpSenderOptions {
@@ -41,6 +41,34 @@ impl HttpSenderOptions {
 
     pub fn timeout(mut self, timeout: impl Into<Option<Duration>>) -> Self {
         self.connect_timeout = timeout.into();
+        self
+    }
+
+    pub fn query_parameters<I>(mut self, query_parameters: I) -> Self
+    where
+        I: IntoIterator<Item = (String, String)>,
+    {
+        self.query_parameters = HashMap::from_iter(query_parameters);
+        self
+    }
+
+    pub fn add_query_parameters<I>(
+        mut self,
+        key: impl Into<String>,
+        value: impl Into<String>,
+    ) -> Self
+    where
+        I: IntoIterator<Item = (String, String)>,
+    {
+        self.query_parameters.insert(key.into(), value.into());
+        self
+    }
+
+    pub fn extend_query_parameters<I>(mut self, query_parameters: I) -> Self
+    where
+        I: IntoIterator<Item = (String, String)>,
+    {
+        self.query_parameters.extend(query_parameters);
         self
     }
 
@@ -113,6 +141,7 @@ impl HttpSender {
         Ok(Self {
             client: client.build()?,
             provider: Arc::new(provider),
+            query_parameters: options.query_parameters,
         })
     }
 
@@ -124,6 +153,13 @@ impl HttpSender {
     ) -> Result<RequestBuilder, Error> {
         self.client
             .request(method, url)
+            .query(
+                &self
+                    .query_parameters
+                    .iter()
+                    .map(|(key, value)| (key.clone(), value.clone()))
+                    .collect::<Vec<(String, String)>>(),
+            )
             .inject_token(&self.provider)
             .await
     }
