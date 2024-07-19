@@ -119,13 +119,34 @@ jobs:
         run: ${{ matrix.install }}
         if: matrix.install != ''
 
+      - name: Setup cargo-binstall (Linux)
+        if: runner.os != 'Windows'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+
+      - name: Setup cargo-binstall (Windows)
+        if: runner.os == 'Windows'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          Set-ExecutionPolicy Unrestricted -Scope Process; iex (iwr "https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.ps1").Content
+
       - name: Prepare cross
         if: matrix.cross == 'true'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          curl -sSL https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz -o binstall.tar.gz
-          tar xzf binstall.tar.gz
-          mv cargo-binstall $HOME/.cargo/bin/
           cargo binstall cross -y
+
+      - name: Install cargo-cyclonedx
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cargo binstall -y cargo-cyclonedx
 
       - name: Build
         shell: bash
@@ -151,6 +172,18 @@ jobs:
           
           env NETTLE_STATIC=yes ${CMD} build ${OPTS}
 
+      - name: Create upload directory
+        run: |
+          mkdir -p upload
+
+      - name: Create SBOM
+        shell: bash
+        run: |
+          cargo cyclonedx -v --spec-version 1.5 --format json --describe binaries --target "${{ matrix.target }}"
+          
+          mv csaf/csaf-cli/csaf_bin.cdx.json "upload/csaf-${{ matrix.target }}.cdx.json"
+          mv sbom/sbom-cli/sbom_bin.cdx.json "upload/sbom-${{ matrix.target }}.cdx.json"
+
       - name: List output
         shell: bash
         run: |
@@ -159,8 +192,6 @@ jobs:
       - name: Copy binary
         shell: bash
         run: |
-          mkdir -p upload
-          
           # if we have an alternate target, there is a sub-directory
           if [[ -f "target/release/csaf${{ matrix.exe }}" ]]; then
             SRC_CSAF="target/release/csaf${{ matrix.exe }}"
@@ -181,13 +212,18 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: csaf-${{ matrix.target }}
-          path: upload/csaf-${{ matrix.target }}${{ matrix.exe }}
+          path: |
+            upload/csaf-${{ matrix.target }}${{ matrix.exe }}
+            upload/csaf-${{ matrix.target }}.cdx.json
           if-no-files-found: error
+
       - name: Upload binary (sbom)
         uses: actions/upload-artifact@v4
         with:
           name: sbom-${{ matrix.target }}
-          path: upload/sbom-${{ matrix.target }}${{ matrix.exe }}
+          path: |
+            upload/sbom-${{ matrix.target }}${{ matrix.exe }}
+            upload/sbom-${{ matrix.target }}.cdx.json
           if-no-files-found: error
 
   containers:
