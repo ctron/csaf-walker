@@ -4,7 +4,7 @@ mod common;
 use clap::Parser;
 use cmd::{
     discover::Discover, download::Download, metadata::Metadata, parse::Parse, report::Report,
-    scan::Scan, send::Send, sync::Sync,
+    scan::Scan, scoop::Scoop, send::Send, sync::Sync,
 };
 use std::process::ExitCode;
 use walker_common::{cli::log::Logging, progress::Progress, utils::measure::MeasureTime};
@@ -30,6 +30,7 @@ enum Command {
     Report(Report),
     Send(Send),
     Metadata(Metadata),
+    Scoop(Scoop),
 }
 
 impl Command {
@@ -43,6 +44,7 @@ impl Command {
             Command::Report(cmd) => cmd.run(progress).await,
             Command::Send(cmd) => cmd.run(progress).await,
             Command::Metadata(cmd) => cmd.run().await,
+            Command::Scoop(cmd) => cmd.run(progress).await,
         }
     }
 }
