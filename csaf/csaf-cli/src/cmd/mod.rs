@@ -9,6 +9,7 @@ pub mod metadata;
 pub mod parse;
 pub mod report;
 pub mod scan;
+pub mod scoop;
 pub mod send;
 pub mod sync;
 
