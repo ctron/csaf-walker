@@ -1,5 +1,9 @@
+use anyhow::anyhow;
 use std::path::{Path, PathBuf};
-use walker_common::{cli::client::ClientArguments, progress::Progress, scoop::ScooperBuilder};
+use walker_common::{
+    cli::client::ClientArguments, compression::decompress, progress::Progress,
+    scoop::ScooperBuilder,
+};
 use walker_extras::visitors::{SendArguments, SendVisitor};
 
 /// Walk a local directory (or single file) and send the files to a target without any validation.
@@ -54,8 +58,12 @@ impl Scoop {
                 let send = send.clone();
                 Box::pin(async move {
                     let data = tokio::fs::read(&path).await?;
-                    send.send_advisory(&path.to_string_lossy(), data.into())
-                        .await?;
+                    let name = path
+                        .to_str()
+                        .ok_or_else(|| anyhow!("Invalid UTF-8 sequence in path"))?;
+                    let data = decompress(data.into(), name)?;
+
+                    send.send_advisory(&path.to_string_lossy(), data).await?;
 
                     Ok(())
                 })
