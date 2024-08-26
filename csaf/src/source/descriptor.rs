@@ -4,7 +4,7 @@ use crate::{
     source::{DispatchSource, FileOptions, FileSource, HttpOptions, HttpSource},
 };
 use anyhow::bail;
-use fluent_uri::Uri;
+use fluent_uri::UriRef;
 use std::path::PathBuf;
 use std::str::FromStr;
 use url::Url;
@@ -25,7 +25,7 @@ impl FromStr for SourceDescriptor {
     type Err = anyhow::Error;
 
     fn from_str(source: &str) -> Result<Self, Self::Err> {
-        match Uri::parse(source) {
+        match UriRef::parse(source) {
             Ok(uri) => match uri.scheme().map(|s| s.as_str()) {
                 Some("https") => Ok(SourceDescriptor::Url(Url::parse(source)?)),
                 Some("file") => Ok(SourceDescriptor::File(PathBuf::from(uri.path().as_str()))),

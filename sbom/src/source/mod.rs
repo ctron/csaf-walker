@@ -14,7 +14,7 @@ use crate::{
     retrieve::RetrievedSbom,
 };
 use anyhow::bail;
-use fluent_uri::Uri;
+use fluent_uri::UriRef;
 use std::fmt::{Debug, Display};
 use std::future::Future;
 use url::Url;
@@ -39,7 +39,7 @@ pub async fn new_source(
     let discover = discover.into();
     let source = discover.source;
 
-    match Uri::parse(&source) {
+    match UriRef::parse(source.as_str()) {
         Ok(uri) => {
             match uri.scheme().map(|s| s.as_str()) {
                 Some("file") => {
