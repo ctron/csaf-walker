@@ -1,113 +1,80 @@
 //! Progress reporting
 
-use indicatif::{MultiProgress, ProgressStyle};
-use std::borrow::Cow;
+use std::future::Future;
 
-#[derive(Clone, Default)]
-pub struct Progress {
-    progress: Option<MultiProgress>,
+pub mod indicatif;
+
+pub trait Progress {
+    type Instance: ProgressBar;
+
+    fn start(&self, work: usize) -> Self::Instance;
 }
 
-impl From<MultiProgress> for Progress {
-    fn from(progress: MultiProgress) -> Self {
-        Self {
-            progress: Some(progress),
-        }
+pub trait ProgressBar {
+    fn tick(&mut self) -> impl Future<Output = ()> {
+        self.increment(1)
     }
+
+    fn increment(&mut self, work: usize) -> impl Future<Output = ()>;
+
+    fn finish(self) -> impl Future<Output = ()>;
+
+    fn set_message(&mut self, msg: String) -> impl Future<Output = ()>;
 }
 
-impl From<()> for Progress {
-    fn from(_: ()) -> Self {
-        Self { progress: None }
-    }
+impl Progress for () {
+    type Instance = ();
+
+    fn start(&self, _work: usize) -> Self::Instance {}
 }
 
-impl Progress {
-    pub fn start(&self, tasks: usize) -> ProgressBar {
-        let Some(progress) = &self.progress else {
-            return ProgressBar { bar: None };
-        };
-
-        let tasks = tasks.try_into().unwrap_or(u64::MAX);
-        let bar = indicatif::ProgressBar::new(tasks);
-        bar.set_style(
-            ProgressStyle::default_bar()
-                .template("{msg:<20} {wide_bar} {pos}/{len} ({eta})")
-                .expect("template must parse"),
-        );
-
-        ProgressBar {
-            bar: Some(progress.add(bar)),
-        }
-    }
-
-    pub fn wrap_iter<T>(
-        &self,
-        tasks: usize,
-        iter: impl Iterator<Item = T>,
-    ) -> impl Iterator<Item = T> {
-        match &self.progress {
-            Some(progress) => {
-                let tasks = tasks.try_into().unwrap_or(u64::MAX);
-                let bar = indicatif::ProgressBar::new(tasks);
-                bar.set_style(
-                    ProgressStyle::default_bar()
-                        .template("{wide_bar} {pos}/{len} ({eta})")
-                        .expect("template must parse"),
-                );
-
-                let bar = progress.add(bar);
-
-                let iter = bar.wrap_iter(iter);
-                ProgressIter::Some(iter)
-            }
-            None => ProgressIter::None(iter),
-        }
-    }
-}
-
-enum ProgressIter<I>
+pub struct NoOpIter<I>(I)
 where
-    I: Iterator,
-{
-    None(I),
-    Some(indicatif::ProgressBarIter<I>),
-}
+    I: Iterator;
 
-impl<I> Iterator for ProgressIter<I>
+impl<I> Iterator for NoOpIter<I>
 where
     I: Iterator,
 {
     type Item = I::Item;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            Self::None(iter) => iter.next(),
-            Self::Some(iter) => iter.next(),
-        }
+        self.0.next()
     }
 }
 
-pub struct ProgressBar {
-    bar: Option<indicatif::ProgressBar>,
+impl ProgressBar for () {
+    async fn increment(&mut self, _work: usize) {}
+
+    async fn finish(self) {}
+
+    async fn set_message(&mut self, _msg: String) {}
 }
 
-impl ProgressBar {
-    pub fn tick(&self) {
-        if let Some(bar) = &self.bar {
-            bar.inc(1);
+impl<P: Progress> Progress for Option<P> {
+    type Instance = Option<P::Instance>;
+
+    fn start(&self, work: usize) -> Self::Instance {
+        self.as_ref().map(|progress| progress.start(work))
+    }
+}
+
+impl<P: ProgressBar> ProgressBar for Option<P> {
+    async fn increment(&mut self, work: usize) {
+        if let Some(bar) = self {
+            bar.increment(work).await;
         }
     }
 
-    pub fn set_message(&self, msg: Cow<'static, str>) {
-        if let Some(bar) = &self.bar {
-            bar.set_message(msg);
+    async fn finish(self) {
+        if let Some(bar) = self {
+            bar.finish().await;
         }
     }
 
-    pub fn println(&self, msg: &str) {
-        if let Some(bar) = &self.bar {
-            bar.println(msg);
+    async fn set_message(&mut self, msg: String) {
+        if let Some(bar) = self {
+            bar.set_message(msg).await;
         }
     }
 }

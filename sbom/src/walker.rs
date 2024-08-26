@@ -1,12 +1,13 @@
 //! The actual walker
 
-use crate::discover::{DiscoveredContext, DiscoveredVisitor};
-use crate::source::Source;
+use crate::{
+    discover::{DiscoveredContext, DiscoveredVisitor},
+    source::Source,
+};
 use futures::{stream, StreamExt, TryFutureExt, TryStreamExt};
-use std::fmt::Debug;
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 use url::ParseError;
-use walker_common::progress::Progress;
+use walker_common::progress::{Progress, ProgressBar};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error<VE, SE>
@@ -22,22 +23,26 @@ where
     Visitor(VE),
 }
 
-pub struct Walker<S: Source> {
+pub struct Walker<S: Source, P: Progress> {
     source: S,
-    progress: Progress,
+    progress: P,
 }
 
-impl<S: Source> Walker<S> {
+impl<S: Source> Walker<S, ()> {
     pub fn new(source: S) -> Self {
         Self {
             source,
-            progress: Progress::default(),
+            progress: (),
         }
     }
+}
 
-    pub fn with_progress(mut self, progress: Progress) -> Self {
-        self.progress = progress;
-        self
+impl<S: Source, P: Progress> Walker<S, P> {
+    pub fn with_progress<U: Progress>(self, progress: U) -> Walker<S, U> {
+        Walker {
+            source: self.source,
+            progress,
+        }
     }
 
     pub async fn walk<V>(self, visitor: V) -> Result<(), Error<V::Error, S::Error>>
@@ -54,25 +59,28 @@ impl<S: Source> Walker<S> {
             .map_err(Error::Visitor)?;
 
         let index = self.source.load_index().await.map_err(Error::Source)?;
-        let progress = self.progress.start(index.len());
+        let mut progress = self.progress.start(index.len());
 
         for sbom in index {
             log::debug!("  Discovered SBOM: {sbom:?}");
-            progress.set_message(
-                sbom.url
-                    .path()
-                    .rsplit_once('/')
-                    .map(|(_, s)| s)
-                    .unwrap_or(sbom.url.as_str())
-                    .to_string()
-                    .into(),
-            );
+            progress
+                .set_message(
+                    sbom.url
+                        .path()
+                        .rsplit_once('/')
+                        .map(|(_, s)| s)
+                        .unwrap_or(sbom.url.as_str())
+                        .to_string(),
+                )
+                .await;
             visitor
                 .visit_sbom(&context, sbom)
                 .await
                 .map_err(Error::Visitor)?;
-            progress.tick();
+            progress.tick().await;
         }
+
+        progress.finish().await;
 
         Ok(())
     }

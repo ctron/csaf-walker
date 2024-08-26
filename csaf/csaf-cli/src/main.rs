@@ -34,7 +34,7 @@ enum Command {
 }
 
 impl Command {
-    pub async fn run(self, progress: Progress) -> anyhow::Result<()> {
+    pub async fn run<P: Progress>(self, progress: P) -> anyhow::Result<()> {
         match self {
             Command::Parse(cmd) => cmd.run(progress).await,
             Command::Download(cmd) => cmd.run(progress).await,

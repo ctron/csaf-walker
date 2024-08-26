@@ -1,15 +1,15 @@
 //! The actual walker
 
-use crate::discover::{
-    DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor, DistributionContext,
+use crate::{
+    discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor, DistributionContext},
+    model::metadata::Distribution,
+    source::Source,
 };
-use crate::model::metadata::Distribution;
-use crate::source::Source;
 use futures::{stream, Stream, StreamExt, TryFutureExt, TryStream, TryStreamExt};
-use std::fmt::Debug;
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
+use tokio::sync::Mutex;
 use url::ParseError;
-use walker_common::progress::Progress;
+use walker_common::progress::{Progress, ProgressBar};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error<VE, SE>
@@ -27,24 +27,29 @@ where
 
 pub type DistributionFilter = Box<dyn Fn(&DistributionContext) -> bool>;
 
-pub struct Walker<S: Source> {
+pub struct Walker<S: Source, P: Progress> {
     source: S,
-    progress: Progress,
+    progress: P,
     distribution_filter: Option<DistributionFilter>,
 }
 
-impl<S: Source> Walker<S> {
+impl<S: Source> Walker<S, ()> {
     pub fn new(source: S) -> Self {
         Self {
             source,
-            progress: Progress::default(),
+            progress: (),
             distribution_filter: None,
         }
     }
+}
 
-    pub fn with_progress(mut self, progress: Progress) -> Self {
-        self.progress = progress;
-        self
+impl<S: Source, P: Progress> Walker<S, P> {
+    pub fn with_progress<U: Progress>(self, progress: U) -> Walker<S, U> {
+        Walker {
+            progress,
+            source: self.source,
+            distribution_filter: self.distribution_filter,
+        }
     }
 
     /// Set a filter for distributions.
@@ -108,26 +113,29 @@ impl<S: Source> Walker<S> {
                 .await
                 .map_err(Error::Source)?;
 
-            let progress = self.progress.start(index.len());
+            let mut progress = self.progress.start(index.len());
 
             for advisory in index {
                 log::debug!("  Discovered advisory: {advisory:?}");
-                progress.set_message(
-                    advisory
-                        .url
-                        .path()
-                        .rsplit_once('/')
-                        .map(|(_, s)| s)
-                        .unwrap_or(advisory.url.as_str())
-                        .to_string()
-                        .into(),
-                );
+                progress
+                    .set_message(
+                        advisory
+                            .url
+                            .path()
+                            .rsplit_once('/')
+                            .map(|(_, s)| s)
+                            .unwrap_or(advisory.url.as_str())
+                            .to_string(),
+                    )
+                    .await;
                 visitor
                     .visit_advisory(&context, advisory)
                     .await
                     .map_err(Error::Visitor)?;
-                progress.tick();
+                progress.tick().await;
             }
+
+            progress.finish().await;
         }
 
         Ok(())
@@ -162,21 +170,33 @@ impl<S: Source> Walker<S> {
         let size = advisories.len();
         log::info!("Discovered {size} advisories");
 
-        stream::iter(self.progress.wrap_iter(size, advisories.into_iter()))
+        let progress = Arc::new(Mutex::new(self.progress.start(size)));
+
+        stream::iter(advisories)
             .map(Ok)
             .try_for_each_concurrent(limit, |advisory| {
                 log::debug!("Discovered advisory: {}", advisory.url);
                 let context = context.clone();
                 let visitor = visitor.clone();
+                let progress = progress.clone();
 
                 async move {
-                    visitor
+                    let result = visitor
                         .visit_advisory(&context, advisory.clone())
                         .map_err(Error::Visitor)
-                        .await
+                        .await;
+
+                    progress.lock().await.tick().await;
+
+                    result
                 }
             })
             .await?;
+
+        if let Ok(progress) = Arc::try_unwrap(progress) {
+            let progress = progress.into_inner();
+            progress.finish().await;
+        }
 
         Ok(())
     }

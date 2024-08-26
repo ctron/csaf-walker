@@ -14,8 +14,8 @@ use walker_common::{
     validate::ValidationOptions,
 };
 
-pub async fn walk_standard<V>(
-    progress: Progress,
+pub async fn walk_standard<V, P>(
+    progress: P,
     client: ClientArguments,
     runner: RunnerArguments,
     discover: impl Into<DiscoverConfig>,
@@ -26,6 +26,7 @@ pub async fn walk_standard<V>(
 where
     V: ValidatedVisitor,
     V::Error: Send + Sync + 'static,
+    P: Progress,
 {
     let options: ValidationOptions = validation.into();
 
@@ -65,8 +66,8 @@ where
     }
 }
 
-pub async fn walk_visitor<F, Fut, V>(
-    progress: Progress,
+pub async fn walk_visitor<F, Fut, V, P>(
+    progress: P,
     client: ClientArguments,
     discover: impl Into<DiscoverConfig>,
     filter: impl Into<FilterConfig>,
@@ -78,14 +79,15 @@ where
     Fut: Future<Output = anyhow::Result<V>>,
     V: DiscoveredVisitor,
     V::Error: Send + Sync + 'static,
+    P: Progress,
 {
     let source = new_source(discover, client).await?;
 
     walk_source(progress, source, filter, runner, f).await
 }
 
-pub async fn walk_source<F, Fut, V>(
-    progress: Progress,
+pub async fn walk_source<F, Fut, V, P>(
+    progress: P,
     source: DispatchSource,
     filter_config: impl Into<FilterConfig>,
     runner: RunnerArguments,
@@ -96,6 +98,7 @@ where
     Fut: Future<Output = anyhow::Result<V>>,
     V: DiscoveredVisitor,
     V::Error: Send + Sync + 'static,
+    P: Progress,
 {
     let visitor = f(source.clone()).await?;
     let walker = Walker::new(source).with_progress(progress);

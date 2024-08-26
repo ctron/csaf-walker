@@ -41,7 +41,7 @@ pub struct Sync {
 }
 
 impl Sync {
-    pub async fn run(self, progress: Progress) -> anyhow::Result<()> {
+    pub async fn run<P: Progress>(self, progress: P) -> anyhow::Result<()> {
         let options: ValidationOptions = self.validation.into();
         let store: StoreVisitor = self.store.try_into()?;
         let base = store.base.clone();

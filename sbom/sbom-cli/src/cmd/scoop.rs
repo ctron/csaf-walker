@@ -40,7 +40,7 @@ struct SourceArguments {
 }
 
 impl Scoop {
-    pub async fn run(self, progress: Progress) -> anyhow::Result<()> {
+    pub async fn run<P: Progress>(self, progress: P) -> anyhow::Result<()> {
         log::debug!("Start processing");
 
         let scooper = ScooperBuilder {

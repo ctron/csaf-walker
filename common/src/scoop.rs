@@ -1,4 +1,4 @@
-use crate::progress::Progress;
+use crate::progress::{Progress, ProgressBar};
 use anyhow::bail;
 use std::{
     future::Future,
@@ -72,9 +72,10 @@ pub struct Scooper {
 
 impl Scooper {
     #[instrument(skip_all, err)]
-    pub async fn process<F>(self, progress: impl Into<Progress>, processor: F) -> anyhow::Result<()>
+    pub async fn process<F, P>(self, progress: P, processor: F) -> anyhow::Result<()>
     where
         F: for<'a> Fn(&'a Path) -> Pin<Box<dyn Future<Output = anyhow::Result<()>> + 'a>>,
+        P: Progress,
     {
         if let Some(processed) = &self.builder.processed {
             tokio::fs::create_dir_all(processed).await?;
@@ -86,16 +87,15 @@ impl Scooper {
         let total = self.files.len();
         let mut errors = 0usize;
 
-        let progress = progress.into();
-        let p = progress.start(total);
+        let mut p = progress.start(total);
         for file in self.files {
             p.set_message(
                 file.file_name()
                     .map(|s| s.to_string_lossy())
                     .unwrap_or_else(|| file.to_string_lossy())
-                    .to_string()
-                    .into(),
-            );
+                    .to_string(),
+            )
+            .await;
             match processor(&file).await {
                 Ok(()) => {
                     if self.builder.delete {
@@ -114,9 +114,10 @@ impl Scooper {
                     }
                 }
             }
-            p.tick();
+            p.tick().await;
         }
-        drop(p);
+
+        p.finish().await;
 
         match errors {
             0 => {

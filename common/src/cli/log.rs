@@ -1,4 +1,3 @@
-use crate::progress::Progress;
 use env_logger::Builder;
 use indicatif::MultiProgress;
 use indicatif_log_bridge::LogWrapper;
@@ -29,7 +28,7 @@ pub struct Logging {
 }
 
 impl Logging {
-    pub fn init(self, app_modules: &[&'static str]) -> Progress {
+    pub fn init(self, app_modules: &[&'static str]) -> Option<MultiProgress> {
         // init logging
 
         let mut builder = Builder::new();
@@ -89,7 +88,7 @@ impl Logging {
         match self.quiet | self.no_progress {
             true => {
                 builder.init();
-                Progress::default()
+                None
             }
             false => {
                 let logger = builder.build();
@@ -100,7 +99,7 @@ impl Logging {
                 let _ = log::set_boxed_logger(Box::new(log));
                 log::set_max_level(max_level);
 
-                multi.into()
+                Some(multi)
             }
         }
     }

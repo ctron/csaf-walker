@@ -77,7 +77,7 @@ pub struct RenderOptions {
 }
 
 impl Report {
-    pub async fn run(self, progress: Progress) -> anyhow::Result<()> {
+    pub async fn run<P: Progress>(self, progress: P) -> anyhow::Result<()> {
         let options: ValidationOptions = self.validation.into();
 
         let total: Arc<AtomicUsize> = Default::default();

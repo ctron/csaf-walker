@@ -14,7 +14,7 @@ pub struct Discover {
 }
 
 impl Discover {
-    pub async fn run(self, progress: Progress) -> anyhow::Result<()> {
+    pub async fn run<P: Progress>(self, progress: P) -> anyhow::Result<()> {
         Walker::new(new_source(self.discover, self.client).await?)
             .with_progress(progress)
             .walk(|discovered: DiscoveredSbom| async move {

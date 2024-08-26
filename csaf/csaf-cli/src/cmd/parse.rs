@@ -10,7 +10,7 @@ pub struct Parse {
 }
 
 impl Parse {
-    pub async fn run(self, progress: Progress) -> anyhow::Result<()> {
+    pub async fn run<P: Progress>(self, progress: P) -> anyhow::Result<()> {
         progress.start(1);
         let data = std::fs::read(self.file)?;
         match serde_json::from_slice::<Csaf>(&data) {
