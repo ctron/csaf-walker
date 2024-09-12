@@ -76,7 +76,7 @@ jobs:
           - os: ubuntu-latest
             install: sudo apt install clang llvm pkg-config nettle-dev
           - os: windows-latest
-            args: --features crypto-cng,walker-common/bzip2-rs --no-default-features
+            args: --features crypto-cng,walker-common/bzip2-rs,walker-common/liblzma --no-default-features
             #args: --features vendored,crypto-openssl,walker-common/bzip2-rs --no-default-features
 
     runs-on: ${{ matrix.os }}
