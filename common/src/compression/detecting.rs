@@ -38,18 +38,11 @@ impl Compression {
 
 #[derive(Clone, Debug, Default)]
 pub struct Detector<'a> {
-    /// Content Encoding value from an HTTP header
-    pub content_encoding: Option<&'a str>,
     /// File name
     pub file_name: Option<&'a str>,
 
     /// Disable detection by magic bytes
     pub disable_magic: bool,
-
-    /// Content encodings to ignore.
-    pub ignore_content_encodings: HashSet<&'a str>,
-    /// If a content encoding is present, but the encoding is unknown, report as an error
-    pub fail_unknown_content_encoding: bool,
 
     /// File name extensions to ignore.
     pub ignore_file_extensions: HashSet<&'a str>,
@@ -65,26 +58,6 @@ impl<'a> Detector<'a> {
     }
 
     pub fn detect(&'a self, #[allow(unused)] data: &[u8]) -> Result<Compression, Error<'a>> {
-        // detect by content encoding
-
-        if let Some(content_encoding) = self.content_encoding {
-            match content_encoding {
-                #[cfg(any(feature = "bzip2", feature = "bzip2-rs"))]
-                "bzip" => return Ok(Compression::Bzip2),
-                #[cfg(feature = "liblzma")]
-                "xz" => return Ok(Compression::Xz),
-                other
-                    if self.fail_unknown_content_encoding
-                        && !self.ignore_content_encodings.contains(other) =>
-                {
-                    return Err(Error::Unsupported(other))
-                }
-                _ => {
-                    // continue
-                }
-            }
-        }
-
         // detect by file name extension
 
         if let Some(file_name) = self.file_name {
@@ -98,7 +71,7 @@ impl<'a> Detector<'a> {
             }
             if self.fail_unknown_file_extension {
                 if let Some((_, ext)) = file_name.rsplit_once('.') {
-                    if !self.ignore_content_encodings.contains(ext) {
+                    if !self.ignore_file_extensions.contains(ext) {
                         return Err(Error::Unsupported(ext));
                     }
                 }
