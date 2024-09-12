@@ -350,7 +350,9 @@ struct Entry {
     pub is_valid: bool,
 
     pub errors: Vec<TestResultEntry>,
+    #[allow(unused)]
     pub warnings: Vec<TestResultEntry>,
+    #[allow(unused)]
     pub infos: Vec<TestResultEntry>,
 }
 
