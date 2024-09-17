@@ -45,7 +45,7 @@ pub fn decompress_bzip2_with(
     data: &[u8],
     opts: &DecompressionOptions,
 ) -> Result<Bytes, std::io::Error> {
-    let mut decoder = bzip2_rs::DecoderReader::new(data);
+    let decoder = bzip2_rs::DecoderReader::new(data);
     decompress_limit(decoder, opts.limit)
 }
 
