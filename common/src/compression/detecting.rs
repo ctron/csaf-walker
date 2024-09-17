@@ -18,19 +18,67 @@ pub enum Compression {
     Xz,
 }
 
+#[non_exhaustive]
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct DecompressionOptions {
+    /// The maximum decompressed payload size.
+    ///
+    /// If the size of the uncompressed payload exceeds this limit, and error would be returned
+    /// instead. Zero means, unlimited.
+    pub limit: usize,
+}
+
+impl DecompressionOptions {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the limit of the maximum uncompressed payload size.
+    pub fn limit(mut self, limit: usize) -> Self {
+        self.limit = limit;
+        self
+    }
+}
+
 impl Compression {
-    /// Detect and decompress in a single step.
+    /// Perform decompression.
+    ///
+    /// Returns the original data for [`Compression::None`].
     pub fn decompress(&self, data: Bytes) -> Result<Bytes, std::io::Error> {
         Ok(self.decompress_opt(&data)?.unwrap_or(data))
     }
 
-    /// Detect and decompress in a single step.
+    /// Perform decompression.
+    ///
+    /// Returns the original data for [`Compression::None`].
+    pub fn decompress_with(
+        &self,
+        data: Bytes,
+        opts: &DecompressionOptions,
+    ) -> Result<Bytes, std::io::Error> {
+        Ok(self.decompress_opt_with(&data, opts)?.unwrap_or(data))
+    }
+
+    /// Perform decompression.
+    ///
+    /// Returns `None` for [`Compression::None`]
     pub fn decompress_opt(&self, data: &[u8]) -> Result<Option<Bytes>, std::io::Error> {
+        self.decompress_opt_with(data, &Default::default())
+    }
+
+    /// Perform decompression.
+    ///
+    /// Returns `None` for [`Compression::None`]
+    pub fn decompress_opt_with(
+        &self,
+        data: &[u8],
+        opts: &DecompressionOptions,
+    ) -> Result<Option<Bytes>, std::io::Error> {
         match self {
             #[cfg(any(feature = "bzip2", feature = "bzip2-rs"))]
-            Compression::Bzip2 => super::decompress_bzip2(data).map(Some),
+            Compression::Bzip2 => super::decompress_bzip2_with(data, opts).map(Some),
             #[cfg(feature = "liblzma")]
-            Compression::Xz => super::decompress_xz(data).map(Some),
+            Compression::Xz => super::decompress_xz_with(data, opts).map(Some),
             Compression::None => Ok(None),
         }
     }
@@ -53,8 +101,17 @@ pub struct Detector<'a> {
 impl<'a> Detector<'a> {
     /// Detect and decompress in a single step.
     pub fn decompress(&'a self, data: Bytes) -> Result<Bytes, Error<'a>> {
+        self.decompress_with(data, &Default::default())
+    }
+
+    /// Detect and decompress in a single step.
+    pub fn decompress_with(
+        &'a self,
+        data: Bytes,
+        opts: &DecompressionOptions,
+    ) -> Result<Bytes, Error<'a>> {
         let compression = self.detect(&data)?;
-        Ok(compression.decompress(data)?)
+        Ok(compression.decompress_with(data, opts)?)
     }
 
     pub fn detect(&'a self, #[allow(unused)] data: &[u8]) -> Result<Compression, Error<'a>> {
