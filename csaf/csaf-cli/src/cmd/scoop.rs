@@ -9,7 +9,7 @@ use walker_extras::visitors::{SendArguments, SendVisitor};
 /// Walk a local directory (or single file) and send the files to a target without any validation.
 #[derive(clap::Args, Debug)]
 pub struct Scoop {
-    /// Delete processes files
+    /// Delete processed files
     #[arg(long, conflicts_with = "processed")]
     delete: bool,
 
