@@ -26,7 +26,7 @@
 //! use anyhow::Result;
 //! use url::Url;
 //! use csaf_walker::metadata::MetadataRetriever;
-//! use csaf_walker::source::HttpSource;
+//! use csaf_walker::source::{DispatchSource, HttpSource};
 //! use csaf_walker::walker::Walker;
 //! use csaf_walker::retrieve::RetrievingVisitor;
 //! use csaf_walker::validation::{ValidatedAdvisory, ValidationError, ValidationVisitor};
@@ -41,7 +41,7 @@
 //!     .walk(RetrievingVisitor::new(
 //!         source.clone(),
 //!         ValidationVisitor::new(
-//!             move |advisory: Result<ValidatedAdvisory, ValidationError>| async move {
+//!             move |advisory: Result<ValidatedAdvisory, ValidationError<_>>| async move {
 //!                 log::info!("Found advisory: {advisory:?}");
 //!                 Ok::<_, anyhow::Error>(())
 //!             },
