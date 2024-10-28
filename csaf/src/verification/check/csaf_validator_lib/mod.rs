@@ -286,7 +286,7 @@ impl CsafValidatorLib {
     }
 }
 
-#[async_trait(? Send)]
+#[async_trait(?Send)]
 impl Check for CsafValidatorLib {
     async fn check(&self, csaf: &Csaf) -> anyhow::Result<Vec<CheckError>> {
         let mut inner = {
