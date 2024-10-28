@@ -1,19 +1,20 @@
 //! Validation
 
-use crate::retrieve::{RetrievalContext, RetrievalError, RetrievedSbom, RetrievedVisitor};
-use crate::source::Source;
+use crate::{
+    retrieve::{RetrievalContext, RetrievalError, RetrievedSbom, RetrievedVisitor},
+    source::Source,
+};
 use digest::Digest;
-use std::marker::PhantomData;
 use std::{
     fmt::{Debug, Display, Formatter},
     future::Future,
+    marker::PhantomData,
     ops::{Deref, DerefMut},
 };
 use url::Url;
 use walker_common::{
     retrieve::RetrievedDigest,
-    utils::openpgp::PublicKey,
-    utils::url::Urlify,
+    utils::{openpgp::PublicKey, url::Urlify},
     validate::{openpgp, ValidationOptions},
 };
 
