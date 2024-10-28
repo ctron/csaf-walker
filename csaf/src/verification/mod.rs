@@ -2,6 +2,7 @@
 //!
 //! Checks to ensure conformity with the specification.
 
+use crate::source::Source;
 use crate::{
     discover::{AsDiscovered, DiscoveredAdvisory},
     retrieve::{
@@ -216,10 +217,11 @@ where
     }
 }
 
-impl<V, I> RetrievedVisitor for VerifyingVisitor<RetrievedAdvisory, RetrievalError, V, I>
+impl<V, I, S> RetrievedVisitor<S> for VerifyingVisitor<RetrievedAdvisory, RetrievalError<S>, V, I>
 where
-    V: VerifiedVisitor<RetrievedAdvisory, RetrievalError, I>,
+    V: VerifiedVisitor<RetrievedAdvisory, RetrievalError<S>, I>,
     I: Clone + PartialEq + Eq + Hash,
+    S: Source,
 {
     type Error = Error<V::Error>;
     type Context = V::Context;
@@ -237,7 +239,7 @@ where
     async fn visit_advisory(
         &self,
         context: &Self::Context,
-        result: Result<RetrievedAdvisory, RetrievalError>,
+        result: Result<RetrievedAdvisory, RetrievalError<S>>,
     ) -> Result<(), Self::Error> {
         let result = match result {
             Ok(doc) => self.verify(doc).await,
@@ -253,10 +255,11 @@ where
     }
 }
 
-impl<V, I> ValidatedVisitor for VerifyingVisitor<ValidatedAdvisory, ValidationError, V, I>
+impl<V, I, S> ValidatedVisitor<S> for VerifyingVisitor<ValidatedAdvisory, ValidationError<S>, V, I>
 where
-    V: VerifiedVisitor<ValidatedAdvisory, ValidationError, I>,
+    V: VerifiedVisitor<ValidatedAdvisory, ValidationError<S>, I>,
     I: Clone + PartialEq + Eq + Hash,
+    S: Source,
 {
     type Error = Error<V::Error>;
     type Context = V::Context;
@@ -274,7 +277,7 @@ where
     async fn visit_advisory(
         &self,
         context: &Self::Context,
-        result: Result<ValidatedAdvisory, ValidationError>,
+        result: Result<ValidatedAdvisory, ValidationError<S>>,
     ) -> Result<(), Self::Error> {
         let result = match result {
             Ok(doc) => self.verify(doc).await,

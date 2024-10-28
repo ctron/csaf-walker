@@ -6,6 +6,7 @@ use csaf_walker::{
     discover::AsDiscovered,
     report::{render_to_html, DocumentKey, Duplicates, ReportRenderOption, ReportResult},
     retrieve::RetrievingVisitor,
+    source::DispatchSource,
     validation::{ValidatedAdvisory, ValidationError, ValidationVisitor},
     verification::{
         check::{init_verifying_visitor, CheckError},
@@ -93,7 +94,7 @@ impl Report {
 
             let visitor = move |advisory: Result<
                 VerifiedAdvisory<ValidatedAdvisory, &'static str>,
-                VerificationError<ValidationError, ValidatedAdvisory>,
+                VerificationError<ValidationError<DispatchSource>, ValidatedAdvisory>,
             >| {
                 (*total).fetch_add(1, Ordering::Release);
 

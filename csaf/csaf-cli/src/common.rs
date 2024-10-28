@@ -24,7 +24,7 @@ pub async fn walk_standard<V, P>(
     visitor: V,
 ) -> anyhow::Result<()>
 where
-    V: ValidatedVisitor,
+    V: ValidatedVisitor<DispatchSource>,
     V::Error: Send + Sync + 'static,
     P: Progress,
 {

@@ -1,3 +1,4 @@
+use crate::source::Source;
 use crate::{
     model::metadata::SourceMetadata,
     retrieve::{RetrievalContext, RetrievalError, RetrievedSbom, RetrievedVisitor},
@@ -52,23 +53,23 @@ impl StoreVisitor {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum StoreRetrievedError {
+pub enum StoreRetrievedError<S: Source> {
     #[error(transparent)]
     Store(#[from] StoreError),
     #[error(transparent)]
-    Retrieval(#[from] RetrievalError),
+    Retrieval(#[from] RetrievalError<S>),
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum StoreValidatedError {
+pub enum StoreValidatedError<S: Source> {
     #[error(transparent)]
     Store(#[from] StoreError),
     #[error(transparent)]
-    Validation(#[from] ValidationError),
+    Validation(#[from] ValidationError<S>),
 }
 
-impl RetrievedVisitor for StoreVisitor {
-    type Error = StoreRetrievedError;
+impl<S: Source> RetrievedVisitor<S> for StoreVisitor {
+    type Error = StoreRetrievedError<S>;
     type Context = ();
 
     async fn visit_context(
@@ -83,15 +84,15 @@ impl RetrievedVisitor for StoreVisitor {
     async fn visit_sbom(
         &self,
         _context: &Self::Context,
-        result: Result<RetrievedSbom, RetrievalError>,
+        result: Result<RetrievedSbom, RetrievalError<S>>,
     ) -> Result<(), Self::Error> {
         self.store(&result?).await?;
         Ok(())
     }
 }
 
-impl ValidatedVisitor for StoreVisitor {
-    type Error = StoreValidatedError;
+impl<S: Source> ValidatedVisitor<S> for StoreVisitor {
+    type Error = StoreValidatedError<S>;
     type Context = ();
 
     async fn visit_context(
@@ -106,7 +107,7 @@ impl ValidatedVisitor for StoreVisitor {
     async fn visit_sbom(
         &self,
         _context: &Self::Context,
-        result: Result<ValidatedSbom, ValidationError>,
+        result: Result<ValidatedSbom, ValidationError<S>>,
     ) -> Result<(), Self::Error> {
         self.store(&result?.retrieved).await?;
         Ok(())

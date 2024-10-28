@@ -1,4 +1,4 @@
-use super::Source;
+use super::{HttpSourceError, Source};
 use crate::discover::{DiscoveredAdvisory, DistributionContext};
 use crate::model::metadata::ProviderMetadata;
 use crate::retrieve::RetrievedAdvisory;
@@ -15,7 +15,7 @@ use walker_common::{
 /// which prevents us from using `dyn` ("cannot be made into an object").
 ///
 /// There may be a better way around this, feel free to send a PR ;-)
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum DispatchSource {
     File(FileSource),
     Http(HttpSource),
@@ -33,13 +33,27 @@ impl From<HttpSource> for DispatchSource {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum DispatchSourceError {
+    #[error(transparent)]
+    File(anyhow::Error),
+    #[error(transparent)]
+    Http(HttpSourceError),
+}
+
 impl Source for DispatchSource {
-    type Error = anyhow::Error;
+    type Error = DispatchSourceError;
 
     async fn load_metadata(&self) -> Result<ProviderMetadata, Self::Error> {
         match self {
-            Self::File(source) => source.load_metadata().await,
-            Self::Http(source) => source.load_metadata().await.map_err(|err| err.into()),
+            Self::File(source) => source
+                .load_metadata()
+                .await
+                .map_err(DispatchSourceError::File),
+            Self::Http(source) => source
+                .load_metadata()
+                .await
+                .map_err(DispatchSourceError::Http),
         }
     }
 
@@ -48,8 +62,14 @@ impl Source for DispatchSource {
         context: DistributionContext,
     ) -> Result<Vec<DiscoveredAdvisory>, Self::Error> {
         match self {
-            Self::File(source) => source.load_index(context).await,
-            Self::Http(source) => source.load_index(context).await.map_err(|err| err.into()),
+            Self::File(source) => source
+                .load_index(context)
+                .await
+                .map_err(DispatchSourceError::File),
+            Self::Http(source) => source
+                .load_index(context)
+                .await
+                .map_err(DispatchSourceError::Http),
         }
     }
 
@@ -58,11 +78,14 @@ impl Source for DispatchSource {
         advisory: DiscoveredAdvisory,
     ) -> Result<RetrievedAdvisory, Self::Error> {
         match self {
-            Self::File(source) => source.load_advisory(advisory).await,
+            Self::File(source) => source
+                .load_advisory(advisory)
+                .await
+                .map_err(DispatchSourceError::File),
             Self::Http(source) => source
                 .load_advisory(advisory)
                 .await
-                .map_err(|err| err.into()),
+                .map_err(DispatchSourceError::Http),
         }
     }
 }

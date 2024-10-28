@@ -5,17 +5,18 @@ use crate::sbom::{
     validation::{ValidatedSbom, ValidatedVisitor, ValidationContext, ValidationError},
 };
 use reqwest::header;
+use sbom_walker::source::Source;
 
 #[derive(Debug, thiserror::Error)]
-pub enum SendRetrievedSbomError {
+pub enum SendRetrievedSbomError<S: Source> {
     #[error(transparent)]
     Store(#[from] SendError),
     #[error(transparent)]
-    Retrieval(#[from] RetrievalError),
+    Retrieval(#[from] RetrievalError<S>),
 }
 
-impl RetrievedVisitor for SendVisitor {
-    type Error = SendRetrievedSbomError;
+impl<S: Source> RetrievedVisitor<S> for SendVisitor {
+    type Error = SendRetrievedSbomError<S>;
     type Context = ();
 
     async fn visit_context(&self, _: &RetrievalContext<'_>) -> Result<Self::Context, Self::Error> {
@@ -25,7 +26,7 @@ impl RetrievedVisitor for SendVisitor {
     async fn visit_sbom(
         &self,
         _context: &Self::Context,
-        result: Result<RetrievedSbom, RetrievalError>,
+        result: Result<RetrievedSbom, RetrievalError<S>>,
     ) -> Result<(), Self::Error> {
         self.send_sbom(result?).await?;
         Ok(())
@@ -33,15 +34,15 @@ impl RetrievedVisitor for SendVisitor {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum SendValidatedSbomError {
+pub enum SendValidatedSbomError<S: Source> {
     #[error(transparent)]
     Store(#[from] SendError),
     #[error(transparent)]
-    Validation(#[from] ValidationError),
+    Validation(#[from] ValidationError<S>),
 }
 
-impl ValidatedVisitor for SendVisitor {
-    type Error = SendValidatedSbomError;
+impl<S: Source> ValidatedVisitor<S> for SendVisitor {
+    type Error = SendValidatedSbomError<S>;
     type Context = ();
 
     async fn visit_context(&self, _: &ValidationContext<'_>) -> Result<Self::Context, Self::Error> {
@@ -51,7 +52,7 @@ impl ValidatedVisitor for SendVisitor {
     async fn visit_sbom(
         &self,
         _context: &Self::Context,
-        result: Result<ValidatedSbom, ValidationError>,
+        result: Result<ValidatedSbom, ValidationError<S>>,
     ) -> Result<(), Self::Error> {
         self.send_sbom(result?.retrieved).await?;
         Ok(())

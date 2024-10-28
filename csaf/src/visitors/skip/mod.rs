@@ -1,5 +1,6 @@
 use crate::discover::{DiscoveredAdvisory, DiscoveredContext, DiscoveredVisitor};
 use crate::model::store::distribution_base;
+use crate::source::Source;
 use crate::validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, ValidationError};
 use std::fmt::{Debug, Display};
 use std::path::PathBuf;
@@ -97,7 +98,7 @@ impl<V> SkipFailedVisitor<V> {
     }
 }
 
-impl<V: ValidatedVisitor> ValidatedVisitor for SkipFailedVisitor<V> {
+impl<V: ValidatedVisitor<S>, S: Source> ValidatedVisitor<S> for SkipFailedVisitor<V> {
     type Error = V::Error;
     type Context = V::Context;
 
@@ -111,7 +112,7 @@ impl<V: ValidatedVisitor> ValidatedVisitor for SkipFailedVisitor<V> {
     async fn visit_advisory(
         &self,
         context: &Self::Context,
-        result: Result<ValidatedAdvisory, ValidationError>,
+        result: Result<ValidatedAdvisory, ValidationError<S>>,
     ) -> Result<(), Self::Error> {
         match (self.skip_failures, result) {
             (_, Ok(result)) => self.visitor.visit_advisory(context, Ok(result)).await,

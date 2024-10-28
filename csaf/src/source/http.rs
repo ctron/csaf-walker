@@ -41,7 +41,7 @@ impl HttpOptions {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct HttpSource {
     fetcher: Fetcher,
     metadata_source: Arc<dyn MetadataSource>,

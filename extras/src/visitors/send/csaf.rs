@@ -3,18 +3,18 @@ use crate::csaf::{
     retrieve::{RetrievalContext, RetrievalError, RetrievedAdvisory, RetrievedVisitor},
     validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, ValidationError},
 };
-use csaf_walker::discover::DiscoveredAdvisory;
+use csaf_walker::{discover::DiscoveredAdvisory, source::Source};
 
 #[derive(Debug, thiserror::Error)]
-pub enum SendRetrievedAdvisoryError {
+pub enum SendRetrievedAdvisoryError<S: Source> {
     #[error(transparent)]
     Store(#[from] SendError),
     #[error(transparent)]
-    Retrieval(#[from] RetrievalError),
+    Retrieval(#[from] RetrievalError<S>),
 }
 
-impl RetrievedVisitor for SendVisitor {
-    type Error = SendRetrievedAdvisoryError;
+impl<S: Source> RetrievedVisitor<S> for SendVisitor {
+    type Error = SendRetrievedAdvisoryError<S>;
     type Context = ();
 
     async fn visit_context(&self, _: &RetrievalContext<'_>) -> Result<Self::Context, Self::Error> {
@@ -24,7 +24,7 @@ impl RetrievedVisitor for SendVisitor {
     async fn visit_advisory(
         &self,
         _context: &Self::Context,
-        result: Result<RetrievedAdvisory, RetrievalError>,
+        result: Result<RetrievedAdvisory, RetrievalError<S>>,
     ) -> Result<(), Self::Error> {
         self.send_retrieved_advisory(result?).await?;
         Ok(())
@@ -32,15 +32,15 @@ impl RetrievedVisitor for SendVisitor {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum SendValidatedAdvisoryError {
+pub enum SendValidatedAdvisoryError<S: Source> {
     #[error(transparent)]
     Store(#[from] SendError),
     #[error(transparent)]
-    Validation(#[from] ValidationError),
+    Validation(#[from] ValidationError<S>),
 }
 
-impl ValidatedVisitor for SendVisitor {
-    type Error = SendValidatedAdvisoryError;
+impl<S: Source> ValidatedVisitor<S> for SendVisitor {
+    type Error = SendValidatedAdvisoryError<S>;
     type Context = ();
 
     async fn visit_context(&self, _: &ValidationContext<'_>) -> Result<Self::Context, Self::Error> {
@@ -50,7 +50,7 @@ impl ValidatedVisitor for SendVisitor {
     async fn visit_advisory(
         &self,
         _context: &Self::Context,
-        result: Result<ValidatedAdvisory, ValidationError>,
+        result: Result<ValidatedAdvisory, ValidationError<S>>,
     ) -> Result<(), Self::Error> {
         self.send_retrieved_advisory(result?.retrieved).await?;
         Ok(())

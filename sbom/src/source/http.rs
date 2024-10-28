@@ -59,7 +59,7 @@ impl HttpOptions {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct HttpSource {
     fetcher: Fetcher,
     url: Url,

@@ -1,24 +1,23 @@
 //! Validation
 
+use crate::source::Source;
 use crate::{
     discover::{AsDiscovered, DiscoveredAdvisory},
     retrieve::{
         AsRetrieved, RetrievalContext, RetrievalError, RetrievedAdvisory, RetrievedVisitor,
-    }
+    },
 };
 use digest::Digest;
+use std::marker::PhantomData;
 use std::{
     fmt::{Debug, Display, Formatter},
     future::Future,
-    ops::{Deref, DerefMut}
+    ops::{Deref, DerefMut},
 };
 use url::Url;
 use walker_common::{
     retrieve::RetrievedDigest,
-    utils::{
-        openpgp::PublicKey,
-        url::Urlify
-    },
+    utils::{openpgp::PublicKey, url::Urlify},
     validate::{openpgp, ValidationOptions},
 };
 
@@ -71,8 +70,8 @@ impl AsRetrieved for ValidatedAdvisory {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum ValidationError {
-    Retrieval(RetrievalError),
+pub enum ValidationError<S: Source> {
+    Retrieval(RetrievalError<S>),
     DigestMismatch {
         expected: String,
         actual: String,
@@ -84,7 +83,7 @@ pub enum ValidationError {
     },
 }
 
-impl AsDiscovered for ValidationError {
+impl<S: Source + Debug> AsDiscovered for ValidationError<S> {
     fn as_discovered(&self) -> &DiscoveredAdvisory {
         match self {
             Self::Retrieval(err) => err.discovered(),
@@ -94,7 +93,7 @@ impl AsDiscovered for ValidationError {
     }
 }
 
-impl Urlify for ValidationError {
+impl<S: Source> Urlify for ValidationError<S> {
     fn url(&self) -> &Url {
         match self {
             Self::Retrieval(err) => err.url(),
@@ -104,7 +103,7 @@ impl Urlify for ValidationError {
     }
 }
 
-impl Display for ValidationError {
+impl<S: Source> Display for ValidationError<S> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Retrieval(err) => write!(f, "Retrieval error: {err}"),
@@ -138,7 +137,7 @@ impl<'c> Deref for ValidationContext<'c> {
     }
 }
 
-pub trait ValidatedVisitor {
+pub trait ValidatedVisitor<S: Source> {
     type Error: Display + Debug;
     type Context;
 
@@ -150,15 +149,16 @@ pub trait ValidatedVisitor {
     fn visit_advisory(
         &self,
         context: &Self::Context,
-        result: Result<ValidatedAdvisory, ValidationError>,
+        result: Result<ValidatedAdvisory, ValidationError<S>>,
     ) -> impl Future<Output = Result<(), Self::Error>>;
 }
 
-impl<F, E, Fut> ValidatedVisitor for F
+impl<F, E, Fut, S> ValidatedVisitor<S> for F
 where
-    F: Fn(Result<ValidatedAdvisory, ValidationError>) -> Fut,
+    F: Fn(Result<ValidatedAdvisory, ValidationError<S>>) -> Fut,
     Fut: Future<Output = Result<(), E>>,
     E: Display + Debug,
+    S: Source,
 {
     type Error = E;
     type Context = ();
@@ -173,23 +173,25 @@ where
     async fn visit_advisory(
         &self,
         _context: &Self::Context,
-        result: Result<ValidatedAdvisory, ValidationError>,
+        result: Result<ValidatedAdvisory, ValidationError<S>>,
     ) -> Result<(), Self::Error> {
         self(result).await
     }
 }
 
-pub struct ValidationVisitor<V>
+pub struct ValidationVisitor<V, S>
 where
-    V: ValidatedVisitor,
+    V: ValidatedVisitor<S>,
+    S: Source,
 {
     visitor: V,
     options: ValidationOptions,
+    _marker: PhantomData<S>,
 }
 
-enum ValidationProcessError {
+enum ValidationProcessError<S: Source> {
     /// Failed, but passing on to visitor
-    Proceed(ValidationError),
+    Proceed(ValidationError<S>),
     /// Failed, aborting processing
     #[allow(unused)]
     Abort(anyhow::Error),
@@ -206,15 +208,16 @@ where
     Validation(anyhow::Error),
 }
 
-impl<V> ValidationVisitor<V>
+impl<V, S> ValidationVisitor<V, S>
 where
-    V: ValidatedVisitor,
+    V: ValidatedVisitor<S>,
+    S: Source,
 {
     pub fn new(visitor: V) -> Self {
         Self {
             visitor,
-
             options: Default::default(),
+            _marker: Default::default(),
         }
     }
 
@@ -230,7 +233,7 @@ where
         &self,
         context: &InnerValidationContext<V::Context>,
         retrieved: RetrievedAdvisory,
-    ) -> Result<ValidatedAdvisory, ValidationProcessError> {
+    ) -> Result<ValidatedAdvisory, ValidationProcessError<S>> {
         if let Err((expected, actual)) = Self::validate_digest(&retrieved.sha256) {
             return Err(ValidationProcessError::Proceed(
                 ValidationError::DigestMismatch {
@@ -283,9 +286,10 @@ pub struct InnerValidationContext<VC> {
     keys: Vec<PublicKey>,
 }
 
-impl<V> RetrievedVisitor for ValidationVisitor<V>
+impl<V, S> RetrievedVisitor<S> for ValidationVisitor<V, S>
 where
-    V: ValidatedVisitor,
+    V: ValidatedVisitor<S>,
+    S: Source,
 {
     type Error = Error<V::Error>;
     type Context = InnerValidationContext<V::Context>;
@@ -308,7 +312,7 @@ where
     async fn visit_advisory(
         &self,
         context: &Self::Context,
-        outcome: Result<RetrievedAdvisory, RetrievalError>,
+        outcome: Result<RetrievedAdvisory, RetrievalError<S>>,
     ) -> Result<(), Self::Error> {
         match outcome {
             Ok(advisory) => {

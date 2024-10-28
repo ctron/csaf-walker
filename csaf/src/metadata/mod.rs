@@ -4,6 +4,7 @@ use hickory_resolver::{
     error::ResolveErrorKind, name_server::TokioConnectionProvider, AsyncResolver,
 };
 use sectxtlib::SecurityTxt;
+use std::fmt::Debug;
 use url::Url;
 use walker_common::fetcher::{self, Fetcher, Json};
 
@@ -20,7 +21,7 @@ pub enum Error {
 }
 
 #[async_trait(?Send)]
-pub trait MetadataSource {
+pub trait MetadataSource: Debug {
     async fn load_metadata(&self, fetcher: &Fetcher) -> Result<ProviderMetadata, Error>;
 }
 
@@ -49,7 +50,7 @@ impl MetadataSource for String {
 }
 
 /// A metadata source implementing the CSAF metadata discovery process.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MetadataRetriever {
     pub base_url: String,
 }
