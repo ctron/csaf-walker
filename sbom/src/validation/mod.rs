@@ -2,15 +2,17 @@
 
 use crate::retrieve::{RetrievalContext, RetrievalError, RetrievedSbom, RetrievedVisitor};
 use digest::Digest;
-use std::fmt::{Debug, Display, Formatter};
-use std::future::Future;
-use std::ops::{Deref, DerefMut};
+use std::{
+    future::Future,
+    fmt::{Debug, Display, Formatter},
+    ops::{Deref, DerefMut}
+};
 use url::Url;
-use walker_common::utils::url::Urlify;
 use walker_common::{
+    utils::url::Urlify,
     retrieve::RetrievedDigest,
     utils::openpgp::PublicKey,
-    validate::{openpgp, ValidationOptions},
+    validate::{openpgp, ValidationOptions}
 };
 
 #[derive(Clone, Debug)]
@@ -186,7 +188,7 @@ where
 
     /// Perform the actual validation.
     ///
-    /// Returning either a processing error, or a result which will will be forwarded to the visitor.
+    /// Returning either a processing error, or a result which will be forwarded to the visitor.
     async fn validate(
         &self,
         context: &InnerValidationContext<V::Context>,
