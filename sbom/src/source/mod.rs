@@ -21,7 +21,7 @@ use url::Url;
 use walker_common::fetcher::{Fetcher, FetcherOptions};
 
 /// A source of SBOM documents
-pub trait Source: Clone {
+pub trait Source: Clone + Debug {
     type Error: Display + Debug;
 
     fn load_metadata(&self) -> impl Future<Output = Result<SourceMetadata, Self::Error>>;

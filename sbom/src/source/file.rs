@@ -38,7 +38,7 @@ impl FileOptions {
 }
 
 /// A file-based source, possibly created by the [`crate::visitors::store::StoreVisitor`].
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FileSource {
     /// the path to the storage base, an absolute path
     base: PathBuf,
@@ -77,6 +77,8 @@ impl FileSource {
             if !path.is_file() {
                 continue;
             }
+
+            #[allow(clippy::single_match)]
             match path
                 .file_name()
                 .and_then(|s| s.to_str())

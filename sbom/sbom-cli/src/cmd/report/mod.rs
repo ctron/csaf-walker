@@ -8,6 +8,7 @@ use sbom_walker::{
     model::sbom::ParseAnyError,
     report::{check, ReportResult, ReportSink},
     retrieve::{RetrievedSbom, RetrievingVisitor},
+    source::{DispatchSource, Source},
     validation::{ValidatedSbom, ValidationError, ValidationVisitor},
     Sbom,
 };
@@ -31,9 +32,9 @@ use walker_common::{
 };
 
 #[derive(Debug, thiserror::Error)]
-pub enum SbomError {
+pub enum SbomError<S: Source> {
     #[error(transparent)]
-    Validation(#[from] ValidationError),
+    Validation(#[from] ValidationError<S>),
     #[error(transparent)]
     Parse(#[from] ParseAnyError),
 }
@@ -95,7 +96,7 @@ impl Report {
                     Ok(RetrievingVisitor::new(
                         source.clone(),
                         ValidationVisitor::new(
-                            move |sbom: Result<ValidatedSbom, ValidationError>| {
+                            move |sbom: Result<ValidatedSbom, ValidationError<DispatchSource>>| {
                                 let errors = errors.clone();
                                 total.fetch_add(1, Ordering::SeqCst);
                                 async move {
@@ -153,7 +154,10 @@ impl Report {
         Ok(())
     }
 
-    fn inspect(report: &dyn ReportSink, sbom: Result<ValidatedSbom, ValidationError>) {
+    fn inspect<S: Source>(
+        report: &dyn ReportSink,
+        sbom: Result<ValidatedSbom, ValidationError<S>>,
+    ) {
         let sbom = match sbom {
             Ok(sbom) => sbom,
             Err(err) => {

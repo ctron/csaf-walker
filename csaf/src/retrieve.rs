@@ -5,11 +5,12 @@ use crate::{
     source::Source,
 };
 use bytes::Bytes;
-use reqwest::StatusCode;
 use sha2::{Sha256, Sha512};
-use std::fmt::Debug;
-use std::future::Future;
-use std::ops::{Deref, DerefMut};
+use std::{
+    fmt::Debug,
+    future::Future,
+    ops::{Deref, DerefMut},
+};
 use url::Url;
 use walker_common::{
     retrieve::{RetrievalMetadata, RetrievedDigest},
@@ -79,26 +80,26 @@ impl DerefMut for RetrievedAdvisory {
 }
 
 #[derive(Clone, Debug, thiserror::Error)]
-pub enum RetrievalError {
-    #[error("Invalid response retrieving: {code}")]
-    InvalidResponse {
-        code: StatusCode,
+pub enum RetrievalError<S: Source> {
+    #[error("source error: {err}")]
+    Source {
+        err: S::Error,
         discovered: DiscoveredAdvisory,
     },
 }
 
-impl RetrievalError {
+impl<S: Source> RetrievalError<S> {
     pub fn discovered(&self) -> &DiscoveredAdvisory {
         match self {
-            Self::InvalidResponse { discovered, .. } => discovered,
+            Self::Source { discovered, .. } => discovered,
         }
     }
 }
 
-impl Urlify for RetrievalError {
+impl<S: Source> Urlify for RetrievalError<S> {
     fn url(&self) -> &Url {
         match self {
-            Self::InvalidResponse { discovered, .. } => &discovered.url,
+            Self::Source { discovered, .. } => &discovered.url,
         }
     }
 }
@@ -116,7 +117,7 @@ impl<'c> Deref for RetrievalContext<'c> {
     }
 }
 
-pub trait RetrievedVisitor {
+pub trait RetrievedVisitor<S: Source> {
     type Error: std::fmt::Display + Debug;
     type Context;
 
@@ -128,15 +129,16 @@ pub trait RetrievedVisitor {
     fn visit_advisory(
         &self,
         context: &Self::Context,
-        result: Result<RetrievedAdvisory, RetrievalError>,
+        result: Result<RetrievedAdvisory, RetrievalError<S>>,
     ) -> impl Future<Output = Result<(), Self::Error>>;
 }
 
-impl<F, E, Fut> RetrievedVisitor for F
+impl<F, E, Fut, S> RetrievedVisitor<S> for F
 where
-    F: Fn(Result<RetrievedAdvisory, RetrievalError>) -> Fut,
+    F: Fn(Result<RetrievedAdvisory, RetrievalError<S>>) -> Fut,
     Fut: Future<Output = Result<(), E>>,
     E: std::fmt::Display + Debug,
+    S: Source,
 {
     type Error = E;
     type Context = ();
@@ -151,20 +153,20 @@ where
     async fn visit_advisory(
         &self,
         _ctx: &Self::Context,
-        outcome: Result<RetrievedAdvisory, RetrievalError>,
+        outcome: Result<RetrievedAdvisory, RetrievalError<S>>,
     ) -> Result<(), Self::Error> {
         self(outcome).await
     }
 }
 
-pub struct RetrievingVisitor<V: RetrievedVisitor, S: Source + KeySource> {
+pub struct RetrievingVisitor<V: RetrievedVisitor<S>, S: Source + KeySource> {
     visitor: V,
     source: S,
 }
 
 impl<V, S> RetrievingVisitor<V, S>
 where
-    V: RetrievedVisitor,
+    V: RetrievedVisitor<S>,
     S: Source + KeySource,
 {
     pub fn new(source: S, visitor: V) -> Self {
@@ -189,7 +191,7 @@ where
 
 impl<V, S> DiscoveredVisitor for RetrievingVisitor<V, S>
 where
-    V: RetrievedVisitor,
+    V: RetrievedVisitor<S>,
     S: Source + KeySource,
 {
     type Error = Error<V::Error, <S as Source>::Error, <S as KeySource>::Error>;
@@ -240,12 +242,12 @@ where
     ) -> Result<(), Self::Error> {
         let advisory = self
             .source
-            .load_advisory(discovered)
+            .load_advisory(discovered.clone())
             .await
-            .map_err(Error::Source)?;
+            .map_err(|err| RetrievalError::Source { err, discovered });
 
         self.visitor
-            .visit_advisory(context, Ok(advisory))
+            .visit_advisory(context, advisory)
             .await
             .map_err(Error::Visitor)?;
 

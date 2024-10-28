@@ -3,6 +3,7 @@ use crate::{
     common::walk_standard,
 };
 use csaf::Csaf;
+use csaf_walker::source::DispatchSource;
 use csaf_walker::validation::{ValidatedAdvisory, ValidationError};
 use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
@@ -37,7 +38,7 @@ impl Scan {
             self.discover,
             self.filter,
             self.validation,
-            |advisory: Result<ValidatedAdvisory, ValidationError>| async move {
+            |advisory: Result<ValidatedAdvisory, ValidationError<DispatchSource>>| async move {
                 match advisory {
                     Ok(adv) => {
                         println!("Advisory: {}", adv.url);

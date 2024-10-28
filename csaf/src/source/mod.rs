@@ -21,7 +21,7 @@ use std::str::FromStr;
 use walker_common::fetcher::FetcherOptions;
 
 /// A source of CSAF documents
-pub trait Source: Clone {
+pub trait Source: Clone + Debug {
     type Error: Display + Debug;
 
     fn load_metadata(&self) -> impl Future<Output = Result<ProviderMetadata, Self::Error>>;

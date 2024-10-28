@@ -2,6 +2,7 @@ use crate::{cmd::DiscoverArguments, common::walk_standard};
 use sbom_walker::{
     discover::DiscoveredSbom,
     retrieve::RetrievedSbom,
+    source::DispatchSource,
     validation::{ValidatedSbom, ValidationError},
     Sbom,
 };
@@ -36,7 +37,7 @@ impl Scan {
             self.runner,
             self.discover,
             self.validation,
-            |advisory: Result<ValidatedSbom, ValidationError>| async move {
+            |advisory: Result<ValidatedSbom, ValidationError<DispatchSource>>| async move {
                 match advisory {
                     Ok(sbom) => {
                         println!("Advisory: {}", sbom.url);

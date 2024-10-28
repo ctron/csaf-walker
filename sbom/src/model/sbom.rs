@@ -11,6 +11,7 @@ pub enum Parser {
 }
 
 /// A tool to work with multiple SBOM formats and versions
+#[allow(clippy::large_enum_variant)]
 pub enum Sbom {
     #[cfg(feature = "spdx-rs")]
     Spdx(spdx_rs::models::SPDX),
