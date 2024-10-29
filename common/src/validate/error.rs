@@ -6,17 +6,21 @@ use crate::{
 use std::fmt::{Debug, Display, Formatter};
 use url::Url;
 
+/// An error from a validation visitor.
 #[derive(Debug, thiserror::Error)]
 pub enum ValidationError<S>
 where
     S: Source,
 {
+    /// Failed during retrieval
     Retrieval(RetrievalError<<S::Retrieved as RetrievedDocument>::Discovered, S>),
+    /// Mismatch of the retrieved and calculated document digest
     DigestMismatch {
         expected: String,
         actual: String,
         retrieved: S::Retrieved,
     },
+    /// Invalid signature of the document
     Signature {
         error: anyhow::Error,
         retrieved: S::Retrieved,
