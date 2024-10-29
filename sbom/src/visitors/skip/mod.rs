@@ -9,8 +9,7 @@ use std::{
     time::SystemTime,
 };
 use tokio::fs;
-use walker_common::utils::url::Urlify;
-use walker_common::validate::ValidationError;
+use walker_common::{utils::url::Urlify, validate::ValidationError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error<VE: Display + Debug> {
