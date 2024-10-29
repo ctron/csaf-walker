@@ -1,16 +1,20 @@
-use crate::source::Source;
+use crate::discover::DiscoveredAdvisory;
 use crate::{
     model::{metadata::ProviderMetadata, store::distribution_base},
-    retrieve::{RetrievalContext, RetrievalError, RetrievedAdvisory, RetrievedVisitor},
+    retrieve::{RetrievalContext, RetrievedAdvisory, RetrievedVisitor},
+    source::Source,
     validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, ValidationError},
 };
 use anyhow::Context;
 use sequoia_openpgp::{armor::Kind, serialize::SerializeInto, Cert};
-use std::fmt::Debug;
-use std::io::{ErrorKind, Write};
-use std::path::{Path, PathBuf};
-use std::rc::Rc;
+use std::{
+    fmt::Debug,
+    io::{ErrorKind, Write},
+    path::{Path, PathBuf},
+    rc::Rc,
+};
 use tokio::fs;
+use walker_common::retrieve::RetrievalError;
 use walker_common::{
     store::{store_document, Document, StoreError},
     utils::openpgp::PublicKey,
@@ -59,7 +63,7 @@ pub enum StoreRetrievedError<S: Source> {
     #[error(transparent)]
     Store(#[from] StoreError),
     #[error(transparent)]
-    Retrieval(#[from] RetrievalError<S>),
+    Retrieval(#[from] RetrievalError<DiscoveredAdvisory, S::Error>),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -88,7 +92,7 @@ impl<S: Source + Debug> RetrievedVisitor<S> for StoreVisitor {
     async fn visit_advisory(
         &self,
         _context: &Self::Context,
-        result: Result<RetrievedAdvisory, RetrievalError<S>>,
+        result: Result<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S::Error>>,
     ) -> Result<(), Self::Error> {
         self.store(&result?).await?;
         Ok(())

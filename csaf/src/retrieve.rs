@@ -13,7 +13,7 @@ use std::{
 };
 use url::Url;
 use walker_common::{
-    retrieve::{RetrievalMetadata, RetrievedDigest},
+    retrieve::{RetrievalError, RetrievalMetadata, RetrievedDigest},
     utils::{openpgp::PublicKey, url::Urlify},
     validate::source::{KeySource, KeySourceError},
 };
@@ -79,31 +79,6 @@ impl DerefMut for RetrievedAdvisory {
     }
 }
 
-#[derive(Clone, Debug, thiserror::Error)]
-pub enum RetrievalError<S: Source> {
-    #[error("source error: {err}")]
-    Source {
-        err: S::Error,
-        discovered: DiscoveredAdvisory,
-    },
-}
-
-impl<S: Source> RetrievalError<S> {
-    pub fn discovered(&self) -> &DiscoveredAdvisory {
-        match self {
-            Self::Source { discovered, .. } => discovered,
-        }
-    }
-}
-
-impl<S: Source> Urlify for RetrievalError<S> {
-    fn url(&self) -> &Url {
-        match self {
-            Self::Source { discovered, .. } => &discovered.url,
-        }
-    }
-}
-
 pub struct RetrievalContext<'c> {
     pub discovered: &'c DiscoveredContext<'c>,
     pub keys: &'c Vec<PublicKey>,
@@ -129,13 +104,13 @@ pub trait RetrievedVisitor<S: Source> {
     fn visit_advisory(
         &self,
         context: &Self::Context,
-        result: Result<RetrievedAdvisory, RetrievalError<S>>,
+        result: Result<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S::Error>>,
     ) -> impl Future<Output = Result<(), Self::Error>>;
 }
 
 impl<F, E, Fut, S> RetrievedVisitor<S> for F
 where
-    F: Fn(Result<RetrievedAdvisory, RetrievalError<S>>) -> Fut,
+    F: Fn(Result<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S::Error>>) -> Fut,
     Fut: Future<Output = Result<(), E>>,
     E: std::fmt::Display + Debug,
     S: Source,
@@ -153,7 +128,7 @@ where
     async fn visit_advisory(
         &self,
         _ctx: &Self::Context,
-        outcome: Result<RetrievedAdvisory, RetrievalError<S>>,
+        outcome: Result<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S::Error>>,
     ) -> Result<(), Self::Error> {
         self(outcome).await
     }

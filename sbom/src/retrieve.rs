@@ -13,7 +13,7 @@ use std::{
 };
 use url::Url;
 use walker_common::{
-    retrieve::{RetrievalMetadata, RetrievedDigest},
+    retrieve::{RetrievalError, RetrievalMetadata, RetrievedDigest},
     utils::{openpgp::PublicKey, url::Urlify},
     validate::source::{KeySource, KeySourceError},
 };
@@ -62,23 +62,6 @@ impl DerefMut for RetrievedSbom {
     }
 }
 
-#[derive(Clone, Debug, thiserror::Error)]
-pub enum RetrievalError<S: Source> {
-    #[error("source error: {err}")]
-    Source {
-        err: S::Error,
-        discovered: DiscoveredSbom,
-    },
-}
-
-impl<S: Source> Urlify for RetrievalError<S> {
-    fn url(&self) -> &Url {
-        match self {
-            Self::Source { discovered, .. } => &discovered.url,
-        }
-    }
-}
-
 pub struct RetrievalContext<'c> {
     pub discovered: &'c DiscoveredContext<'c>,
     pub keys: &'c Vec<PublicKey>,
@@ -104,13 +87,13 @@ pub trait RetrievedVisitor<S: Source> {
     fn visit_sbom(
         &self,
         context: &Self::Context,
-        result: Result<RetrievedSbom, RetrievalError<S>>,
+        result: Result<RetrievedSbom, RetrievalError<DiscoveredSbom, S::Error>>,
     ) -> impl Future<Output = Result<(), Self::Error>>;
 }
 
 impl<F, E, Fut, S> RetrievedVisitor<S> for F
 where
-    F: Fn(Result<RetrievedSbom, RetrievalError<S>>) -> Fut,
+    F: Fn(Result<RetrievedSbom, RetrievalError<DiscoveredSbom, S::Error>>) -> Fut,
     Fut: Future<Output = Result<(), E>>,
     E: std::fmt::Display + Debug,
     S: Source,
@@ -128,7 +111,7 @@ where
     async fn visit_sbom(
         &self,
         _ctx: &Self::Context,
-        outcome: Result<RetrievedSbom, RetrievalError<S>>,
+        outcome: Result<RetrievedSbom, RetrievalError<DiscoveredSbom, S::Error>>,
     ) -> Result<(), Self::Error> {
         self(outcome).await
     }

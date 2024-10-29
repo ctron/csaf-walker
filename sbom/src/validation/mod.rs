@@ -1,7 +1,8 @@
 //! Validation
 
+use crate::discover::DiscoveredSbom;
 use crate::{
-    retrieve::{RetrievalContext, RetrievalError, RetrievedSbom, RetrievedVisitor},
+    retrieve::{RetrievalContext, RetrievedSbom, RetrievedVisitor},
     source::Source,
 };
 use digest::Digest;
@@ -12,6 +13,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 use url::Url;
+use walker_common::retrieve::RetrievalError;
 use walker_common::{
     retrieve::RetrievedDigest,
     utils::{openpgp::PublicKey, url::Urlify},
@@ -50,7 +52,7 @@ impl DerefMut for ValidatedSbom {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ValidationError<S: Source> {
-    Retrieval(RetrievalError<S>),
+    Retrieval(RetrievalError<DiscoveredSbom, S::Error>),
     DigestMismatch {
         expected: String,
         actual: String,
@@ -279,7 +281,7 @@ where
     async fn visit_sbom(
         &self,
         context: &Self::Context,
-        outcome: Result<RetrievedSbom, RetrievalError<S>>,
+        outcome: Result<RetrievedSbom, RetrievalError<DiscoveredSbom, S::Error>>,
     ) -> Result<(), Self::Error> {
         match outcome {
             Ok(advisory) => {

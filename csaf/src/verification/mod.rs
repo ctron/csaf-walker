@@ -2,24 +2,25 @@
 //!
 //! Checks to ensure conformity with the specification.
 
-use crate::source::Source;
 use crate::{
     discover::{AsDiscovered, DiscoveredAdvisory},
-    retrieve::{
-        AsRetrieved, RetrievalContext, RetrievalError, RetrievedAdvisory, RetrievedVisitor,
-    },
+    retrieve::{AsRetrieved, RetrievalContext, RetrievedAdvisory, RetrievedVisitor},
+    source::Source,
     validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, ValidationError},
     verification::check::{Check, CheckError},
 };
 use csaf::Csaf;
 use serde::de::Error as _;
-use std::collections::{HashMap, HashSet};
-use std::fmt::{Debug, Display};
-use std::future::Future;
-use std::hash::Hash;
-use std::marker::PhantomData;
-use std::ops::{Deref, DerefMut};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::{Debug, Display},
+    future::Future,
+    hash::Hash,
+    marker::PhantomData,
+    ops::{Deref, DerefMut},
+};
 use url::Url;
+use walker_common::retrieve::RetrievalError;
 use walker_common::utils::url::Urlify;
 
 pub mod check;
@@ -217,9 +218,10 @@ where
     }
 }
 
-impl<V, I, S> RetrievedVisitor<S> for VerifyingVisitor<RetrievedAdvisory, RetrievalError<S>, V, I>
+impl<V, I, S> RetrievedVisitor<S>
+    for VerifyingVisitor<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S::Error>, V, I>
 where
-    V: VerifiedVisitor<RetrievedAdvisory, RetrievalError<S>, I>,
+    V: VerifiedVisitor<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S::Error>, I>,
     I: Clone + PartialEq + Eq + Hash,
     S: Source,
 {
@@ -239,7 +241,7 @@ where
     async fn visit_advisory(
         &self,
         context: &Self::Context,
-        result: Result<RetrievedAdvisory, RetrievalError<S>>,
+        result: Result<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S::Error>>,
     ) -> Result<(), Self::Error> {
         let result = match result {
             Ok(doc) => self.verify(doc).await,

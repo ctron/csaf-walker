@@ -1,18 +1,19 @@
 use super::*;
 use crate::sbom::{
     discover::DiscoveredSbom,
-    retrieve::{RetrievalContext, RetrievalError, RetrievedSbom, RetrievedVisitor},
+    retrieve::{RetrievalContext, RetrievedSbom, RetrievedVisitor},
     validation::{ValidatedSbom, ValidatedVisitor, ValidationContext, ValidationError},
 };
 use reqwest::header;
 use sbom_walker::source::Source;
+use walker_common::retrieve::RetrievalError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum SendRetrievedSbomError<S: Source> {
     #[error(transparent)]
     Store(#[from] SendError),
     #[error(transparent)]
-    Retrieval(#[from] RetrievalError<S>),
+    Retrieval(#[from] RetrievalError<DiscoveredSbom, S::Error>),
 }
 
 impl<S: Source> RetrievedVisitor<S> for SendVisitor {
@@ -26,7 +27,7 @@ impl<S: Source> RetrievedVisitor<S> for SendVisitor {
     async fn visit_sbom(
         &self,
         _context: &Self::Context,
-        result: Result<RetrievedSbom, RetrievalError<S>>,
+        result: Result<RetrievedSbom, RetrievalError<DiscoveredSbom, S::Error>>,
     ) -> Result<(), Self::Error> {
         self.send_sbom(result?).await?;
         Ok(())
