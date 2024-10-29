@@ -11,8 +11,8 @@ use std::{
 };
 use time::OffsetDateTime;
 
-pub trait RetrievedDocument: Urlify {
-    type Discovered: Urlify;
+pub trait RetrievedDocument: Urlify + Debug {
+    type Discovered: Urlify + Debug;
 }
 
 /// The retrieved digest

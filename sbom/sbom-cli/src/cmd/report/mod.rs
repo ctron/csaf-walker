@@ -34,7 +34,7 @@ use walker_common::{
 #[derive(Debug, thiserror::Error)]
 pub enum SbomError<S: Source> {
     #[error(transparent)]
-    Validation(#[from] ValidationError<RetrievedSbom, S>),
+    Validation(#[from] ValidationError<S>),
     #[error(transparent)]
     Parse(#[from] ParseAnyError),
 }
@@ -96,10 +96,7 @@ impl Report {
                     Ok(RetrievingVisitor::new(
                         source.clone(),
                         ValidationVisitor::new(
-                            move |sbom: Result<
-                                ValidatedSbom,
-                                ValidationError<RetrievedSbom, DispatchSource>,
-                            >| {
+                            move |sbom: Result<ValidatedSbom, ValidationError<DispatchSource>>| {
                                 let errors = errors.clone();
                                 total.fetch_add(1, Ordering::SeqCst);
                                 async move {
@@ -159,7 +156,7 @@ impl Report {
 
     fn inspect<S: Source>(
         report: &dyn ReportSink,
-        sbom: Result<ValidatedSbom, ValidationError<RetrievedSbom, S>>,
+        sbom: Result<ValidatedSbom, ValidationError<S>>,
     ) {
         let sbom = match sbom {
             Ok(sbom) => sbom,

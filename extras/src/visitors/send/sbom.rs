@@ -39,7 +39,7 @@ pub enum SendValidatedSbomError<S: Source> {
     #[error(transparent)]
     Store(#[from] SendError),
     #[error(transparent)]
-    Validation(#[from] ValidationError<RetrievedSbom, S>),
+    Validation(#[from] ValidationError<S>),
 }
 
 impl<S: Source> ValidatedVisitor<S> for SendVisitor {
@@ -53,7 +53,7 @@ impl<S: Source> ValidatedVisitor<S> for SendVisitor {
     async fn visit_sbom(
         &self,
         _context: &Self::Context,
-        result: Result<ValidatedSbom, ValidationError<RetrievedSbom, S>>,
+        result: Result<ValidatedSbom, ValidationError<S>>,
     ) -> Result<(), Self::Error> {
         self.send_sbom(result?.retrieved).await?;
         Ok(())
