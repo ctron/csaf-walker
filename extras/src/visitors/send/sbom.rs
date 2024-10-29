@@ -2,18 +2,18 @@ use super::*;
 use crate::sbom::{
     discover::DiscoveredSbom,
     retrieve::{RetrievalContext, RetrievedSbom, RetrievedVisitor},
-    validation::{ValidatedSbom, ValidatedVisitor, ValidationContext, ValidationError},
+    validation::{ValidatedSbom, ValidatedVisitor, ValidationContext},
 };
 use reqwest::header;
 use sbom_walker::source::Source;
-use walker_common::retrieve::RetrievalError;
+use walker_common::{retrieve::RetrievalError, validate::ValidationError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum SendRetrievedSbomError<S: Source> {
     #[error(transparent)]
     Store(#[from] SendError),
     #[error(transparent)]
-    Retrieval(#[from] RetrievalError<DiscoveredSbom, S::Error>),
+    Retrieval(#[from] RetrievalError<DiscoveredSbom, S>),
 }
 
 impl<S: Source> RetrievedVisitor<S> for SendVisitor {
@@ -27,7 +27,7 @@ impl<S: Source> RetrievedVisitor<S> for SendVisitor {
     async fn visit_sbom(
         &self,
         _context: &Self::Context,
-        result: Result<RetrievedSbom, RetrievalError<DiscoveredSbom, S::Error>>,
+        result: Result<RetrievedSbom, RetrievalError<DiscoveredSbom, S>>,
     ) -> Result<(), Self::Error> {
         self.send_sbom(result?).await?;
         Ok(())
@@ -39,7 +39,7 @@ pub enum SendValidatedSbomError<S: Source> {
     #[error(transparent)]
     Store(#[from] SendError),
     #[error(transparent)]
-    Validation(#[from] ValidationError<S>),
+    Validation(#[from] ValidationError<RetrievedSbom, S>),
 }
 
 impl<S: Source> ValidatedVisitor<S> for SendVisitor {
@@ -53,7 +53,7 @@ impl<S: Source> ValidatedVisitor<S> for SendVisitor {
     async fn visit_sbom(
         &self,
         _context: &Self::Context,
-        result: Result<ValidatedSbom, ValidationError<S>>,
+        result: Result<ValidatedSbom, ValidationError<RetrievedSbom, S>>,
     ) -> Result<(), Self::Error> {
         self.send_sbom(result?.retrieved).await?;
         Ok(())

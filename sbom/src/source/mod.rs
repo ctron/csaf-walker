@@ -15,15 +15,12 @@ use crate::{
 };
 use anyhow::bail;
 use fluent_uri::UriRef;
-use std::fmt::{Debug, Display};
-use std::future::Future;
+use std::{fmt::Debug, future::Future};
 use url::Url;
 use walker_common::fetcher::{Fetcher, FetcherOptions};
 
 /// A source of SBOM documents
-pub trait Source: Clone + Debug {
-    type Error: Display + Debug;
-
+pub trait Source: walker_common::source::Source + Clone + Debug {
     fn load_metadata(&self) -> impl Future<Output = Result<SourceMetadata, Self::Error>>;
     fn load_index(&self) -> impl Future<Output = Result<Vec<DiscoveredSbom>, Self::Error>>;
     fn load_sbom(

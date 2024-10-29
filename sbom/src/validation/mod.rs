@@ -1,23 +1,22 @@
 //! Validation
 
-use crate::discover::DiscoveredSbom;
 use crate::{
+    discover::DiscoveredSbom,
     retrieve::{RetrievalContext, RetrievedSbom, RetrievedVisitor},
     source::Source,
 };
 use digest::Digest;
 use std::{
-    fmt::{Debug, Display, Formatter},
+    fmt::{Debug, Display},
     future::Future,
     marker::PhantomData,
     ops::{Deref, DerefMut},
 };
 use url::Url;
-use walker_common::retrieve::RetrievalError;
 use walker_common::{
-    retrieve::RetrievedDigest,
+    retrieve::{RetrievalError, RetrievedDigest},
     utils::{openpgp::PublicKey, url::Urlify},
-    validate::{openpgp, ValidationOptions},
+    validate::{openpgp, ValidationError, ValidationOptions},
 };
 
 #[derive(Clone, Debug)]
@@ -50,50 +49,6 @@ impl DerefMut for ValidatedSbom {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum ValidationError<S: Source> {
-    Retrieval(RetrievalError<DiscoveredSbom, S::Error>),
-    DigestMismatch {
-        expected: String,
-        actual: String,
-        retrieved: RetrievedSbom,
-    },
-    Signature {
-        error: anyhow::Error,
-        retrieved: RetrievedSbom,
-    },
-}
-
-impl<S: Source> Urlify for ValidationError<S> {
-    fn url(&self) -> &Url {
-        match self {
-            Self::Retrieval(err) => err.url(),
-            Self::DigestMismatch { retrieved, .. } => &retrieved.url,
-            Self::Signature { retrieved, .. } => &retrieved.url,
-        }
-    }
-}
-
-impl<S: Source> Display for ValidationError<S> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Retrieval(err) => write!(f, "Retrieval error: {err}"),
-            Self::DigestMismatch {
-                expected,
-                actual,
-                retrieved,
-            } => write!(
-                f,
-                "Digest mismatch - expected: {expected}, actual: {actual} ({})",
-                retrieved.url
-            ),
-            Self::Signature { error, retrieved } => {
-                write!(f, "Invalid signature: {error} ({})", retrieved.url)
-            }
-        }
-    }
-}
-
 pub struct ValidationContext<'c> {
     pub retrieval: &'c RetrievalContext<'c>,
 }
@@ -118,13 +73,13 @@ pub trait ValidatedVisitor<S: Source> {
     fn visit_sbom(
         &self,
         context: &Self::Context,
-        result: Result<ValidatedSbom, ValidationError<S>>,
+        result: Result<ValidatedSbom, ValidationError<RetrievedSbom, S>>,
     ) -> impl Future<Output = Result<(), Self::Error>>;
 }
 
 impl<F, E, Fut, S> ValidatedVisitor<S> for F
 where
-    F: Fn(Result<ValidatedSbom, ValidationError<S>>) -> Fut,
+    F: Fn(Result<ValidatedSbom, ValidationError<RetrievedSbom, S>>) -> Fut,
     Fut: Future<Output = Result<(), E>>,
     E: Display + Debug,
     S: Source,
@@ -142,7 +97,7 @@ where
     async fn visit_sbom(
         &self,
         _context: &Self::Context,
-        result: Result<ValidatedSbom, ValidationError<S>>,
+        result: Result<ValidatedSbom, ValidationError<RetrievedSbom, S>>,
     ) -> Result<(), Self::Error> {
         self(result).await
     }
@@ -160,7 +115,7 @@ where
 
 enum ValidationProcessError<S: Source> {
     /// Failed, but passing on to visitor
-    Proceed(ValidationError<S>),
+    Proceed(ValidationError<RetrievedSbom, S>),
     /// Failed, aborting processing
     #[allow(unused)]
     Abort(anyhow::Error),
@@ -281,7 +236,7 @@ where
     async fn visit_sbom(
         &self,
         context: &Self::Context,
-        outcome: Result<RetrievedSbom, RetrievalError<DiscoveredSbom, S::Error>>,
+        outcome: Result<RetrievedSbom, RetrievalError<DiscoveredSbom, S>>,
     ) -> Result<(), Self::Error> {
         match outcome {
             Ok(advisory) => {

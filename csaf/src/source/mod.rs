@@ -15,15 +15,11 @@ use crate::{
     model::metadata::ProviderMetadata,
     retrieve::RetrievedAdvisory,
 };
-use std::fmt::{Debug, Display};
-use std::future::Future;
-use std::str::FromStr;
+use std::{fmt::Debug, future::Future, str::FromStr};
 use walker_common::fetcher::FetcherOptions;
 
 /// A source of CSAF documents
-pub trait Source: Clone + Debug {
-    type Error: Display + Debug;
-
+pub trait Source: walker_common::source::Source + Clone + Debug {
     fn load_metadata(&self) -> impl Future<Output = Result<ProviderMetadata, Self::Error>>;
 
     fn load_index(

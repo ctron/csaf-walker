@@ -1,5 +1,5 @@
-use crate::discover::DiscoveredAdvisory;
 use crate::{
+    discover::DiscoveredAdvisory,
     model::{metadata::ProviderMetadata, store::distribution_base},
     retrieve::{RetrievalContext, RetrievedAdvisory, RetrievedVisitor},
     source::Source,
@@ -14,8 +14,8 @@ use std::{
     rc::Rc,
 };
 use tokio::fs;
-use walker_common::retrieve::RetrievalError;
 use walker_common::{
+    retrieve::RetrievalError,
     store::{store_document, Document, StoreError},
     utils::openpgp::PublicKey,
 };
@@ -63,7 +63,7 @@ pub enum StoreRetrievedError<S: Source> {
     #[error(transparent)]
     Store(#[from] StoreError),
     #[error(transparent)]
-    Retrieval(#[from] RetrievalError<DiscoveredAdvisory, S::Error>),
+    Retrieval(#[from] RetrievalError<DiscoveredAdvisory, S>),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -92,7 +92,7 @@ impl<S: Source + Debug> RetrievedVisitor<S> for StoreVisitor {
     async fn visit_advisory(
         &self,
         _context: &Self::Context,
-        result: Result<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S::Error>>,
+        result: Result<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S>>,
     ) -> Result<(), Self::Error> {
         self.store(&result?).await?;
         Ok(())

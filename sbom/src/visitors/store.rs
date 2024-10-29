@@ -1,9 +1,9 @@
-use crate::discover::DiscoveredSbom;
 use crate::{
+    discover::DiscoveredSbom,
     model::metadata::SourceMetadata,
     retrieve::{RetrievalContext, RetrievedSbom, RetrievedVisitor},
     source::Source,
-    validation::{ValidatedSbom, ValidatedVisitor, ValidationContext, ValidationError},
+    validation::{ValidatedSbom, ValidatedVisitor, ValidationContext},
 };
 use anyhow::Context;
 use sequoia_openpgp::{armor::Kind, serialize::SerializeInto, Cert};
@@ -12,10 +12,11 @@ use std::{
     path::{Path, PathBuf},
 };
 use tokio::fs;
-use walker_common::retrieve::RetrievalError;
 use walker_common::{
+    retrieve::RetrievalError,
     store::{store_document, Document, StoreError},
     utils::openpgp::PublicKey,
+    validate::ValidationError,
 };
 
 pub const DIR_METADATA: &str = "metadata";
@@ -61,7 +62,7 @@ pub enum StoreRetrievedError<S: Source> {
     #[error(transparent)]
     Store(#[from] StoreError),
     #[error(transparent)]
-    Retrieval(#[from] RetrievalError<DiscoveredSbom, S::Error>),
+    Retrieval(#[from] RetrievalError<DiscoveredSbom, S>),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -69,7 +70,7 @@ pub enum StoreValidatedError<S: Source> {
     #[error(transparent)]
     Store(#[from] StoreError),
     #[error(transparent)]
-    Validation(#[from] ValidationError<S>),
+    Validation(#[from] ValidationError<RetrievedSbom, S>),
 }
 
 impl<S: Source> RetrievedVisitor<S> for StoreVisitor {
@@ -88,7 +89,7 @@ impl<S: Source> RetrievedVisitor<S> for StoreVisitor {
     async fn visit_sbom(
         &self,
         _context: &Self::Context,
-        result: Result<RetrievedSbom, RetrievalError<DiscoveredSbom, S::Error>>,
+        result: Result<RetrievedSbom, RetrievalError<DiscoveredSbom, S>>,
     ) -> Result<(), Self::Error> {
         self.store(&result?).await?;
         Ok(())
@@ -111,7 +112,7 @@ impl<S: Source> ValidatedVisitor<S> for StoreVisitor {
     async fn visit_sbom(
         &self,
         _context: &Self::Context,
-        result: Result<ValidatedSbom, ValidationError<S>>,
+        result: Result<ValidatedSbom, ValidationError<RetrievedSbom, S>>,
     ) -> Result<(), Self::Error> {
         self.store(&result?.retrieved).await?;
         Ok(())

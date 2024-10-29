@@ -86,9 +86,11 @@ impl From<changes::Error> for HttpSourceError {
     }
 }
 
-impl Source for HttpSource {
+impl walker_common::source::Source for HttpSource {
     type Error = HttpSourceError;
+}
 
+impl Source for HttpSource {
     async fn load_metadata(&self) -> Result<ProviderMetadata, Self::Error> {
         Ok(self.metadata_source.load_metadata(&self.fetcher).await?)
     }

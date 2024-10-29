@@ -41,9 +41,11 @@ pub enum DispatchSourceError {
     Http(HttpSourceError),
 }
 
-impl Source for DispatchSource {
+impl walker_common::source::Source for DispatchSource {
     type Error = DispatchSourceError;
+}
 
+impl Source for DispatchSource {
     async fn load_metadata(&self) -> Result<ProviderMetadata, Self::Error> {
         match self {
             Self::File(source) => source

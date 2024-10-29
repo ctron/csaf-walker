@@ -1,4 +1,7 @@
 //! Validation
+mod error;
+pub use error::*;
+
 pub mod openpgp;
 pub mod source;
 
