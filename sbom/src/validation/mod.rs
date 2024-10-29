@@ -5,7 +5,6 @@ use crate::{
     retrieve::{RetrievalContext, RetrievedSbom, RetrievedVisitor},
     source::Source,
 };
-use digest::Digest;
 use std::{
     fmt::{Debug, Display},
     future::Future,
@@ -14,9 +13,9 @@ use std::{
 };
 use url::Url;
 use walker_common::{
-    retrieve::{RetrievalError, RetrievedDigest},
+    retrieve::RetrievalError,
     utils::{openpgp::PublicKey, url::Urlify},
-    validate::{openpgp, ValidationError, ValidationOptions},
+    validate::{digest::validate_digest, openpgp, ValidationError, ValidationOptions},
 };
 
 #[derive(Clone, Debug)]
@@ -158,7 +157,7 @@ where
         context: &InnerValidationContext<V::Context>,
         retrieved: RetrievedSbom,
     ) -> Result<ValidatedSbom, ValidationProcessError<S>> {
-        if let Err((expected, actual)) = Self::validate_digest(&retrieved.sha256) {
+        if let Err((expected, actual)) = validate_digest(&retrieved.sha256) {
             return Err(ValidationProcessError::Proceed(
                 ValidationError::DigestMismatch {
                     expected,
@@ -167,7 +166,7 @@ where
                 },
             ));
         }
-        if let Err((expected, actual)) = Self::validate_digest(&retrieved.sha512) {
+        if let Err((expected, actual)) = validate_digest(&retrieved.sha512) {
             return Err(ValidationProcessError::Proceed(
                 ValidationError::DigestMismatch {
                     expected,
@@ -192,16 +191,6 @@ where
         } else {
             Ok(ValidatedSbom { retrieved })
         }
-    }
-
-    /// ensure that the digest matches if we have one
-    fn validate_digest<D: Digest>(
-        digest: &Option<RetrievedDigest<D>>,
-    ) -> Result<(), (String, String)> {
-        if let Some(digest) = &digest {
-            digest.validate().map_err(|(s1, s2)| (s1.to_string(), s2))?;
-        }
-        Ok(())
     }
 }
 

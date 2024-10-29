@@ -5,7 +5,6 @@ use crate::{
     retrieve::{AsRetrieved, RetrievalContext, RetrievedAdvisory, RetrievedVisitor},
     source::Source,
 };
-use digest::Digest;
 use std::{
     fmt::{Debug, Display, Formatter},
     future::Future,
@@ -13,11 +12,10 @@ use std::{
     ops::{Deref, DerefMut},
 };
 use url::Url;
-use walker_common::retrieve::RetrievalError;
 use walker_common::{
-    retrieve::RetrievedDigest,
+    retrieve::RetrievalError,
     utils::{openpgp::PublicKey, url::Urlify},
-    validate::{openpgp, ValidationOptions},
+    validate::{digest::validate_digest, openpgp, ValidationOptions},
 };
 
 /// A validated CSAF document
@@ -233,7 +231,7 @@ where
         context: &InnerValidationContext<V::Context>,
         retrieved: RetrievedAdvisory,
     ) -> Result<ValidatedAdvisory, ValidationProcessError<S>> {
-        if let Err((expected, actual)) = Self::validate_digest(&retrieved.sha256) {
+        if let Err((expected, actual)) = validate_digest(&retrieved.sha256) {
             return Err(ValidationProcessError::Proceed(
                 ValidationError::DigestMismatch {
                     expected,
@@ -242,7 +240,7 @@ where
                 },
             ));
         }
-        if let Err((expected, actual)) = Self::validate_digest(&retrieved.sha512) {
+        if let Err((expected, actual)) = validate_digest(&retrieved.sha512) {
             return Err(ValidationProcessError::Proceed(
                 ValidationError::DigestMismatch {
                     expected,
@@ -267,16 +265,6 @@ where
         } else {
             Ok(ValidatedAdvisory { retrieved })
         }
-    }
-
-    /// ensure that the digest matches if we have one
-    fn validate_digest<D: Digest>(
-        digest: &Option<RetrievedDigest<D>>,
-    ) -> Result<(), (String, String)> {
-        if let Some(digest) = &digest {
-            digest.validate().map_err(|(s1, s2)| (s1.to_string(), s2))?;
-        }
-        Ok(())
     }
 }
 
