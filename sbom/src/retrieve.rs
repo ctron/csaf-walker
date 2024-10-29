@@ -12,6 +12,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 use url::Url;
+use walker_common::retrieve::RetrievedDocument;
 use walker_common::{
     retrieve::{RetrievalError, RetrievalMetadata, RetrievedDigest},
     utils::{openpgp::PublicKey, url::Urlify},
@@ -62,6 +63,10 @@ impl DerefMut for RetrievedSbom {
     }
 }
 
+impl RetrievedDocument for RetrievedSbom {
+    type Discovered = DiscoveredSbom;
+}
+
 pub struct RetrievalContext<'c> {
     pub discovered: &'c DiscoveredContext<'c>,
     pub keys: &'c Vec<PublicKey>,
@@ -87,13 +92,13 @@ pub trait RetrievedVisitor<S: Source> {
     fn visit_sbom(
         &self,
         context: &Self::Context,
-        result: Result<RetrievedSbom, RetrievalError<DiscoveredSbom, S::Error>>,
+        result: Result<RetrievedSbom, RetrievalError<DiscoveredSbom, S>>,
     ) -> impl Future<Output = Result<(), Self::Error>>;
 }
 
 impl<F, E, Fut, S> RetrievedVisitor<S> for F
 where
-    F: Fn(Result<RetrievedSbom, RetrievalError<DiscoveredSbom, S::Error>>) -> Fut,
+    F: Fn(Result<RetrievedSbom, RetrievalError<DiscoveredSbom, S>>) -> Fut,
     Fut: Future<Output = Result<(), E>>,
     E: std::fmt::Display + Debug,
     S: Source,
@@ -111,7 +116,7 @@ where
     async fn visit_sbom(
         &self,
         _ctx: &Self::Context,
-        outcome: Result<RetrievedSbom, RetrievalError<DiscoveredSbom, S::Error>>,
+        outcome: Result<RetrievedSbom, RetrievalError<DiscoveredSbom, S>>,
     ) -> Result<(), Self::Error> {
         self(outcome).await
     }
@@ -152,7 +157,8 @@ where
     V: RetrievedVisitor<S>,
     S: Source + KeySource,
 {
-    type Error = Error<V::Error, <S as Source>::Error, <S as KeySource>::Error>;
+    type Error =
+        Error<V::Error, <S as walker_common::source::Source>::Error, <S as KeySource>::Error>;
     type Context = V::Context;
 
     async fn visit_context(

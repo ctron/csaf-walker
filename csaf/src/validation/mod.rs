@@ -70,7 +70,7 @@ impl AsRetrieved for ValidatedAdvisory {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ValidationError<S: Source> {
-    Retrieval(RetrievalError<DiscoveredAdvisory, S::Error>),
+    Retrieval(RetrievalError<DiscoveredAdvisory, S>),
     DigestMismatch {
         expected: String,
         actual: String,
@@ -311,7 +311,7 @@ where
     async fn visit_advisory(
         &self,
         context: &Self::Context,
-        outcome: Result<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S::Error>>,
+        outcome: Result<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S>>,
     ) -> Result<(), Self::Error> {
         match outcome {
             Ok(advisory) => {

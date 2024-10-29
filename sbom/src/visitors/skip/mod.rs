@@ -1,7 +1,8 @@
+use crate::retrieve::RetrievedSbom;
 use crate::{
     discover::{DiscoveredContext, DiscoveredSbom, DiscoveredVisitor},
     source::Source,
-    validation::{ValidatedSbom, ValidatedVisitor, ValidationContext, ValidationError},
+    validation::{ValidatedSbom, ValidatedVisitor, ValidationContext},
 };
 use std::{
     fmt::{Debug, Display},
@@ -10,6 +11,7 @@ use std::{
 };
 use tokio::fs;
 use walker_common::utils::url::Urlify;
+use walker_common::validate::ValidationError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error<VE: Display + Debug> {
@@ -112,7 +114,7 @@ impl<V: ValidatedVisitor<S>, S: Source> ValidatedVisitor<S> for SkipFailedVisito
     async fn visit_sbom(
         &self,
         context: &Self::Context,
-        result: Result<ValidatedSbom, ValidationError<S>>,
+        result: Result<ValidatedSbom, ValidationError<RetrievedSbom, S>>,
     ) -> Result<(), Self::Error> {
         match (self.skip_failures, result) {
             (_, Ok(result)) => self.visitor.visit_sbom(context, Ok(result)).await,

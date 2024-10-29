@@ -1,16 +1,14 @@
 use crate::{cmd::DiscoverArguments, common::walk_standard};
 use sbom_walker::{
-    discover::DiscoveredSbom,
-    retrieve::RetrievedSbom,
-    source::DispatchSource,
-    validation::{ValidatedSbom, ValidationError},
-    Sbom,
+    discover::DiscoveredSbom, retrieve::RetrievedSbom, source::DispatchSource,
+    validation::ValidatedSbom, Sbom,
 };
 use tokio::task;
 use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
     compression::decompress,
     progress::Progress,
+    validate::ValidationError,
 };
 
 /// Scan SBOMs
@@ -37,7 +35,7 @@ impl Scan {
             self.runner,
             self.discover,
             self.validation,
-            |advisory: Result<ValidatedSbom, ValidationError<DispatchSource>>| async move {
+            |advisory: Result<ValidatedSbom, ValidationError<RetrievedSbom, DispatchSource>>| async move {
                 match advisory {
                     Ok(sbom) => {
                         println!("Advisory: {}", sbom.url);

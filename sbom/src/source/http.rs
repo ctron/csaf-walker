@@ -96,9 +96,11 @@ impl From<changes::Error> for HttpSourceError {
     }
 }
 
-impl Source for HttpSource {
+impl walker_common::source::Source for HttpSource {
     type Error = HttpSourceError;
+}
 
+impl Source for HttpSource {
     async fn load_metadata(&self) -> Result<SourceMetadata, Self::Error> {
         Ok(SourceMetadata {
             keys: self.options.keys.clone(),

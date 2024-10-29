@@ -9,7 +9,7 @@ use sbom_walker::{
     report::{check, ReportResult, ReportSink},
     retrieve::{RetrievedSbom, RetrievingVisitor},
     source::{DispatchSource, Source},
-    validation::{ValidatedSbom, ValidationError, ValidationVisitor},
+    validation::{ValidatedSbom, ValidationVisitor},
     Sbom,
 };
 use serde_json::Value;
@@ -28,13 +28,13 @@ use walker_common::{
     progress::Progress,
     report::{self, Statistics},
     utils::url::Urlify,
-    validate::ValidationOptions,
+    validate::{ValidationError, ValidationOptions},
 };
 
 #[derive(Debug, thiserror::Error)]
 pub enum SbomError<S: Source> {
     #[error(transparent)]
-    Validation(#[from] ValidationError<S>),
+    Validation(#[from] ValidationError<RetrievedSbom, S>),
     #[error(transparent)]
     Parse(#[from] ParseAnyError),
 }
@@ -96,7 +96,10 @@ impl Report {
                     Ok(RetrievingVisitor::new(
                         source.clone(),
                         ValidationVisitor::new(
-                            move |sbom: Result<ValidatedSbom, ValidationError<DispatchSource>>| {
+                            move |sbom: Result<
+                                ValidatedSbom,
+                                ValidationError<RetrievedSbom, DispatchSource>,
+                            >| {
                                 let errors = errors.clone();
                                 total.fetch_add(1, Ordering::SeqCst);
                                 async move {
@@ -156,7 +159,7 @@ impl Report {
 
     fn inspect<S: Source>(
         report: &dyn ReportSink,
-        sbom: Result<ValidatedSbom, ValidationError<S>>,
+        sbom: Result<ValidatedSbom, ValidationError<RetrievedSbom, S>>,
     ) {
         let sbom = match sbom {
             Ok(sbom) => sbom,

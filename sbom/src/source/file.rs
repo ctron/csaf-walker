@@ -98,9 +98,11 @@ impl FileSource {
     }
 }
 
-impl Source for FileSource {
+impl walker_common::source::Source for FileSource {
     type Error = anyhow::Error;
+}
 
+impl Source for FileSource {
     async fn load_metadata(&self) -> Result<SourceMetadata, Self::Error> {
         let metadata = self.base.join(DIR_METADATA).join("metadata.json");
         let file = fs::File::open(&metadata)

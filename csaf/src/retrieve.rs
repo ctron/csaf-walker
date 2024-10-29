@@ -104,13 +104,13 @@ pub trait RetrievedVisitor<S: Source> {
     fn visit_advisory(
         &self,
         context: &Self::Context,
-        result: Result<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S::Error>>,
+        result: Result<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S>>,
     ) -> impl Future<Output = Result<(), Self::Error>>;
 }
 
 impl<F, E, Fut, S> RetrievedVisitor<S> for F
 where
-    F: Fn(Result<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S::Error>>) -> Fut,
+    F: Fn(Result<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S>>) -> Fut,
     Fut: Future<Output = Result<(), E>>,
     E: std::fmt::Display + Debug,
     S: Source,
@@ -128,7 +128,7 @@ where
     async fn visit_advisory(
         &self,
         _ctx: &Self::Context,
-        outcome: Result<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S::Error>>,
+        outcome: Result<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S>>,
     ) -> Result<(), Self::Error> {
         self(outcome).await
     }
@@ -169,7 +169,8 @@ where
     V: RetrievedVisitor<S>,
     S: Source + KeySource,
 {
-    type Error = Error<V::Error, <S as Source>::Error, <S as KeySource>::Error>;
+    type Error =
+        Error<V::Error, <S as walker_common::source::Source>::Error, <S as KeySource>::Error>;
     type Context = V::Context;
 
     async fn visit_context(

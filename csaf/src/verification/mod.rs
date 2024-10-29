@@ -219,9 +219,9 @@ where
 }
 
 impl<V, I, S> RetrievedVisitor<S>
-    for VerifyingVisitor<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S::Error>, V, I>
+    for VerifyingVisitor<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S>, V, I>
 where
-    V: VerifiedVisitor<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S::Error>, I>,
+    V: VerifiedVisitor<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S>, I>,
     I: Clone + PartialEq + Eq + Hash,
     S: Source,
 {
@@ -241,7 +241,7 @@ where
     async fn visit_advisory(
         &self,
         context: &Self::Context,
-        result: Result<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S::Error>>,
+        result: Result<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S>>,
     ) -> Result<(), Self::Error> {
         let result = match result {
             Ok(doc) => self.verify(doc).await,

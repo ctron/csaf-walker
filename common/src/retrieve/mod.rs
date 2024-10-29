@@ -3,13 +3,17 @@
 mod error;
 pub use error::*;
 
-use crate::utils::hex::Hex;
+use crate::utils::{hex::Hex, url::Urlify};
 use digest::{Digest, Output};
 use std::{
     fmt::{Debug, Formatter},
     ops::{Deref, DerefMut},
 };
 use time::OffsetDateTime;
+
+pub trait RetrievedDocument: Urlify {
+    type Discovered: Urlify;
+}
 
 /// The retrieved digest
 #[derive(Clone, PartialEq, Eq)]

@@ -11,7 +11,7 @@ pub enum SendRetrievedAdvisoryError<S: Source> {
     #[error(transparent)]
     Store(#[from] SendError),
     #[error(transparent)]
-    Retrieval(#[from] RetrievalError<DiscoveredAdvisory, S::Error>),
+    Retrieval(#[from] RetrievalError<DiscoveredAdvisory, S>),
 }
 
 impl<S: Source> RetrievedVisitor<S> for SendVisitor {
@@ -25,7 +25,7 @@ impl<S: Source> RetrievedVisitor<S> for SendVisitor {
     async fn visit_advisory(
         &self,
         _context: &Self::Context,
-        result: Result<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S::Error>>,
+        result: Result<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S>>,
     ) -> Result<(), Self::Error> {
         self.send_retrieved_advisory(result?).await?;
         Ok(())
