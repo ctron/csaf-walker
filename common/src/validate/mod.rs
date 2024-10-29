@@ -2,6 +2,7 @@
 mod error;
 pub use error::*;
 
+pub mod digest;
 pub mod openpgp;
 pub mod source;
 
