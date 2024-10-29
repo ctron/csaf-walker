@@ -31,7 +31,7 @@ where
 {
     fn url(&self) -> &Url {
         match self {
-            Self::Source { discovered, .. } => &discovered.url(),
+            Self::Source { discovered, .. } => discovered.url(),
         }
     }
 }
