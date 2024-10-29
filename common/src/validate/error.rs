@@ -30,8 +30,8 @@ where
     fn url(&self) -> &Url {
         match self {
             Self::Retrieval(err) => err.url(),
-            Self::DigestMismatch { retrieved, .. } => &retrieved.url(),
-            Self::Signature { retrieved, .. } => &retrieved.url(),
+            Self::DigestMismatch { retrieved, .. } => retrieved.url(),
+            Self::Signature { retrieved, .. } => retrieved.url(),
         }
     }
 }
