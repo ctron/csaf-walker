@@ -1,4 +1,3 @@
-use crate::retrieve::RetrievedSbom;
 use crate::{
     discover::{DiscoveredContext, DiscoveredSbom, DiscoveredVisitor},
     source::Source,
@@ -114,7 +113,7 @@ impl<V: ValidatedVisitor<S>, S: Source> ValidatedVisitor<S> for SkipFailedVisito
     async fn visit_sbom(
         &self,
         context: &Self::Context,
-        result: Result<ValidatedSbom, ValidationError<RetrievedSbom, S>>,
+        result: Result<ValidatedSbom, ValidationError<S>>,
     ) -> Result<(), Self::Error> {
         match (self.skip_failures, result) {
             (_, Ok(result)) => self.visitor.visit_sbom(context, Ok(result)).await,

@@ -138,6 +138,7 @@ impl FileSource {
 
 impl walker_common::source::Source for FileSource {
     type Error = anyhow::Error;
+    type Retrieved = RetrievedAdvisory;
 }
 
 impl Source for FileSource {

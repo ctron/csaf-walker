@@ -35,7 +35,7 @@ impl Scan {
             self.runner,
             self.discover,
             self.validation,
-            |advisory: Result<ValidatedSbom, ValidationError<RetrievedSbom, DispatchSource>>| async move {
+            |advisory: Result<ValidatedSbom, ValidationError<DispatchSource>>| async move {
                 match advisory {
                     Ok(sbom) => {
                         println!("Advisory: {}", sbom.url);

@@ -7,26 +7,24 @@ use std::fmt::{Debug, Display, Formatter};
 use url::Url;
 
 #[derive(Debug, thiserror::Error)]
-pub enum ValidationError<D, S>
+pub enum ValidationError<S>
 where
-    D: RetrievedDocument,
     S: Source,
 {
-    Retrieval(RetrievalError<D::Discovered, S>),
+    Retrieval(RetrievalError<<S::Retrieved as RetrievedDocument>::Discovered, S>),
     DigestMismatch {
         expected: String,
         actual: String,
-        retrieved: D,
+        retrieved: S::Retrieved,
     },
     Signature {
         error: anyhow::Error,
-        retrieved: D,
+        retrieved: S::Retrieved,
     },
 }
 
-impl<D, S> Urlify for ValidationError<D, S>
+impl<S> Urlify for ValidationError<S>
 where
-    D: RetrievedDocument,
     S: Source,
 {
     fn url(&self) -> &Url {
@@ -38,9 +36,8 @@ where
     }
 }
 
-impl<D, S> Display for ValidationError<D, S>
+impl<S> Display for ValidationError<S>
 where
-    D: RetrievedDocument,
     S: Source,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

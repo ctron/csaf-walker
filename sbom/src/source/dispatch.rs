@@ -42,6 +42,7 @@ pub enum DispatchSourceError {
 
 impl walker_common::source::Source for DispatchSource {
     type Error = DispatchSourceError;
+    type Retrieved = RetrievedSbom;
 }
 
 impl Source for DispatchSource {

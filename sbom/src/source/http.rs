@@ -98,6 +98,7 @@ impl From<changes::Error> for HttpSourceError {
 
 impl walker_common::source::Source for HttpSource {
     type Error = HttpSourceError;
+    type Retrieved = RetrievedSbom;
 }
 
 impl Source for HttpSource {

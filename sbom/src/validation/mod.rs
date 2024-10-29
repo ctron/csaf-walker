@@ -73,13 +73,13 @@ pub trait ValidatedVisitor<S: Source> {
     fn visit_sbom(
         &self,
         context: &Self::Context,
-        result: Result<ValidatedSbom, ValidationError<RetrievedSbom, S>>,
+        result: Result<ValidatedSbom, ValidationError<S>>,
     ) -> impl Future<Output = Result<(), Self::Error>>;
 }
 
 impl<F, E, Fut, S> ValidatedVisitor<S> for F
 where
-    F: Fn(Result<ValidatedSbom, ValidationError<RetrievedSbom, S>>) -> Fut,
+    F: Fn(Result<ValidatedSbom, ValidationError<S>>) -> Fut,
     Fut: Future<Output = Result<(), E>>,
     E: Display + Debug,
     S: Source,
@@ -97,7 +97,7 @@ where
     async fn visit_sbom(
         &self,
         _context: &Self::Context,
-        result: Result<ValidatedSbom, ValidationError<RetrievedSbom, S>>,
+        result: Result<ValidatedSbom, ValidationError<S>>,
     ) -> Result<(), Self::Error> {
         self(result).await
     }
@@ -115,7 +115,7 @@ where
 
 enum ValidationProcessError<S: Source> {
     /// Failed, but passing on to visitor
-    Proceed(ValidationError<RetrievedSbom, S>),
+    Proceed(ValidationError<S>),
     /// Failed, aborting processing
     #[allow(unused)]
     Abort(anyhow::Error),
@@ -135,7 +135,7 @@ where
 impl<V, S> ValidationVisitor<V, S>
 where
     V: ValidatedVisitor<S>,
-    S: Source,
+    S: Source<Retrieved = RetrievedSbom>,
 {
     pub fn new(visitor: V) -> Self {
         Self {
@@ -213,7 +213,7 @@ pub struct InnerValidationContext<VC> {
 impl<V, S> RetrievedVisitor<S> for ValidationVisitor<V, S>
 where
     V: ValidatedVisitor<S>,
-    S: Source,
+    S: Source<Retrieved = RetrievedSbom>,
 {
     type Error = Error<V::Error>;
     type Context = InnerValidationContext<V::Context>;

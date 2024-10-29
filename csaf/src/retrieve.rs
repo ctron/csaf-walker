@@ -12,6 +12,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 use url::Url;
+use walker_common::retrieve::RetrievedDocument;
 use walker_common::{
     retrieve::{RetrievalError, RetrievalMetadata, RetrievedDigest},
     utils::{openpgp::PublicKey, url::Urlify},
@@ -77,6 +78,10 @@ impl DerefMut for RetrievedAdvisory {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.discovered
     }
+}
+
+impl RetrievedDocument for RetrievedAdvisory {
+    type Discovered = DiscoveredAdvisory;
 }
 
 pub struct RetrievalContext<'c> {
