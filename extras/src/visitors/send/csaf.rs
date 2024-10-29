@@ -1,16 +1,17 @@
 use super::*;
 use crate::csaf::{
-    retrieve::{RetrievalContext, RetrievalError, RetrievedAdvisory, RetrievedVisitor},
+    retrieve::{RetrievalContext, RetrievedAdvisory, RetrievedVisitor},
     validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, ValidationError},
 };
 use csaf_walker::{discover::DiscoveredAdvisory, source::Source};
+use walker_common::retrieve::RetrievalError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum SendRetrievedAdvisoryError<S: Source> {
     #[error(transparent)]
     Store(#[from] SendError),
     #[error(transparent)]
-    Retrieval(#[from] RetrievalError<S>),
+    Retrieval(#[from] RetrievalError<DiscoveredAdvisory, S::Error>),
 }
 
 impl<S: Source> RetrievedVisitor<S> for SendVisitor {
@@ -24,7 +25,7 @@ impl<S: Source> RetrievedVisitor<S> for SendVisitor {
     async fn visit_advisory(
         &self,
         _context: &Self::Context,
-        result: Result<RetrievedAdvisory, RetrievalError<S>>,
+        result: Result<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S::Error>>,
     ) -> Result<(), Self::Error> {
         self.send_retrieved_advisory(result?).await?;
         Ok(())

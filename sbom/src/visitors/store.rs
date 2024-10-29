@@ -1,14 +1,18 @@
-use crate::source::Source;
+use crate::discover::DiscoveredSbom;
 use crate::{
     model::metadata::SourceMetadata,
-    retrieve::{RetrievalContext, RetrievalError, RetrievedSbom, RetrievedVisitor},
+    retrieve::{RetrievalContext, RetrievedSbom, RetrievedVisitor},
+    source::Source,
     validation::{ValidatedSbom, ValidatedVisitor, ValidationContext, ValidationError},
 };
 use anyhow::Context;
 use sequoia_openpgp::{armor::Kind, serialize::SerializeInto, Cert};
-use std::io::{ErrorKind, Write};
-use std::path::{Path, PathBuf};
+use std::{
+    io::{ErrorKind, Write},
+    path::{Path, PathBuf},
+};
 use tokio::fs;
+use walker_common::retrieve::RetrievalError;
 use walker_common::{
     store::{store_document, Document, StoreError},
     utils::openpgp::PublicKey,
@@ -57,7 +61,7 @@ pub enum StoreRetrievedError<S: Source> {
     #[error(transparent)]
     Store(#[from] StoreError),
     #[error(transparent)]
-    Retrieval(#[from] RetrievalError<S>),
+    Retrieval(#[from] RetrievalError<DiscoveredSbom, S::Error>),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -84,7 +88,7 @@ impl<S: Source> RetrievedVisitor<S> for StoreVisitor {
     async fn visit_sbom(
         &self,
         _context: &Self::Context,
-        result: Result<RetrievedSbom, RetrievalError<S>>,
+        result: Result<RetrievedSbom, RetrievalError<DiscoveredSbom, S::Error>>,
     ) -> Result<(), Self::Error> {
         self.store(&result?).await?;
         Ok(())

@@ -1,20 +1,19 @@
 //! Validation
 
-use crate::source::Source;
 use crate::{
     discover::{AsDiscovered, DiscoveredAdvisory},
-    retrieve::{
-        AsRetrieved, RetrievalContext, RetrievalError, RetrievedAdvisory, RetrievedVisitor,
-    },
+    retrieve::{AsRetrieved, RetrievalContext, RetrievedAdvisory, RetrievedVisitor},
+    source::Source,
 };
 use digest::Digest;
-use std::marker::PhantomData;
 use std::{
     fmt::{Debug, Display, Formatter},
     future::Future,
+    marker::PhantomData,
     ops::{Deref, DerefMut},
 };
 use url::Url;
+use walker_common::retrieve::RetrievalError;
 use walker_common::{
     retrieve::RetrievedDigest,
     utils::{openpgp::PublicKey, url::Urlify},
@@ -71,7 +70,7 @@ impl AsRetrieved for ValidatedAdvisory {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ValidationError<S: Source> {
-    Retrieval(RetrievalError<S>),
+    Retrieval(RetrievalError<DiscoveredAdvisory, S::Error>),
     DigestMismatch {
         expected: String,
         actual: String,
@@ -312,7 +311,7 @@ where
     async fn visit_advisory(
         &self,
         context: &Self::Context,
-        outcome: Result<RetrievedAdvisory, RetrievalError<S>>,
+        outcome: Result<RetrievedAdvisory, RetrievalError<DiscoveredAdvisory, S::Error>>,
     ) -> Result<(), Self::Error> {
         match outcome {
             Ok(advisory) => {
