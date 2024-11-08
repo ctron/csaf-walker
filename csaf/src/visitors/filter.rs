@@ -115,6 +115,7 @@ impl<V: DiscoveredVisitor> DiscoveredVisitor for FilteringVisitor<V> {
         {
             return Ok(());
         };
+
         // eval name
 
         let name = advisory
@@ -133,14 +134,124 @@ impl<V: DiscoveredVisitor> DiscoveredVisitor for FilteringVisitor<V> {
 
         // "only" prefix
 
-        for n in &self.config.only_prefixes {
-            if !name.starts_with(n.as_str()) {
-                return Ok(());
-            }
+        if !self.config.only_prefixes.is_empty()
+            && !self
+                .config
+                .only_prefixes
+                .iter()
+                .any(|n| name.starts_with(n.as_str()))
+        {
+            return Ok(());
         }
 
         // ok to proceed
 
         self.visitor.visit_advisory(context, advisory).await
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::discover::DistributionContext;
+    use std::sync::Arc;
+    use std::time::SystemTime;
+    use tokio::sync::Mutex;
+    use url::Url;
+
+    #[derive(Default)]
+    struct MockVisitor {
+        pub items: Arc<Mutex<Vec<DiscoveredAdvisory>>>,
+    }
+
+    impl DiscoveredVisitor for MockVisitor {
+        type Error = anyhow::Error;
+        type Context = ();
+
+        async fn visit_context(
+            &self,
+            _context: &DiscoveredContext<'_>,
+        ) -> Result<Self::Context, Self::Error> {
+            Ok(())
+        }
+
+        async fn visit_advisory(
+            &self,
+            _context: &Self::Context,
+            advisory: DiscoveredAdvisory,
+        ) -> Result<(), Self::Error> {
+            self.items.lock().await.push(advisory);
+            Ok(())
+        }
+    }
+
+    async fn issue<V>(filter: &FilteringVisitor<V>, name: &str) -> Result<(), anyhow::Error>
+    where
+        V: DiscoveredVisitor<Error = anyhow::Error, Context = ()>,
+    {
+        let context = Arc::new(DistributionContext::Directory(Url::parse(
+            "https://localhost",
+        )?));
+        let url = Url::parse(&format!("https://localhost/{name}"))?;
+        let modified = SystemTime::now();
+
+        filter
+            .visit_advisory(
+                &(),
+                DiscoveredAdvisory {
+                    context,
+                    url,
+                    modified,
+                },
+            )
+            .await?;
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn ignored() -> anyhow::Result<()> {
+        let mock = MockVisitor::default();
+        let filter = FilteringVisitor {
+            config: FilterConfig::new()
+                .add_ignored_prefix("foo-")
+                .add_ignored_prefix("bar-"),
+            visitor: mock,
+        };
+
+        issue(&filter, "foo-1").await?;
+        issue(&filter, "foo-2").await?;
+        issue(&filter, "bar-1").await?;
+        issue(&filter, "bar-2").await?;
+        issue(&filter, "baz-1").await?;
+        issue(&filter, "baz-2").await?;
+
+        let items = filter.visitor.items.lock().await.clone();
+        assert_eq!(items.len(), 2);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn only() -> anyhow::Result<()> {
+        let mock = MockVisitor::default();
+        let filter = FilteringVisitor {
+            config: FilterConfig::new()
+                .add_only_prefix("foo-")
+                .add_only_prefix("bar-"),
+            visitor: mock,
+        };
+
+        issue(&filter, "foo-1").await?;
+        issue(&filter, "foo-2").await?;
+        issue(&filter, "bar-1").await?;
+        issue(&filter, "bar-2").await?;
+        issue(&filter, "baz-1").await?;
+        issue(&filter, "baz-2").await?;
+
+        let items = filter.visitor.items.lock().await.clone();
+        assert_eq!(items.len(), 4);
+
+        Ok(())
     }
 }
