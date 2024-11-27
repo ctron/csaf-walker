@@ -80,11 +80,10 @@ jobs:
             install: sudo apt install clang llvm pkg-config libssl-dev nettle-dev musl-tools
             args: --features vendored,crypto-openssl,walker-common/bzip2-rs,walker-common/liblzma,csaf --no-default-features
           - target: x86_64-apple-darwin
-            os: macos-12
+            os: macos-13
             args: --features vendored,crypto-openssl,walker-common/bzip2-rs,walker-common/liblzma,csaf --no-default-features
           - target: aarch64-apple-darwin
-            os: macos-12
-            xcode: "true"
+            os: macos-14
             args: --features vendored,crypto-openssl,walker-common/bzip2-rs,walker-common/liblzma,csaf --no-default-features
           - target: x86_64-pc-windows-msvc
             os: windows-2022
