@@ -71,14 +71,22 @@ impl Compression {
     /// Returns `None` for [`Compression::None`]
     pub fn decompress_opt_with(
         &self,
-        data: &[u8],
-        opts: &DecompressionOptions,
+        #[allow(unused_variables)] data: &[u8],
+        #[allow(unused_variables)] opts: &DecompressionOptions,
     ) -> Result<Option<Bytes>, std::io::Error> {
         match self {
             #[cfg(any(feature = "bzip2", feature = "bzip2-rs"))]
-            Compression::Bzip2 => super::decompress_bzip2_with(data, opts).map(Some),
+            Compression::Bzip2 =>
+            {
+                #[allow(deprecated)]
+                super::decompress_bzip2_with(data, opts).map(Some)
+            }
             #[cfg(feature = "liblzma")]
-            Compression::Xz => super::decompress_xz_with(data, opts).map(Some),
+            Compression::Xz =>
+            {
+                #[allow(deprecated)]
+                super::decompress_xz_with(data, opts).map(Some)
+            }
             Compression::None => Ok(None),
         }
     }

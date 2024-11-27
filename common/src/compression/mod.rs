@@ -35,6 +35,7 @@ pub fn decompress(data: Bytes, name: &str) -> Result<Bytes, anyhow::Error> {
 #[cfg(all(feature = "bzip2-rs", not(feature = "bzip2")))]
 #[deprecated(since = "0.9.3", note = "Use Compression::decompress instead")]
 pub fn decompress_bzip2(data: &[u8]) -> Result<Bytes, std::io::Error> {
+    #[allow(deprecated)]
     decompress_bzip2_with(data, &DecompressionOptions::default())
 }
 
@@ -81,6 +82,7 @@ fn decompress_xz_with(data: &[u8], opts: &DecompressionOptions) -> Result<Bytes,
 }
 
 /// Decompress with an uncompressed payload limit.
+#[allow(unused)]
 fn decompress_limit(mut reader: impl std::io::Read, limit: usize) -> Result<Bytes, std::io::Error> {
     let mut data = vec![];
 

@@ -17,16 +17,13 @@ anyhow = "1"
 async-trait = "0.1"
 bytes = "1"
 chrono = { version = "0.4.24", default-features = false, features = ["serde"] }
-cpe = "0.1.5"
 csv = "1"
 digest = "0.10.6"
-filetime = "0.2"
 fluent-uri = "0.3.2"
 futures = "0.3"
 hickory-resolver = { version = "0.24.0", features = ["tokio-runtime"] }
 html-escape = "0.2.13"
 humantime = "2"
-lazy_static = "1.4"
 log = "0.4.17"
 percent-encoding = "2.3"
 reqwest = { version = "0.12", features = ["json"] }
@@ -47,7 +44,7 @@ sequoia-openpgp = { version = "1", default-features = false }
 csaf = { version = "0.5", default-features = false, optional = true }
 
 # for csaf-validator-lib
-deno_core = { version = "0.318.0", optional = true }
+deno_core = { version = "0.323.0", optional = true }
 
 [dev-dependencies]
 env_logger = "0.11.2"
