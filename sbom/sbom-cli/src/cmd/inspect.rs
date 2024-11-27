@@ -4,7 +4,7 @@ use bytes::Bytes;
 use parking_lot::Mutex;
 use reqwest::Url;
 use sbom_walker::{discover::DiscoveredSbom, retrieve::RetrievedSbom, validation::ValidatedSbom};
-use std::{collections::BTreeMap, sync::Arc, time::SystemTime};
+use std::{collections::BTreeMap, path::absolute, sync::Arc, time::SystemTime};
 use walker_common::{
     cli::{client::ClientArguments, validation::ValidationArguments},
     fetcher::Fetcher,
@@ -69,9 +69,10 @@ impl Inspect {
             (fetcher.fetch::<Bytes>(url.clone()).await?, url)
         } else {
             log::debug!("Fetching local");
-            let url = Url::from_file_path(source)
+            let path = absolute(source)?;
+            let url = Url::from_file_path(&path)
                 .map_err(|()| anyhow!("Failed to convert file to URL"))?;
-            (tokio::fs::read(source).await?.into(), url)
+            (tokio::fs::read(path).await?.into(), url)
         };
 
         log::info!("{} bytes of data", data.len());
