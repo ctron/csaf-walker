@@ -75,13 +75,12 @@ impl<'a> Policy for LoggingPolicy<'a> {
     }
 
     fn packet(&self, packet: &Packet) -> sequoia_openpgp::Result<()> {
-        self.0.packet(packet).map_err(|err| {
+        self.0.packet(packet).inspect_err(|_| {
             log::debug!(
                 "Failed to validate packet - tag: {tag:?}, version = {version:?}",
                 tag = packet.tag(),
                 version = packet.version()
             );
-            err
         })
     }
 }
