@@ -84,7 +84,7 @@ where
 }
 
 /// Metadata of the retrieval process.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct RetrievalMetadata {
     /// Last known modification time
     pub last_modification: Option<OffsetDateTime>,

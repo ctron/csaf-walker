@@ -13,13 +13,18 @@ struct SpdxChecks<'c> {
 }
 
 impl SpdxChecks<'_> {
+    /// run all checks
     pub fn all(&self) {
+        log::debug!("Running all SPDX checks");
+
         self.rel_targets();
         self.duplicate_packages();
     }
 
     /// check for duplicate nodes
     fn duplicate_packages(&self) {
+        log::debug!("Checking duplicates IDs");
+
         let mut ids = HashMap::with_capacity(
             self.spdx.package_information.len() + self.spdx.file_information.len() + 1,
         );
@@ -43,6 +48,8 @@ impl SpdxChecks<'_> {
 
     /// check if all relationships have valid targets
     fn rel_targets(&self) {
+        log::debug!("Checking valid relationship targets");
+
         let mut ids = self
             .spdx
             .package_information

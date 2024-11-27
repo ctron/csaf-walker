@@ -1,3 +1,7 @@
+mod license;
+
+pub use license::*;
+
 use crate::cmd::DiscoverArguments;
 use sbom_walker::{
     discover::{DiscoverConfig, DiscoveredVisitor},

@@ -1,4 +1,4 @@
-# sbom
+``# sbom
 
 A tool to work with SBOM data from the command line.
 
@@ -8,14 +8,14 @@ This tool can also be used as a library: <https://crates.io/crates/csaf-walker>
 
 ```
 Commands:
-  parse     Parse advisories
-  download  Like sync, but doesn't validate
-  scan      Scan advisories
-  discover  Discover advisories, just lists the URLs
-  sync      Sync only what changed, and alidate
+  discover  Discover SBOMs, just lists the URLs
+  download  Like `sync`, but doesn't validate
+  sync      Sync only what changed
+  scan      Scan SBOMs
   report    Analyze (and report) the state of the data
   send      Walk a source and send validated/retrieved documents to a sink
-  metadata  Discover provider metadata
+  scoop     Walk a local directory (or single file) and send the files to a target without any validation
+  inspect   Inspect SBOMs
   help      Print this message or the help of the given subcommand(s)
 ```
 

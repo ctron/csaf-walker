@@ -23,3 +23,13 @@ impl ReportSink for (String, Arc<Mutex<BTreeMap<String, Vec<String>>>>) {
         self.1.lock().entry(self.0.clone()).or_default().push(msg);
     }
 }
+
+impl<'a> ReportSink for (&'a str, Arc<Mutex<BTreeMap<String, Vec<String>>>>) {
+    fn error(&self, msg: String) {
+        self.1
+            .lock()
+            .entry(self.0.to_string())
+            .or_default()
+            .push(msg);
+    }
+}

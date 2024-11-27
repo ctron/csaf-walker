@@ -1,18 +1,15 @@
 mod render;
 
-use crate::{cmd::DiscoverArguments, common::walk_visitor};
+use crate::{cmd::DiscoverArguments, common::walk_visitor, inspect::inspect};
 use parking_lot::Mutex;
 use reqwest::Url;
 use sbom_walker::{
-    discover::DiscoveredSbom,
     model::sbom::ParseAnyError,
-    report::{check, ReportResult, ReportSink},
-    retrieve::{RetrievedSbom, RetrievingVisitor},
+    report::ReportResult,
+    retrieve::RetrievingVisitor,
     source::{DispatchSource, Source},
     validation::{ValidatedSbom, ValidationVisitor},
-    Sbom,
 };
-use serde_json::Value;
 use std::{
     collections::BTreeMap,
     path::PathBuf,
@@ -24,7 +21,6 @@ use std::{
 use tokio::task;
 use walker_common::{
     cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
-    compression::decompress,
     progress::Progress,
     report::{self, Statistics},
     utils::url::Urlify,
@@ -106,7 +102,7 @@ impl Report {
                                     };
 
                                     task::spawn_blocking(move || {
-                                        Self::inspect(&(name, errors), sbom);
+                                        inspect(&(name, errors), sbom);
                                     })
                                     .await
                                     .expect("unable to spawn inspection");
@@ -153,79 +149,4 @@ impl Report {
 
         Ok(())
     }
-
-    fn inspect<S: Source>(
-        report: &dyn ReportSink,
-        sbom: Result<ValidatedSbom, ValidationError<S>>,
-    ) {
-        let sbom = match sbom {
-            Ok(sbom) => sbom,
-            Err(err) => {
-                report.error(format!("Failed to retrieve: {err}"));
-                return;
-            }
-        };
-
-        let ValidatedSbom {
-            retrieved:
-                RetrievedSbom {
-                    data,
-                    discovered: DiscoveredSbom { url, .. },
-                    ..
-                },
-        } = sbom;
-
-        let data = decompress(data, url.path());
-
-        let data = match data {
-            Ok(data) => data,
-            Err(err) => {
-                report.error(format!("Failed to decode file: {err}"));
-                return;
-            }
-        };
-
-        let mut value = match serde_json::from_slice(&data) {
-            Ok(value) => value,
-            Err(err) => {
-                report.error(format!(
-                    "Failed to parse file as JSON: {err} (currently only JSON files are supported)"
-                ));
-                return;
-            }
-        };
-
-        if Sbom::is_spdx_json(&value).is_ok() {
-            let (new, _) = fix_license(report, value);
-            value = new;
-        }
-
-        let sbom = match Sbom::try_parse_any_json(value) {
-            Ok(sbom) => sbom,
-            Err(err) => {
-                report.error(format!("Failed to parse file: {err}"));
-                return;
-            }
-        };
-
-        check::all(report, &sbom);
-    }
-}
-
-/// Check the document for invalid SPDX license expressions and replace them with `NOASSERTION`.
-pub fn fix_license(report: &dyn ReportSink, mut json: Value) -> (Value, bool) {
-    let mut changed = false;
-    if let Some(packages) = json["packages"].as_array_mut() {
-        for package in packages {
-            if let Some(declared) = package["licenseDeclared"].as_str() {
-                if let Err(err) = spdx_expression::SpdxExpression::parse(declared) {
-                    report.error(format!("Faulty SPDX license expression: {err}"));
-                    package["licenseDeclared"] = "NOASSERTION".into();
-                    changed = true;
-                }
-            }
-        }
-    }
-
-    (json, changed)
 }

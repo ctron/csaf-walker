@@ -15,6 +15,7 @@ rust-version = "1.75"
 [dependencies]
 anyhow = "1"
 async-trait = "0.1"
+bytes = "1"
 bzip2-rs = { version = "0.1", features = ["rustc_1_51"] }
 clap = { version = "4.5.0", features = ["derive", "color"] }
 csaf = { version = "0.5.0", default-features = false }
