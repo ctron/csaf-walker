@@ -19,7 +19,7 @@ struct Helper<'a> {
     keys: &'a [PublicKey],
 }
 
-impl<'a> VerificationHelper for Helper<'a> {
+impl VerificationHelper for Helper<'_> {
     fn get_certs(&mut self, _ids: &[KeyHandle]) -> sequoia_openpgp::Result<Vec<Cert>> {
         Ok(self.keys.iter().flat_map(|k| k.certs.clone()).collect())
     }
@@ -57,7 +57,7 @@ impl<'a> VerificationHelper for Helper<'a> {
 #[derive(Debug)]
 struct LoggingPolicy<'a>(pub StandardPolicy<'a>);
 
-impl<'a> Policy for LoggingPolicy<'a> {
+impl Policy for LoggingPolicy<'_> {
     fn signature(&self, sig: &Signature, sec: HashAlgoSecurity) -> sequoia_openpgp::Result<()> {
         self.0.signature(sig, sec)
     }
