@@ -13,6 +13,7 @@ readme = "README.md"
 rust-version = "1.79"
 
 [dependencies]
+# normal
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 bytes = { workspace = true }
@@ -35,6 +36,7 @@ time =  { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 tracing = { workspace = true }
 
+# internal
 sbom-walker = { workspace = true, features = ["cyclonedx-bom", "spdx-rs"] }
 walker-common = { workspace = true, features = ["openpgp", "cli"] }
 walker-extras = { workspace = true }

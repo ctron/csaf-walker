@@ -44,7 +44,7 @@ pub struct DiscoveredContext<'c> {
     pub metadata: &'c SourceMetadata,
 }
 
-impl<'c> Deref for DiscoveredContext<'c> {
+impl Deref for DiscoveredContext<'_> {
     type Target = SourceMetadata;
 
     fn deref(&self) -> &Self::Target {

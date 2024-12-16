@@ -13,10 +13,10 @@ readme = "../README.md"
 rust-version = "1.79"
 
 [dependencies]
+# normal
 anyhow = { workspace = true }
 bytes = { workspace = true }
 csv = { workspace = true }
-cyclonedx-bom = { workspace = true, optional = true }
 digest = { workspace = true }
 fluent-uri = { workspace = true }
 futures = { workspace = true }
@@ -28,12 +28,16 @@ sequoia-openpgp = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
-spdx-rs = { workspace = true, optional = true }
 thiserror = { workspace = true }
 time = { workspace = true, features = ["formatting", "parsing", "serde"] }
 tokio = { workspace = true, features = ["macros", "fs"] }
 url = { workspace = true, features = ["serde"] }
 
+# optional
+cyclonedx-bom = { workspace = true, optional = true }
+spdx-rs = { workspace = true, optional = true }
+
+# internal
 walker-common = { workspace = true, features = ["openpgp"] }
 
 [features]

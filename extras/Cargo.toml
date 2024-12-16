@@ -13,15 +13,19 @@ readme = "../README.md"
 rust-version = "1.79"
 
 [dependencies]
+# normal
 anyhow =  { workspace = true }
 bytes =  { workspace = true }
-clap = { workspace = true, features = ["derive"], optional = true }
 humantime =  { workspace = true }
 log =  { workspace = true }
 reqwest =  { workspace = true }
 thiserror = { workspace = true }
 tokio =  { workspace = true, features = ["time"] }
 
+# optional
+clap = { workspace = true, features = ["derive"], optional = true }
+
+# internal
 csaf-walker = { workspace = true, optional = true }
 sbom-walker = { workspace = true, optional = true }
 walker-common =  { workspace = true }
