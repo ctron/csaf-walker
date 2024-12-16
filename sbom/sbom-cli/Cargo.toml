@@ -13,34 +13,34 @@ readme = "README.md"
 rust-version = "1.79"
 
 [dependencies]
-anyhow = "1"
-async-trait = "0.1"
-bytes = "1"
-bzip2-rs = { version = "0.1", features = ["rustc_1_51"] }
-clap = { version = "4.5.0", features = ["derive", "color"] }
-csaf = { version = "0.5.0", default-features = false }
-env_logger = "0.11.2"
-flexible-time = "0.1.1"
-html-escape = "0.2.13"
-humantime = "2"
-log = "0.4.17"
-parking_lot = "0.12"
-reqwest = { version = "0.12", features = ["json"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-spdx-expression = "0.5"
-spdx-rs = "0.5"
-thiserror = "2"
-time = "0.3.20"
-tokio = { version = "1", features = ["full"] }
-tracing = "0.1"
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+bytes = { workspace = true }
+bzip2-rs = { workspace = true, features = ["rustc_1_51"] }
+clap = { workspace = true, features = ["derive", "color"] }
+csaf = { workspace = true }
+env_logger = { workspace = true }
+flexible-time = { workspace = true }
+html-escape = { workspace = true }
+humantime =  { workspace = true }
+log =  { workspace = true }
+parking_lot = { workspace = true }
+reqwest = { workspace = true, features = ["json"] }
+serde = { workspace = true }
+serde_json =  { workspace = true }
+spdx-expression = { workspace = true }
+spdx-rs =  { workspace = true }
+thiserror =  { workspace = true }
+time =  { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+tracing = { workspace = true }
 
-sbom-walker = { version = "0.10.2", path = "..", default-features = false, features = ["cyclonedx-bom", "spdx-rs"] }
-walker-common = { version = "0.10.2", path = "../../common", features = ["openpgp", "cli"] }
-walker-extras = { version = "0.10.2", path = "../../extras" }
+sbom-walker = { workspace = true, features = ["cyclonedx-bom", "spdx-rs"] }
+walker-common = { workspace = true, features = ["openpgp", "cli"] }
+walker-extras = { workspace = true }
 
 # just there for the feature
-openssl = { version = "0.10", optional = true }
+openssl =  { workspace = true, optional = true }
 
 [features]
 default = ["crypto-nettle"]

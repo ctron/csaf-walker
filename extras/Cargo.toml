@@ -13,20 +13,18 @@ readme = "../README.md"
 rust-version = "1.79"
 
 [dependencies]
-anyhow = "1.0.71"
-bytes = "1"
-humantime = "2.1.0"
-log = "0.4"
-reqwest = "0.12"
-thiserror = "2"
-tokio = { version = "1", features = ["time"] }
+anyhow =  { workspace = true }
+bytes =  { workspace = true }
+clap = { workspace = true, features = ["derive"], optional = true }
+humantime =  { workspace = true }
+log =  { workspace = true }
+reqwest =  { workspace = true }
+thiserror = { workspace = true }
+tokio =  { workspace = true, features = ["time"] }
 
-clap = { version = "4.5.0", features = ["derive"], optional = true }
-
-walker-common = { version = "0.10.2", path = "../common" }
-
-csaf-walker = { version = "0.10.2", path = "../csaf", optional = true, default-features = false }
-sbom-walker = { version = "0.10.2", path = "../sbom", optional = true, default-features = false }
+csaf-walker = { workspace = true, optional = true }
+sbom-walker = { workspace = true, optional = true }
+walker-common =  { workspace = true }
 
 [features]
 default = [
