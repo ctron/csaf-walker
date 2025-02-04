@@ -26,6 +26,7 @@ hickory-resolver = { workspace = true, features = ["tokio-runtime"] }
 html-escape = { workspace = true }
 humantime = { workspace = true }
 log = { workspace = true }
+parking_lot = { workspace = true }
 percent-encoding = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
 sectxtlib = { workspace = true }

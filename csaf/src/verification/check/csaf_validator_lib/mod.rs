@@ -10,14 +10,18 @@ use deno_core::{
     _ops::RustToV8NoScope, op2, serde_v8, v8, Extension, JsRuntime, OpDecl, PollEventLoopOptions,
     RuntimeOptions, StaticModuleLoader,
 };
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
-use std::fmt::Debug;
-use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Condvar};
-use std::time::Duration;
-use tokio::sync::Mutex;
+use std::{
+    collections::HashSet,
+    fmt::Debug,
+    rc::Rc,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Condvar,
+    },
+    time::Duration,
+};
 use url::Url;
 
 const MODULE_ID: &str = "internal://bundle.js";
@@ -180,7 +184,7 @@ impl InnerCheck {
 
         let result = match result {
             Err(err) if err.to_string().ends_with(": execution terminated") => return Ok(None),
-            Err(err) => return Err(err),
+            Err(err) => return Err(err.into()),
             Ok(result) => result,
         };
 
@@ -226,7 +230,7 @@ pub enum Profile {
 }
 
 pub struct CsafValidatorLib {
-    runtime: Arc<Mutex<Vec<InnerCheck>>>,
+    runtime: Rc<Mutex<Vec<InnerCheck>>>,
     validations: Vec<ValidationSet>,
     timeout: Option<Duration>,
     ignore: HashSet<String>,
@@ -234,7 +238,7 @@ pub struct CsafValidatorLib {
 
 impl CsafValidatorLib {
     pub fn new(profile: Profile) -> Self {
-        let runtime = Arc::new(Mutex::new(vec![]));
+        let runtime = Rc::new(Mutex::new(vec![]));
 
         let validations = match profile {
             Profile::Schema => vec![ValidationSet::Schema],
@@ -290,8 +294,8 @@ impl CsafValidatorLib {
 impl Check for CsafValidatorLib {
     async fn check(&self, csaf: &Csaf) -> anyhow::Result<Vec<CheckError>> {
         let mut inner = {
-            let mut inner_lock = self.runtime.lock().await;
-            match inner_lock.pop() {
+            let inner = self.runtime.lock().pop();
+            match inner {
                 Some(inner) => inner,
                 None => InnerCheck::new().await?,
             }
@@ -308,7 +312,7 @@ impl Check for CsafValidatorLib {
         };
 
         // not timed out, not failed, we can re-use it
-        self.runtime.lock().await.push(inner);
+        self.runtime.lock().push(inner);
 
         let mut result = vec![];
 
