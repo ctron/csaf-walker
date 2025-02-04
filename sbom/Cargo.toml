@@ -13,33 +13,33 @@ readme = "../README.md"
 rust-version = "1.79"
 
 [dependencies]
-anyhow = "1"
-bytes = "1"
-csv = "1"
-digest = "0.10.6"
-fluent-uri = "0.3.2"
-futures = "0.3"
-humantime = "2"
-log = "0.4.17"
-parking_lot = "0.12"
-reqwest = { version = "0.12", features = ["json"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-sha2 = "0.10.6"
-thiserror = "2"
-time = { version = "0.3.20", features = ["formatting", "parsing", "serde"] }
-tokio = { version = "1", features = ["macros", "fs"] }
-url = { version = "2.3.1", features = ["serde"] }
+anyhow = { workspace = true }
+bytes = { workspace = true }
+csv = { workspace = true }
+digest = { workspace = true }
+fluent-uri = { workspace = true }
+futures = { workspace = true }
+humantime = { workspace = true }
+log = { workspace = true }
+parking_lot = { workspace = true }
+reqwest = { workspace = true, features = ["json"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+time = { workspace = true, features = ["formatting", "parsing", "serde"] }
+tokio = { workspace = true, features = ["macros", "fs"] }
+url = { workspace = true, features = ["serde"] }
 
-walker-common = { version = "0.10.2", path = "../common", features = ["openpgp"] }
+walker-common = { workspace = true, features = ["openpgp"] }
 
-sequoia-openpgp = { version = "1", default-features = false }
+sequoia-openpgp = { workspace = true, default-features = false }
 
-cyclonedx-bom = { version = "0.8.0", optional = true }
-spdx-rs = { version = "0.5.4", optional = true }
+serde-cyclonedx = { workspace = true, optional = true }
+spdx-rs = { workspace = true, optional = true }
 
 [features]
-default = ["crypto-nettle", "cyclonedx-bom", "spdx-rs"]
+default = ["crypto-nettle", "serde-cyclonedx", "spdx-rs"]
 crypto-cng = ["sequoia-openpgp/crypto-cng"]
 crypto-nettle = ["sequoia-openpgp/crypto-nettle"]
 crypto-openssl = ["sequoia-openpgp/crypto-openssl"]

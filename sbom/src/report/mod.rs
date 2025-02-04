@@ -24,7 +24,7 @@ impl ReportSink for (String, Arc<Mutex<BTreeMap<String, Vec<String>>>>) {
     }
 }
 
-impl<'a> ReportSink for (&'a str, Arc<Mutex<BTreeMap<String, Vec<String>>>>) {
+impl ReportSink for (&'_ str, Arc<Mutex<BTreeMap<String, Vec<String>>>>) {
     fn error(&self, msg: String) {
         self.1
             .lock()

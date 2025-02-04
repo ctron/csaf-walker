@@ -1,4 +1,4 @@
-#[cfg(feature = "cyclonedx-bom")]
+#[cfg(feature = "serde-cyclonedx")]
 pub mod cyclonedx;
 #[cfg(feature = "spdx-rs")]
 pub mod spdx;
@@ -13,7 +13,7 @@ pub fn all(#[allow(unused)] report: &dyn ReportSink, #[allow(unused)] sbom: &Sbo
     if let Sbom::Spdx(sbom) = sbom {
         spdx::all(report, sbom);
     }
-    #[cfg(feature = "cyclonedx-bom")]
+    #[cfg(feature = "serde-cyclonedx")]
     #[allow(irrefutable_let_patterns)]
     if let Sbom::CycloneDx(sbom) = sbom {
         cyclonedx::all(report, sbom);

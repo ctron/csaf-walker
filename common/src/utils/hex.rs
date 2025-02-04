@@ -10,13 +10,13 @@ impl Hex<'_> {
     }
 }
 
-impl<'a> Debug for Hex<'a> {
+impl Debug for Hex<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{self:x}")
     }
 }
 
-impl<'a> LowerHex for Hex<'a> {
+impl LowerHex for Hex<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         for b in self.0 {
             write!(f, "{:02x}", b)?;

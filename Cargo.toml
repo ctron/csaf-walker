@@ -13,7 +13,69 @@ members = [
 tag = false
 tag-name = "v{{version}}"
 
+[workspace.dependencies]
+anyhow = "1"
+async-trait = "0.1"
+base64 = "0.22"
+bytes = "1"
+bzip2-rs = { version = "0.1", features = ["rustc_1_51"] }
+chrono = { version = "0.4.24", default-features = false }
+clap = { version = "4.5.0", features = ["derive", "color"] }
+colored_json = "5"
+csaf = { version = "0.5.0", default-features = false }
+csv = "1"
+digest = "0.10.7"
+env_logger = "0.11.2"
+filetime = "0.2"
+flexible-time = "0.1.1"
+fluent-uri = "0.3.2"
+futures = "0.3"
+futures-util = "0.3"
+hickory-resolver = { version = "0.24.0", features = ["tokio-runtime"] }
+html-escape = "0.2.13"
+humantime = "2"
+indicatif = "0.17.6"
+indicatif-log-bridge = "0.2.1"
+log = "0.4.17"
+openid = "0.15"
+parking_lot = "0.12"
+pem = "3"
+percent-encoding = "2.3"
+reqwest = "0.12"
+sectxtlib = "0.3.0"
+serde = "1"
+serde_json = "1"
+sha2 = "0.10.6"
+spdx-expression = "0.5"
+spdx-rs = "0.5"
+thiserror = "2"
+thousands = "0.2"
+time = "0.3.20"
+tokio = { version = "1" }
+tracing = "0.1"
+url = "2"
+walkdir = "2.5"
+xattr = "1"
+
+# optional ones
+
+bzip2 = "0.4"
+deno_core = "0.334.0"
+liblzma = "0.3.4"
+openssl = "0.10"
+sequoia-openpgp = { version = "1", default-features = false }
+serde-cyclonedx = "0.9.1"
+
+# internal ones
+
+walker-common = { version = "0.10.2", path = "common" }
+walker-extras = { version = "0.10.2", path = "extras" }
+csaf-walker = { version = "0.10.2", path = "csaf", default-features = false }
+sbom-walker = { version = "0.10.2", path = "sbom", default-features = false }
+
 [patch.crates-io]
 # csaf = { path = "../csaf-rs" }
 #csaf = { git = "https://github.com/ctron/csaf-rs", rev = "0bbc262c76c50f7ec918e65d1cf9bf4c5dd564d7" }
 #cyclonedx-bom = { path = "../cyclonedx-rust-cargo/cyclonedx-bom" }
+
+

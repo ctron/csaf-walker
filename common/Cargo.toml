@@ -13,48 +13,48 @@ readme = "../README.md"
 rust-version = "1.79"
 
 [dependencies]
-anyhow = "1"
-async-trait = "0.1"
-base64 = "0.22"
-bytes = "1"
-chrono = { version = "0.4", default-features = false, features = ["std"] }
-csv = "1"
-digest = "0.10.7"
-filetime = "0.2"
-flexible-time = "0.1"
-futures-util = "0.3"
-html-escape = "0.2"
-humantime = "2"
-indicatif = "0.17.6"
-indicatif-log-bridge = "0.2.1"
-log = "0.4"
-openid = "0.15"
-pem = "3"
-reqwest = { version = "0.12", features = ["json"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-sha2 = "0.10.7"
-thiserror = "2"
-thousands = "0.2"
-time = { version = "0.3", features = ["serde", "formatting", "local-offset"] }
-tokio = { version = "1", features = ["sync", "fs"] }
-tracing = "0.1"
-url = "2"
-walkdir = "2.5"
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+base64 = { workspace = true }
+bytes = { workspace = true }
+chrono = { workspace = true, default-features = false, features = ["std"] }
+csv = { workspace = true }
+digest = { workspace = true }
+filetime = { workspace = true }
+flexible-time = { workspace = true }
+futures-util = { workspace = true }
+html-escape = { workspace = true }
+humantime = { workspace = true }
+indicatif = { workspace = true }
+indicatif-log-bridge = { workspace = true }
+log = { workspace = true }
+openid = { workspace = true }
+pem = { workspace = true }
+reqwest = { workspace = true, features = ["json"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+thousands = { workspace = true }
+time = { workspace = true, features = ["serde", "formatting", "local-offset"] }
+tokio = { workspace = true, features = ["sync", "fs"] }
+tracing = { workspace = true }
+url = { workspace = true }
+walkdir = { workspace = true }
 
-sequoia-openpgp = { version = "1", default-features = false, optional = true }
+sequoia-openpgp = { workspace = true, default-features = false, optional = true }
 
-bzip2 = { version = "0.4", optional = true }
-bzip2-rs = { version = "0.1", optional = true, features = ["rustc_1_51"] }
+bzip2 = { workspace = true, optional = true }
+bzip2-rs = { workspace = true, optional = true, features = ["rustc_1_51"] }
 
-liblzma = { version = "0.3.4", optional = true }
+liblzma = { workspace = true, optional = true }
 
-clap = { version = "4.5.0", features = ["derive", "env"], optional = true }
-env_logger = { version = "0.11.3", optional = true }
+clap = { workspace = true, features = ["derive", "env"], optional = true }
+env_logger = { workspace = true, optional = true }
 
 # workaround until xattr fixes its win32 compilation issues.
 [target.'cfg(any(unix, macos))'.dependencies]
-xattr = { version = "1" }
+xattr = { workspace = true }
 
 [features]
 default = ["bzip2"]

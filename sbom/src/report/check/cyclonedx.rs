@@ -1,15 +1,15 @@
 use crate::report::ReportSink;
-use cyclonedx_bom::prelude::*;
+use serde_cyclonedx::cyclonedx::v_1_6::CycloneDx;
 use std::collections::HashMap;
 
 /// Run all SPDX sbom checks
-pub fn all(report: &dyn ReportSink, sbom: &Bom) {
+pub fn all(report: &dyn ReportSink, sbom: &CycloneDx) {
     CycloneDxChecks { report, sbom }.all();
 }
 
 struct CycloneDxChecks<'c> {
     report: &'c dyn ReportSink,
-    sbom: &'c Bom,
+    sbom: &'c CycloneDx,
 }
 
 impl CycloneDxChecks<'_> {
@@ -24,7 +24,7 @@ impl CycloneDxChecks<'_> {
     fn collect_bom_refs(&self) -> HashMap<&str, usize> {
         let mut bom_refs = HashMap::<_, usize>::new();
 
-        for component in self.sbom.components.iter().flat_map(|c| &c.0) {
+        for component in self.sbom.components.iter().flatten() {
             if let Some(bom_ref) = &component.bom_ref {
                 *bom_refs.entry(bom_ref.as_str()).or_default() += 1;
             }
@@ -56,14 +56,14 @@ impl CycloneDxChecks<'_> {
 
         let bom_refs = self.collect_bom_refs();
 
-        for deps in self.sbom.dependencies.iter().flat_map(|d| &d.0) {
-            if !bom_refs.contains_key(&*deps.dependency_ref) {
+        for deps in self.sbom.dependencies.iter().flatten() {
+            if !bom_refs.contains_key(&*deps.ref_) {
                 self.report.error(format!(
                     "Missing left-side dependency reference: {}",
-                    deps.dependency_ref
+                    deps.ref_
                 ));
             }
-            for right in &deps.dependencies {
+            for right in deps.depends_on.iter().flatten() {
                 if !bom_refs.contains_key(right.as_str()) {
                     self.report
                         .error(format!("Missing right-side dependency reference: {right}",));

@@ -294,7 +294,7 @@ impl HtmlReport<'_> {
     }
 }
 
-impl<'r> Display for HtmlReport<'r> {
+impl Display for HtmlReport<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.render_total(f)?;
         self.render_duplicates(f)?;

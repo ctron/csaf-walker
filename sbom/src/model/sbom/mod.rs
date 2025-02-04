@@ -18,17 +18,17 @@ pub enum Parser {
 pub enum Sbom {
     #[cfg(feature = "spdx-rs")]
     Spdx(spdx_rs::models::SPDX),
-    #[cfg(feature = "cyclonedx-bom")]
-    CycloneDx(cyclonedx_bom::prelude::Bom),
+    #[cfg(feature = "serde-cyclonedx")]
+    CycloneDx(serde_cyclonedx::cyclonedx::v_1_6::CycloneDx),
 }
 
 impl Debug for Sbom {
     fn fmt(&self, #[allow(unused)] f: &mut Formatter<'_>) -> std::fmt::Result {
-        #[cfg(any(feature = "spdx-rs", feature = "cyclonedx-bom"))]
+        #[cfg(any(feature = "spdx-rs", feature = "serde-cyclonedx"))]
         match self {
             #[cfg(feature = "spdx-rs")]
             Self::Spdx(doc) => f.debug_tuple("Spdx").field(doc).finish()?,
-            #[cfg(feature = "cyclonedx-bom")]
+            #[cfg(feature = "serde-cyclonedx")]
             Self::CycloneDx(_doc) => f
                 .debug_tuple("CycloneDx")
                 .field(&"unable to display")
@@ -128,9 +128,9 @@ impl Sbom {
     pub fn try_parse_any_json(json: Value) -> Result<Self, ParseAnyError> {
         let err = ParseAnyError::new();
 
-        #[cfg(feature = "cyclonedx-bom")]
+        #[cfg(feature = "serde-cyclonedx")]
         let err = match Self::is_cyclondx_json(&json) {
-            Ok("1.2" | "1.3" | "1.4") => {
+            Ok("1.2" | "1.3" | "1.4" | "1.5" | "1.6") => {
                 return Self::try_cyclonedx_json(JsonPayload::Value(json)).map_err(|e| {
                     // drop any previous error, as we know what format and version it is
                     ParseAnyError::from((ParserKind::Cyclone13DxJson, e.into()))
@@ -183,12 +183,6 @@ impl Sbom {
             // it is not JSON, it could be XML or "tagged"
             let err = ParseAnyError::new();
 
-            #[cfg(feature = "cyclonedx-bom")]
-            let err = match Self::try_cyclonedx_xml(data) {
-                Ok(doc) => return Ok(doc),
-                Err(e) => err.add(ParserKind::Cyclone13DxXml, e.into()),
-            };
-
             #[cfg(feature = "spdx-rs")]
             use anyhow::Context;
 
@@ -215,22 +209,13 @@ impl Sbom {
         Ok(Self::Spdx(spdx_rs::parsers::spdx_from_tag_value(data)?))
     }
 
-    #[cfg(feature = "cyclonedx-bom")]
+    #[cfg(feature = "serde-cyclonedx")]
     pub fn try_cyclonedx_json<'a>(
         data: impl Into<JsonPayload<'a>>,
-    ) -> Result<Self, cyclonedx_bom::errors::JsonReadError> {
-        use cyclonedx_bom::prelude::Bom;
-
+    ) -> Result<Self, serde_json::Error> {
         match data.into() {
-            JsonPayload::Value(json) => Ok(Self::CycloneDx(Bom::parse_json_value(json)?)),
-            JsonPayload::Bytes(data) => Ok(Self::CycloneDx(Bom::parse_from_json(data)?)),
+            JsonPayload::Value(json) => Ok(Self::CycloneDx(serde_json::from_value(json)?)),
+            JsonPayload::Bytes(data) => Ok(Self::CycloneDx(serde_json::from_slice(data)?)),
         }
-    }
-
-    #[cfg(feature = "cyclonedx-bom")]
-    pub fn try_cyclonedx_xml(data: &[u8]) -> Result<Self, cyclonedx_bom::errors::XmlReadError> {
-        Ok(Self::CycloneDx(
-            cyclonedx_bom::prelude::Bom::parse_from_xml_v1_3(data)?,
-        ))
     }
 }

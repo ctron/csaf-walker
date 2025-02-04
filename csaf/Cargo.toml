@@ -13,41 +13,41 @@ readme = "../README.md"
 rust-version = "1.79"
 
 [dependencies]
-anyhow = "1"
-async-trait = "0.1"
-bytes = "1"
-chrono = { version = "0.4.24", default-features = false, features = ["serde"] }
-csv = "1"
-digest = "0.10.6"
-fluent-uri = "0.3.2"
-futures = "0.3"
-hickory-resolver = { version = "0.24.0", features = ["tokio-runtime"] }
-html-escape = "0.2.13"
-humantime = "2"
-log = "0.4.17"
-percent-encoding = "2.3"
-reqwest = { version = "0.12", features = ["json"] }
-sectxtlib = "0.3.0"
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+bytes = { workspace = true }
+chrono = { workspace = true, default-features = false, features = ["serde"] }
+csv = { workspace = true }
+digest = { workspace = true }
+fluent-uri = { workspace = true }
+futures = { workspace = true }
+hickory-resolver = { workspace = true, features = ["tokio-runtime"] }
+html-escape = { workspace = true }
+humantime = { workspace = true }
+log = { workspace = true }
+percent-encoding = { workspace = true }
+reqwest = { workspace = true, features = ["json"] }
+sectxtlib = { workspace = true }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-sha2 = "0.10.6"
-thiserror = "2"
-time = { version = "0.3.20", features = ["formatting", "parsing", "serde"] }
-tokio = { version = "1", features = ["macros", "fs"] }
-url = { version = "2.3.1", features = ["serde"] }
-walkdir = "2.4"
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+time = { workspace = true, features = ["formatting", "parsing", "serde"] }
+tokio = { workspace = true, features = ["macros", "fs"] }
+url = { workspace = true, features = ["serde"] }
+walkdir = { workspace = true }
 
-walker-common = { version = "0.10.2", path = "../common", features = ["openpgp"] }
+walker-common = { workspace = true, features = ["openpgp"] }
 
 sequoia-openpgp = { version = "1", default-features = false }
 
-csaf = { version = "0.5", default-features = false, optional = true }
+csaf = { workspace = true, default-features = false, optional = true }
 
 # for csaf-validator-lib
-deno_core = { version = "0.323.0", optional = true }
+deno_core = { workspace = true, optional = true }
 
 [dev-dependencies]
-env_logger = "0.11.2"
+env_logger = { workspace = true }
 
 [features]
 default = ["crypto-nettle", "csaf"]
@@ -63,7 +63,7 @@ csaf-validator-lib = [
 
 # workaround until xattr fixes its win32 compilation issues.
 [target.'cfg(any(unix, macos))'.dependencies]
-xattr = { version = "1" }
+xattr = { workspace = true }
 
 [package.metadata.cargo-all-features]
 always_include_features = [

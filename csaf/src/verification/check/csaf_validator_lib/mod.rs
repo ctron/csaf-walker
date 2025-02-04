@@ -180,7 +180,7 @@ impl InnerCheck {
 
         let result = match result {
             Err(err) if err.to_string().ends_with(": execution terminated") => return Ok(None),
-            Err(err) => return Err(err),
+            Err(err) => return Err(err.into()),
             Ok(result) => result,
         };
 
@@ -226,7 +226,7 @@ pub enum Profile {
 }
 
 pub struct CsafValidatorLib {
-    runtime: Arc<Mutex<Vec<InnerCheck>>>,
+    runtime: Rc<Mutex<Vec<InnerCheck>>>,
     validations: Vec<ValidationSet>,
     timeout: Option<Duration>,
     ignore: HashSet<String>,
@@ -234,7 +234,7 @@ pub struct CsafValidatorLib {
 
 impl CsafValidatorLib {
     pub fn new(profile: Profile) -> Self {
-        let runtime = Arc::new(Mutex::new(vec![]));
+        let runtime = Rc::new(Mutex::new(vec![]));
 
         let validations = match profile {
             Profile::Schema => vec![ValidationSet::Schema],
