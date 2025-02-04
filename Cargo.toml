@@ -57,6 +57,9 @@ tokio = "1"
 tracing = "0.1"
 url = "2"
 walkdir = "2.4"
+xattr = "1"
+
+# internal dependencies
 
 csaf-walker = { version = "0.10.2", path = "csaf", default-features = false }
 sbom-walker = { version = "0.10.2", path = "sbom", default-features = false }

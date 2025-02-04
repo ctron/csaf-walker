@@ -14,26 +14,26 @@ rust-version = "1.79"
 
 [dependencies]
 # normal
-anyhow =  { workspace = true }
+anyhow = { workspace = true }
 async-trait = { workspace = true }
-bytes =  { workspace = true }
+bytes = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }
-csv =  { workspace = true }
+csv = { workspace = true }
 digest = { workspace = true }
-fluent-uri =  { workspace = true }
-futures =  { workspace = true }
+fluent-uri = { workspace = true }
+futures = { workspace = true }
 hickory-resolver = { workspace = true, features = ["tokio-runtime"] }
-html-escape =  { workspace = true }
-humantime =  { workspace = true }
-log =  { workspace = true }
-percent-encoding =  { workspace = true }
+html-escape = { workspace = true }
+humantime = { workspace = true }
+log = { workspace = true }
+percent-encoding = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
-sectxtlib =  { workspace = true }
+sectxtlib = { workspace = true }
 sequoia-openpgp = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
-serde_json =  { workspace = true }
-sha2 =  { workspace = true }
-thiserror =  { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
 time = { workspace = true, features = ["formatting", "parsing", "serde"] }
 tokio = { workspace = true, features = ["macros", "fs"] }
 url = { workspace = true, features = ["serde"] }
@@ -64,7 +64,7 @@ csaf-validator-lib = [
 
 # workaround until xattr fixes its win32 compilation issues.
 [target.'cfg(any(unix, macos))'.dependencies]
-xattr = { version = "1" }
+xattr = { workspace = true }
 
 [package.metadata.cargo-all-features]
 always_include_features = [
