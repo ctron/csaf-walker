@@ -1,5 +1,5 @@
 use crate::report::ReportSink;
-use spdx_rs::models::SPDX;
+use spdx_rs::models::{RelationshipType, SPDX};
 use std::collections::{HashMap, HashSet};
 
 /// Run all SPDX sbom checks
@@ -54,30 +54,77 @@ impl SpdxChecks<'_> {
             .spdx
             .package_information
             .iter()
-            .map(|p| &p.package_spdx_identifier)
+            .map(|p| p.package_spdx_identifier.as_str())
             .collect::<HashSet<_>>();
 
         ids.insert(&self.spdx.document_creation_information.spdx_identifier);
 
+        let doc_refs = self
+            .spdx
+            .document_creation_information
+            .external_document_references
+            .iter()
+            .map(|r| r.id_string.as_str())
+            .collect::<HashSet<_>>();
+
         // now see if all relationships have valid targets
 
         for rel in &self.spdx.relationships {
-            if !ids.contains(&rel.spdx_element_id) {
-                self.report.error(format!(
-                    "Invalid reference '{left}' of relationship '{left}' -[{rel:?}]-> '{right}'",
-                    left = rel.spdx_element_id,
-                    rel = rel.relationship_type,
-                    right = rel.related_spdx_element
-                ));
+            self.check_id(
+                &ids,
+                &doc_refs,
+                &rel.spdx_element_id,
+                &rel.spdx_element_id,
+                &rel.relationship_type,
+                &rel.related_spdx_element,
+            );
+            self.check_id(
+                &ids,
+                &doc_refs,
+                &rel.related_spdx_element,
+                &rel.spdx_element_id,
+                &rel.relationship_type,
+                &rel.related_spdx_element,
+            );
+        }
+    }
+
+    /// check if an ID is known, unless it's an external.
+    fn check_id(
+        &self,
+        ids: &HashSet<&str>,
+        doc_refs: &HashSet<&str>,
+        id: &str,
+        left: &str,
+        rel: &RelationshipType,
+        right: &str,
+    ) {
+        match (id, id.split_once(":")) {
+            ("NONE" | "NOASSERTION", _) => {
+                // no check
+                return;
             }
-            if !ids.contains(&rel.related_spdx_element) {
-                self.report.error(format!(
-                    "Invalid reference '{right}' of relationship '{left}' -[{rel:?}]-> '{right}'",
-                    left = rel.spdx_element_id,
-                    rel = rel.relationship_type,
-                    right = rel.related_spdx_element
-                ));
+            (_, Some((doc_ref, _id))) if doc_ref.starts_with("DocumentRef-") => {
+                if !doc_refs.contains(doc_ref) {
+                    self.report.error(format!(
+                        "Invalid document reference '{doc_ref}' of relationship '{left}' -[{rel:?}]-> '{right}'",
+                    ));
+                }
+                // we can't check the ID, as we don't have the target document
             }
+            _ => {
+                if !ids.contains(id) {
+                    self.report.error(format!(
+                        "Invalid reference '{id}' of relationship '{left}' -[{rel:?}]-> '{right}'",
+                    ));
+                }
+            }
+        }
+
+        if !ids.contains(id) {
+            self.report.error(format!(
+                "Invalid reference '{id}' of relationship '{left}' -[{rel:?}]-> '{right}'",
+            ));
         }
     }
 }
