@@ -282,9 +282,9 @@ impl DataProcessor for FetchingRetrievedAdvisory {
 impl KeySource for HttpSource {
     type Error = fetcher::Error;
 
-    async fn load_public_key<'a>(
+    async fn load_public_key(
         &self,
-        key_source: Key<'a>,
+        key_source: Key<'_>,
     ) -> Result<PublicKey, KeySourceError<Self::Error>> {
         self.fetcher.load_public_key(key_source).await
     }

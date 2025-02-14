@@ -41,7 +41,7 @@ pub struct Document<'a> {
     pub no_xattrs: bool,
 }
 
-pub async fn store_document<'a>(file: &Path, document: Document<'a>) -> Result<(), StoreError> {
+pub async fn store_document(file: &Path, document: Document<'_>) -> Result<(), StoreError> {
     log::debug!("Writing {}", file.display());
 
     if let Some(parent) = file.parent() {

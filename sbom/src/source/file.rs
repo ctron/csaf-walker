@@ -194,9 +194,9 @@ impl Source for FileSource {
 impl KeySource for FileSource {
     type Error = anyhow::Error;
 
-    async fn load_public_key<'a>(
+    async fn load_public_key(
         &self,
-        key: Key<'a>,
+        key: Key<'_>,
     ) -> Result<PublicKey, KeySourceError<Self::Error>> {
         let bytes = tokio::fs::read(to_path(key.url).map_err(KeySourceError::Source)?)
             .await

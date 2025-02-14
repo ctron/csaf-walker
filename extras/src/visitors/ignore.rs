@@ -42,7 +42,7 @@ impl<'s, V> Ignore<'s, V> {
 }
 
 #[cfg(feature = "sbom-walker")]
-impl<'s, V: sbom::DiscoveredVisitor> sbom::DiscoveredVisitor for Ignore<'s, V> {
+impl<V: sbom::DiscoveredVisitor> sbom::DiscoveredVisitor for Ignore<'_, V> {
     type Error = V::Error;
     type Context = V::Context;
 
@@ -67,7 +67,7 @@ impl<'s, V: sbom::DiscoveredVisitor> sbom::DiscoveredVisitor for Ignore<'s, V> {
 }
 
 #[cfg(feature = "csaf-walker")]
-impl<'s, V: csaf::DiscoveredVisitor> csaf::DiscoveredVisitor for Ignore<'s, V> {
+impl<V: csaf::DiscoveredVisitor> csaf::DiscoveredVisitor for Ignore<'_, V> {
     type Error = V::Error;
     type Context = V::Context;
 

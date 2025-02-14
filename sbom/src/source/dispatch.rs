@@ -89,9 +89,9 @@ impl Source for DispatchSource {
 impl KeySource for DispatchSource {
     type Error = anyhow::Error;
 
-    async fn load_public_key<'a>(
+    async fn load_public_key(
         &self,
-        key: Key<'a>,
+        key: Key<'_>,
     ) -> Result<PublicKey, KeySourceError<Self::Error>> {
         match self {
             Self::File(source) => source.load_public_key(key).await,
