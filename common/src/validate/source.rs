@@ -53,18 +53,18 @@ impl<SE: Display + Debug> KeySourceError<SE> {
 pub trait KeySource: Clone {
     type Error: Display + Debug;
 
-    fn load_public_key<'a>(
+    fn load_public_key(
         &self,
-        key: Key<'a>,
+        key: Key<'_>,
     ) -> impl Future<Output = Result<PublicKey, KeySourceError<Self::Error>>>;
 }
 
 impl KeySource for Fetcher {
     type Error = fetcher::Error;
 
-    async fn load_public_key<'a>(
+    async fn load_public_key(
         &self,
-        key_source: Key<'a>,
+        key_source: Key<'_>,
     ) -> Result<PublicKey, KeySourceError<Self::Error>> {
         let bytes = self
             .fetch::<Bytes>(key_source.url.clone())
