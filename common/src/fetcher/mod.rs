@@ -1,7 +1,7 @@
 //! Fetching remote resources
 
 mod data;
-
+use backon::{ExponentialBuilder, Retryable};
 pub use data::*;
 
 use reqwest::{Client, ClientBuilder, IntoUrl, Method, Response};
@@ -109,22 +109,20 @@ impl Fetcher {
         // if the URL building fails, there is no need to re-try, abort now.
         let url = url.into_url()?;
 
-        let mut retries = self.retries;
+        let retries = self.retries;
+        let backoff = ExponentialBuilder::default();
 
-        loop {
+        (|| async {
             match self.fetch_once(url.clone(), &processor).await {
-                Ok(result) => break Ok(result),
+                Ok(result) => Ok(result),
                 Err(err) => {
-                    log::info!("Failed to retrieve (retries: {retries}): {err}");
-                    if retries > 0 {
-                        // TODO: consider adding a back-off delay
-                        retries -= 1;
-                    } else {
-                        break Err(err);
-                    }
+                    log::info!("Failed to retrieve: {err}");
+                    Err(err)
                 }
             }
-        }
+        })
+        .retry(&backoff.with_max_times(retries))
+        .await
     }
 
     async fn fetch_once<D: DataProcessor>(
