@@ -54,9 +54,6 @@ jobs:
 
     strategy:
       matrix:
-        rust:
-          - stable
-          - "1.84.1" # MSRV
         target:
           - aarch64-unknown-linux-gnu
           - x86_64-unknown-linux-gnu
@@ -113,6 +110,8 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ matrix.target }}-cargo-release-${{ hashFiles('**/Cargo.toml') }}
+
+      - run: rustup update stable --no-self-update
 
       - run: rustup target add ${{ matrix.target }}
         if: matrix.target != ''
