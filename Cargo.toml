@@ -62,10 +62,10 @@ xattr = "1"
 
 # internal dependencies
 
-csaf-walker = { version = "0.11.0-rc.3", path = "csaf", default-features = false }
-sbom-walker = { version = "0.11.0-rc.3", path = "sbom", default-features = false }
-walker-common = { version = "0.11.0-rc.3", path = "common" }
-walker-extras = { version = "0.11.0-rc.3", path = "extras" }
+csaf-walker = { version = "0.11.0-rc.4", path = "csaf", default-features = false }
+sbom-walker = { version = "0.11.0-rc.4", path = "sbom", default-features = false }
+walker-common = { version = "0.11.0-rc.4", path = "common" }
+walker-extras = { version = "0.11.0-rc.4", path = "extras" }
 
 
 [workspace.metadata.release]
