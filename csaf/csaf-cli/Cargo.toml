@@ -2,28 +2,28 @@
 name = "csaf-cli"
 description = "A CLI to work with CSAF data"
 version = "0.11.0"
-edition = "2021"
 authors = ["Jens Reimann <ctron@dentrassi.de>"]
-license = "Apache-2.0"
 repository = "https://github.com/ctron/csaf-walker"
 categories = ["command-line-utilities", "data-structures"]
 keywords = ["csaf", "vex", "cli"]
 readme = "README.md"
-# based on fs::absolute
-rust-version = "1.84.1"
+rust-version = "1.85.0"
+
+edition.workspace = true
+license.workspace = true
 
 [dependencies]
 # normal
-anyhow =  { workspace = true }
+anyhow = { workspace = true }
 clap = { workspace = true, features = ["derive", "color"] }
-colored_json =  { workspace = true }
+colored_json = { workspace = true }
 csaf = { workspace = true }
-flexible-time =  { workspace = true }
-humantime =  { workspace = true }
-log =  { workspace = true }
+flexible-time = { workspace = true }
+humantime = { workspace = true }
+log = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true, features = ["derive"] }
-serde_json =  { workspace = true }
+serde_json = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 
 # optional
