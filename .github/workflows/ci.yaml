@@ -21,6 +21,10 @@ jobs:
 
       - uses: webiny/action-conventional-commits@8bc41ff4e7d423d56fa4905f6ff79209a78776c7
 
+      - name: Update Rust stable
+        run: |
+          rustup update stable
+
       - name: Check formatting
         run: |
           cargo fmt --check
@@ -50,6 +54,10 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt install clang llvm pkg-config nettle-dev
+
+      - name: Update Rust stable
+        run: |
+          rustup update stable
 
       - name: Check (all features)
         run: |
