@@ -46,10 +46,16 @@ pub enum Bootstrap {
 impl Bootstrap {
     pub fn css_location(&self) -> String {
         match self {
-            Self::Default => format!("https://cdn.jsdelivr.net/npm/bootstrap@{BOOTSTRAP_VERSION}/dist/css/bootstrap.min.css"),
-            Self::Custom {location, js_location, ..} => match js_location {
+            Self::Default => format!(
+                "https://cdn.jsdelivr.net/npm/bootstrap@{BOOTSTRAP_VERSION}/dist/css/bootstrap.min.css"
+            ),
+            Self::Custom {
+                location,
+                js_location,
+                ..
+            } => match js_location {
                 Some(_) => location.clone(),
-                None => format!("{location}/css/bootstrap.min.css" ),
+                None => format!("{location}/css/bootstrap.min.css"),
             },
         }
     }
@@ -63,13 +69,17 @@ impl Bootstrap {
 
     pub fn js_location(&self) -> String {
         match self {
-            Self::Default => format!("https://cdn.jsdelivr.net/npm/bootstrap@{BOOTSTRAP_VERSION}/dist/js/bootstrap.bundle.min.js"),
-            Self::Custom {location, js_location, ..} => {
-                match js_location {
-                    Some(js_location) => js_location.clone(),
-                    None => format!("{location}/js/bootstrap.bundle.min.js")
-                }
-            }
+            Self::Default => format!(
+                "https://cdn.jsdelivr.net/npm/bootstrap@{BOOTSTRAP_VERSION}/dist/js/bootstrap.bundle.min.js"
+            ),
+            Self::Custom {
+                location,
+                js_location,
+                ..
+            } => match js_location {
+                Some(js_location) => js_location.clone(),
+                None => format!("{location}/js/bootstrap.bundle.min.js"),
+            },
         }
     }
 

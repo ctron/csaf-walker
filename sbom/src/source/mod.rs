@@ -37,28 +37,28 @@ pub async fn new_source(
     let source = discover.source;
 
     match UriRef::parse(source.as_str()) {
-        Ok(uri) => {
-            match uri.scheme().map(|s| s.as_str()) {
-                Some("file") => {
-                    let source = uri.path().as_str();
-                    log::debug!("Creating file source: {source}");
-                    Ok(FileSource::new(source, FileOptions::new().since(discover.since))?.into())
-                }
-                Some(_scheme) => {
-                    log::debug!("Creating HTTP source: {source}");
-                    let fetcher = Fetcher::new(fetcher.into()).await?;
-                    Ok(HttpSource::new(
-                        Url::parse(&source)?,
-                        fetcher,
-                        HttpOptions::new().since(discover.since).keys(discover.keys),
-                    )
-                    .into())
-                }
-                None => {
-                    bail!("Failed to parse '{source}' as URL. For SBOMs there is no domain-based lookup");
-                }
+        Ok(uri) => match uri.scheme().map(|s| s.as_str()) {
+            Some("file") => {
+                let source = uri.path().as_str();
+                log::debug!("Creating file source: {source}");
+                Ok(FileSource::new(source, FileOptions::new().since(discover.since))?.into())
             }
-        }
+            Some(_scheme) => {
+                log::debug!("Creating HTTP source: {source}");
+                let fetcher = Fetcher::new(fetcher.into()).await?;
+                Ok(HttpSource::new(
+                    Url::parse(&source)?,
+                    fetcher,
+                    HttpOptions::new().since(discover.since).keys(discover.keys),
+                )
+                .into())
+            }
+            None => {
+                bail!(
+                    "Failed to parse '{source}' as URL. For SBOMs there is no domain-based lookup"
+                );
+            }
+        },
         Err(err) => {
             bail!(
                 "Failed to parse '{source}' as URL. For SBOMs there is no domain-based lookup: {err}"

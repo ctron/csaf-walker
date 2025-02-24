@@ -1,9 +1,9 @@
 use crate::verification::check::{Check, CheckError, Checking};
 use csaf::{
+    Csaf,
     definitions::{BranchesT, ProductIdT},
     document::Category,
     product_tree::ProductTree,
-    Csaf,
 };
 use std::collections::HashSet;
 
@@ -354,10 +354,12 @@ mod tests {
         let csaf: Csaf =
             serde_json::from_str(include_str!("../../../../test-data/rhsa-2021_3029.json"))
                 .expect("example data must parse");
-        assert!(check_all_products_v11ies_exits_in_product_tree(&csaf)
-            .first()
-            .expect("must return an item")
-            .contains("notexits"))
+        assert!(
+            check_all_products_v11ies_exits_in_product_tree(&csaf)
+                .first()
+                .expect("must return an item")
+                .contains("notexits")
+        )
     }
 
     #[tokio::test]
@@ -391,10 +393,12 @@ mod tests {
         let csaf: Csaf =
             serde_json::from_str(include_str!("../../../../test-data/rhsa-2023_1441.json"))
                 .expect("example data must parse");
-        assert!(check_vulnerabilities_cve_ids(&csaf)
-            .first()
-            .expect("must return an item")
-            .contains("CWE-704"));
+        assert!(
+            check_vulnerabilities_cve_ids(&csaf)
+                .first()
+                .expect("must return an item")
+                .contains("CWE-704")
+        );
     }
 
     /// Verify the csaf file does not have any vulnerabilities
@@ -412,11 +416,13 @@ mod tests {
         let csaf: Csaf =
             serde_json::from_str(include_str!("../../../../test-data/rhsa-2023_4378.json"))
                 .expect("example data must parse");
-        assert!(check_branches_relationships_product_match(&csaf)
-            .first()
-            .expect("must return an item")
-            .contains(
-                "notmatch-NFV-9.2.0.Z.MAIN.EUS:kernel-rt-0:5.14.0-284.25.1.rt14.310.el9_2.src"
-            ));
+        assert!(
+            check_branches_relationships_product_match(&csaf)
+                .first()
+                .expect("must return an item")
+                .contains(
+                    "notmatch-NFV-9.2.0.Z.MAIN.EUS:kernel-rt-0:5.14.0-284.25.1.rt14.310.el9_2.src"
+                )
+        );
     }
 }

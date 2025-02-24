@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use reqwest::{header, Body, Method, StatusCode, Url};
+use reqwest::{Body, Method, StatusCode, Url, header};
 use std::time::Duration;
 use walker_common::sender::{self, HttpSender};
 

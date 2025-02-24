@@ -1,6 +1,6 @@
 use crate::verification::check::{
-    security_incident_response::{check_csaf_document_notes, check_csaf_document_references},
     Check, CheckError, Checking,
+    security_incident_response::{check_csaf_document_notes, check_csaf_document_references},
 };
 use csaf::Csaf;
 

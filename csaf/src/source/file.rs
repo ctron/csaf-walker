@@ -9,7 +9,7 @@ use crate::{
     source::Source,
     visitors::store::DIR_METADATA,
 };
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use bytes::Bytes;
 use std::fs;
 use std::io::ErrorKind;

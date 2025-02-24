@@ -6,7 +6,7 @@ use crate::{
     validation::{ValidatedAdvisory, ValidatedVisitor, ValidationContext, ValidationError},
 };
 use anyhow::Context;
-use sequoia_openpgp::{armor::Kind, serialize::SerializeInto, Cert};
+use sequoia_openpgp::{Cert, armor::Kind, serialize::SerializeInto};
 use std::{
     fmt::Debug,
     io::{ErrorKind, Write},
@@ -16,7 +16,7 @@ use std::{
 use tokio::fs;
 use walker_common::{
     retrieve::RetrievalError,
-    store::{store_document, Document, StoreError},
+    store::{Document, StoreError, store_document},
     utils::openpgp::PublicKey,
 };
 

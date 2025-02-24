@@ -15,7 +15,7 @@ use url::Url;
 use walker_common::{
     retrieve::RetrievalError,
     utils::{openpgp::PublicKey, url::Urlify},
-    validate::{digest::validate_digest, openpgp, ValidationOptions},
+    validate::{ValidationOptions, digest::validate_digest, openpgp},
 };
 
 /// A validated CSAF document

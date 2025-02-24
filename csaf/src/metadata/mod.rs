@@ -1,7 +1,7 @@
 use crate::model::metadata::ProviderMetadata;
 use async_trait::async_trait;
 use hickory_resolver::{
-    error::ResolveErrorKind, name_server::TokioConnectionProvider, AsyncResolver,
+    AsyncResolver, error::ResolveErrorKind, name_server::TokioConnectionProvider,
 };
 use sectxtlib::SecurityTxt;
 use std::fmt::Debug;

@@ -15,7 +15,7 @@ use url::Url;
 use walker_common::{
     retrieve::RetrievalError,
     utils::{openpgp::PublicKey, url::Urlify},
-    validate::{digest::validate_digest, openpgp, ValidationError, ValidationOptions},
+    validate::{ValidationError, ValidationOptions, digest::validate_digest, openpgp},
 };
 
 #[derive(Clone, Debug)]

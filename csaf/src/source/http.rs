@@ -14,7 +14,7 @@ use reqwest::Response;
 use sha2::{Sha256, Sha512};
 use std::sync::Arc;
 use std::time::SystemTime;
-use time::{format_description::well_known::Rfc2822, OffsetDateTime};
+use time::{OffsetDateTime, format_description::well_known::Rfc2822};
 use url::{ParseError, Url};
 use walker_common::{
     changes::{self, ChangeEntry, ChangeSource},

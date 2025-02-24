@@ -190,7 +190,7 @@ where
                 return Err(VerificationError::Parsing {
                     error: serde_json::error::Error::custom("failed to wait for deserialization"),
                     advisory,
-                })
+                });
             }
         };
 

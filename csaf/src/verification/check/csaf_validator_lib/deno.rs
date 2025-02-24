@@ -1,4 +1,4 @@
-use deno_core::{serde_v8, v8, JsRuntime};
+use deno_core::{JsRuntime, serde_v8, v8};
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 

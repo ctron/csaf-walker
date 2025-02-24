@@ -8,7 +8,7 @@ pub use error::*;
 
 use crate::sender::provider::{TokenInjector, TokenProvider};
 use anyhow::Context;
-use reqwest::{header, IntoUrl, Method, RequestBuilder};
+use reqwest::{IntoUrl, Method, RequestBuilder, header};
 use std::{collections::HashMap, path::PathBuf, sync::Arc, time::Duration};
 
 #[derive(Clone)]

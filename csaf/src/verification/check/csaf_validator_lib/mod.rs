@@ -7,8 +7,8 @@ use anyhow::anyhow;
 use async_trait::async_trait;
 use csaf::Csaf;
 use deno_core::{
-    _ops::RustToV8NoScope, op2, serde_v8, v8, Extension, JsRuntime, OpDecl, PollEventLoopOptions,
-    RuntimeOptions, StaticModuleLoader,
+    _ops::RustToV8NoScope, Extension, JsRuntime, OpDecl, PollEventLoopOptions, RuntimeOptions,
+    StaticModuleLoader, op2, serde_v8, v8,
 };
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
@@ -17,8 +17,8 @@ use std::{
     fmt::Debug,
     rc::Rc,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc, Condvar,
+        atomic::{AtomicBool, Ordering},
     },
     time::Duration,
 };

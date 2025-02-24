@@ -2,7 +2,7 @@ use crate::visitors::SendVisitor;
 use reqwest::Url;
 use std::path::PathBuf;
 use walker_common::sender::{
-    provider::OpenIdTokenProviderConfigArguments, HttpSender, HttpSenderOptions,
+    HttpSender, HttpSenderOptions, provider::OpenIdTokenProviderConfigArguments,
 };
 
 #[derive(Debug, clap::Parser)]

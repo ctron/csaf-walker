@@ -1,7 +1,7 @@
 use crate::verification::check::{Check, CheckError, Checking};
 use csaf::{
-    definitions::{NoteCategory, ReferenceCategory},
     Csaf,
+    definitions::{NoteCategory, ReferenceCategory},
 };
 
 pub fn check_csaf_document_notes(csaf: &Csaf) -> Vec<CheckError> {
@@ -56,8 +56,8 @@ pub fn is_security_informational_advisory(csaf: &Csaf) -> bool {
     csaf.document.category.to_string() == "csaf_security_informational_advisory"
 }
 
-pub fn init_csaf_is_security_incident_response_verifying_visitor(
-) -> Vec<(&'static str, Box<dyn Check>)> {
+pub fn init_csaf_is_security_incident_response_verifying_visitor()
+-> Vec<(&'static str, Box<dyn Check>)> {
     vec![
         (
             "check_csaf_document_notes",

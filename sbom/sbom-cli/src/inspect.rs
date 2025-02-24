@@ -1,11 +1,11 @@
 use crate::common::fix_license;
 use sbom_walker::{
+    Sbom,
     discover::DiscoveredSbom,
-    report::{check, ReportSink},
+    report::{ReportSink, check},
     retrieve::RetrievedSbom,
     source::Source,
     validation::ValidatedSbom,
-    Sbom,
 };
 use walker_common::{compression::decompress, validate::ValidationError};
 

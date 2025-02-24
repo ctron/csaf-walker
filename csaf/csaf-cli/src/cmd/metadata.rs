@@ -3,7 +3,7 @@ use csaf_walker::{
     discover::DiscoverConfig,
     metadata::{self, MetadataRetriever},
     model::metadata::ProviderMetadata,
-    source::{new_source, Source},
+    source::{Source, new_source},
 };
 use std::fmt::Display;
 use std::io::stdout;

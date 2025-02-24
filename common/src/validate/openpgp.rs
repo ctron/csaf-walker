@@ -3,15 +3,15 @@ use crate::utils::openpgp::PublicKey;
 use crate::validate::ValidationOptions;
 use anyhow::bail;
 use sequoia_openpgp::{
+    Cert, KeyHandle, Packet,
     cert::prelude::ValidErasedKeyAmalgamation,
-    packet::{key::PublicParts, Signature},
+    packet::{Signature, key::PublicParts},
     parse::{
-        stream::{DetachedVerifierBuilder, MessageLayer, MessageStructure, VerificationHelper},
         Parse,
+        stream::{DetachedVerifierBuilder, MessageLayer, MessageStructure, VerificationHelper},
     },
     policy::{HashAlgoSecurity, Policy, StandardPolicy},
     types::{AEADAlgorithm, SymmetricAlgorithm},
-    Cert, KeyHandle, Packet,
 };
 use std::fmt::Debug;
 
