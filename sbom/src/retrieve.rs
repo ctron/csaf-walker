@@ -12,9 +12,8 @@ use std::{
     ops::{Deref, DerefMut},
 };
 use url::Url;
-use walker_common::retrieve::RetrievedDocument;
 use walker_common::{
-    retrieve::{RetrievalError, RetrievalMetadata, RetrievedDigest},
+    retrieve::{RetrievalError, RetrievalMetadata, RetrievedDigest, RetrievedDocument},
     utils::{openpgp::PublicKey, url::Urlify},
     validate::source::{KeySource, KeySourceError},
 };

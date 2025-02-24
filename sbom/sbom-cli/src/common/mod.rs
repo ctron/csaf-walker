@@ -7,8 +7,8 @@ use sbom_walker::{
     discover::{DiscoverConfig, DiscoveredVisitor},
     model::metadata,
     retrieve::RetrievingVisitor,
-    source::new_source,
     source::DispatchSource,
+    source::new_source,
     validation::{ValidatedVisitor, ValidationVisitor},
     walker::Walker,
 };
@@ -34,18 +34,12 @@ where
 {
     let options: ValidationOptions = validation.into();
 
-    walk_visitor(
-        progress,
-        client,
-        discover,
-        runner,
-        move |source| async move {
-            Ok(RetrievingVisitor::new(
-                source.clone(),
-                ValidationVisitor::new(visitor).with_options(options),
-            ))
-        },
-    )
+    walk_visitor(progress, client, discover, runner, async move |source| {
+        Ok(RetrievingVisitor::new(
+            source,
+            ValidationVisitor::new(visitor).with_options(options),
+        ))
+    })
     .await
 }
 

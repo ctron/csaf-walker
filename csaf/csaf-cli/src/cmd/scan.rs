@@ -38,7 +38,7 @@ impl Scan {
             self.discover,
             self.filter,
             self.validation,
-            |advisory: Result<ValidatedAdvisory, ValidationError<DispatchSource>>| async move {
+            async |advisory: Result<ValidatedAdvisory, ValidationError<DispatchSource>>| {
                 match advisory {
                     Ok(adv) => {
                         println!("Advisory: {}", adv.url);

@@ -4,13 +4,13 @@ use crate::{
 };
 use csaf_walker::{
     discover::AsDiscovered,
-    report::{render_to_html, DocumentKey, Duplicates, ReportRenderOption, ReportResult},
+    report::{DocumentKey, Duplicates, ReportRenderOption, ReportResult, render_to_html},
     retrieve::RetrievingVisitor,
     source::DispatchSource,
     validation::{ValidatedAdvisory, ValidationError, ValidationVisitor},
     verification::{
-        check::{init_verifying_visitor, CheckError},
         VerificationError, VerifiedAdvisory, VerifyingVisitor,
+        check::{CheckError, init_verifying_visitor},
     },
     visitors::duplicates::DetectDuplicatesVisitor,
 };
@@ -19,8 +19,8 @@ use std::{
     collections::BTreeMap,
     path::PathBuf,
     sync::{
-        atomic::{AtomicUsize, Ordering},
         Arc,
+        atomic::{AtomicUsize, Ordering},
     },
 };
 use tokio::sync::Mutex;
@@ -163,8 +163,8 @@ impl Report {
                 self.discover,
                 self.filter,
                 self.runner,
-                move |source| async move {
-                    let visitor = { RetrievingVisitor::new(source.clone(), visitor) };
+                async move |source| {
+                    let visitor = RetrievingVisitor::new(source.clone(), visitor);
 
                     Ok(DetectDuplicatesVisitor {
                         duplicates,

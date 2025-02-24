@@ -57,11 +57,10 @@ impl Sync {
             self.client,
             DiscoverConfig::from(self.discover).with_since(since.since),
             self.runner,
-            move |source| async move {
-                let base = base.clone();
+            async move |source| {
                 let visitor = {
                     RetrievingVisitor::new(
-                        source.clone(),
+                        source,
                         ValidationVisitor::new(store).with_options(options),
                     )
                 };

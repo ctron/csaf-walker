@@ -17,7 +17,7 @@ impl Discover {
     pub async fn run<P: Progress>(self, progress: P) -> anyhow::Result<()> {
         Walker::new(new_source(self.discover, self.client).await?)
             .with_progress(progress)
-            .walk(|discovered: DiscoveredSbom| async move {
+            .walk(async |discovered: DiscoveredSbom| {
                 println!(
                     "{} ({})",
                     discovered.url,

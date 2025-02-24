@@ -63,8 +63,8 @@ impl Send {
             DiscoverConfig::from(self.discover).with_since(since.since),
             self.filter,
             self.runner,
-            move |source| async move {
-                let visitor = {
+            async move |source| {
+                Ok({
                     RetrievingVisitor::new(source.clone(), {
                         ValidationVisitor::new(SkipFailedVisitor {
                             skip_failures: self.skip_failures,
@@ -72,9 +72,7 @@ impl Send {
                         })
                         .with_options(options)
                     })
-                };
-
-                Ok(visitor)
+                })
             },
         )
         .await?;

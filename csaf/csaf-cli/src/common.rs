@@ -2,7 +2,7 @@ use crate::cmd::DiscoverArguments;
 use csaf_walker::{
     discover::{DiscoverConfig, DiscoveredVisitor},
     retrieve::RetrievingVisitor,
-    source::{new_source, DispatchSource},
+    source::{DispatchSource, new_source},
     validation::{ValidatedVisitor, ValidationVisitor},
     visitors::filter::{FilterConfig, FilteringVisitor},
     walker::Walker,
@@ -36,7 +36,7 @@ where
         discover,
         filter,
         runner,
-        move |source| async move {
+        async move |source| {
             Ok(RetrievingVisitor::new(
                 source.clone(),
                 ValidationVisitor::new(visitor).with_options(options),

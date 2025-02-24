@@ -4,7 +4,7 @@ use crate::{
     discover::{DiscoveredContext, DiscoveredVisitor},
     source::Source,
 };
-use futures::{stream, StreamExt, TryFutureExt, TryStreamExt};
+use futures::{StreamExt, TryFutureExt, TryStreamExt, stream};
 use std::{fmt::Debug, sync::Arc};
 use url::ParseError;
 use walker_common::progress::{Progress, ProgressBar};
@@ -108,17 +108,13 @@ impl<S: Source, P: Progress> Walker<S, P> {
 
         stream::iter(self.source.load_index().await.map_err(Error::Source)?)
             .map(Ok)
-            .try_for_each_concurrent(limit, |sbom| {
+            .try_for_each_concurrent(limit, async |sbom| {
                 log::debug!("Discovered advisory: {}", sbom.url);
-                let visitor = visitor.clone();
-                let context = context.clone();
 
-                async move {
-                    visitor
-                        .visit_sbom(&context, sbom)
-                        .map_err(Error::Visitor)
-                        .await
-                }
+                visitor
+                    .visit_sbom(&context, sbom)
+                    .map_err(Error::Visitor)
+                    .await
             })
             .await?;
 

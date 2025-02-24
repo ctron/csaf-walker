@@ -11,7 +11,7 @@ async fn main() -> anyhow::Result<()> {
     let fetcher = Fetcher::new(FetcherOptions::default()).await?;
     let source = HttpSource::new("redhat.com", fetcher, HttpOptions::default());
 
-    let validator = ValidationVisitor::new(|result| async {
+    let validator = ValidationVisitor::new(async |result| {
         match result {
             Ok(doc) => println!("Document: {doc:?}"),
             Err(err) => println!("Failed: {err}"),

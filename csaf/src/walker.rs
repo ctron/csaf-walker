@@ -5,7 +5,7 @@ use crate::{
     model::metadata::Distribution,
     source::Source,
 };
-use futures::{stream, Stream, StreamExt, TryFutureExt, TryStream, TryStreamExt};
+use futures::{Stream, StreamExt, TryFutureExt, TryStream, TryStreamExt, stream};
 use std::{fmt::Debug, sync::Arc};
 use tokio::sync::Mutex;
 use url::ParseError;
@@ -174,22 +174,17 @@ impl<S: Source, P: Progress> Walker<S, P> {
 
         stream::iter(advisories)
             .map(Ok)
-            .try_for_each_concurrent(limit, |advisory| {
+            .try_for_each_concurrent(limit, async |advisory| {
                 log::debug!("Discovered advisory: {}", advisory.url);
-                let context = context.clone();
-                let visitor = visitor.clone();
-                let progress = progress.clone();
 
-                async move {
-                    let result = visitor
-                        .visit_advisory(&context, advisory.clone())
-                        .map_err(Error::Visitor)
-                        .await;
+                let result = visitor
+                    .visit_advisory(&context, advisory.clone())
+                    .map_err(Error::Visitor)
+                    .await;
 
-                    progress.lock().await.tick().await;
+                progress.lock().await.tick().await;
 
-                    result
-                }
+                result
             })
             .await?;
 
@@ -208,7 +203,7 @@ fn collect_sources<'s, V: DiscoveredVisitor, S: Source>(
     discover_contexts: Vec<DistributionContext>,
 ) -> impl TryStream<Ok = impl Stream<Item = DiscoveredAdvisory>, Error = Error<V::Error, S::Error>> + 's
 {
-    stream::iter(discover_contexts).then(move |discover_context| async move {
+    stream::iter(discover_contexts).then(async |discover_context| {
         log::debug!("Walking: {}", discover_context.url());
         Ok(stream::iter(
             source

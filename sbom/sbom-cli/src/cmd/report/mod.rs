@@ -14,8 +14,8 @@ use std::{
     collections::BTreeMap,
     path::PathBuf,
     sync::{
-        atomic::{AtomicUsize, Ordering},
         Arc,
+        atomic::{AtomicUsize, Ordering},
     },
 };
 use tokio::task;
@@ -88,7 +88,7 @@ impl Report {
                 self.client,
                 self.discover,
                 self.runner,
-                |source| async move {
+                async |source| {
                     Ok(RetrievingVisitor::new(
                         source.clone(),
                         ValidationVisitor::new(

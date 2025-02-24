@@ -6,7 +6,7 @@ use crate::{
     validation::{ValidatedSbom, ValidatedVisitor, ValidationContext},
 };
 use anyhow::Context;
-use sequoia_openpgp::{armor::Kind, serialize::SerializeInto, Cert};
+use sequoia_openpgp::{Cert, armor::Kind, serialize::SerializeInto};
 use std::{
     io::{ErrorKind, Write},
     path::{Path, PathBuf},
@@ -14,7 +14,7 @@ use std::{
 use tokio::fs;
 use walker_common::{
     retrieve::RetrievalError,
-    store::{store_document, Document, StoreError},
+    store::{Document, StoreError, store_document},
     utils::openpgp::PublicKey,
     validate::ValidationError,
 };
@@ -149,7 +149,8 @@ impl StoreVisitor {
 
     async fn store_keys(&self, keys: &[PublicKey]) -> Result<(), StoreError> {
         let metadata = self.base.join(DIR_METADATA).join("keys");
-        std::fs::create_dir(&metadata)
+        fs::create_dir(&metadata)
+            .await
             // ignore if the directory already exists
             .or_else(|err| match err.kind() {
                 ErrorKind::AlreadyExists => Ok(()),

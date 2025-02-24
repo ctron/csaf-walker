@@ -61,7 +61,7 @@ impl Send {
             self.client,
             DiscoverConfig::from(self.discover).with_since(since.since),
             self.runner,
-            move |source| async move {
+            async move |source| {
                 let visitor = {
                     RetrievingVisitor::new(source.clone(), {
                         ValidationVisitor::new(SkipFailedVisitor {

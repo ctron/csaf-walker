@@ -26,7 +26,7 @@ impl Discover {
             .with_progress(progress)
             .walk(filter(
                 self.filter,
-                |discovered: DiscoveredAdvisory| async move {
+                async |discovered: DiscoveredAdvisory| {
                     println!("{}", discovered.url);
 
                     Ok::<_, Infallible>(())

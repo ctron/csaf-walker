@@ -5,12 +5,14 @@ use crate::{
     source::Source,
     visitors::store::DIR_METADATA,
 };
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use bytes::Bytes;
-use std::fs;
-use std::io::ErrorKind;
-use std::path::{Path, PathBuf};
-use std::time::SystemTime;
+use std::{
+    fs,
+    io::ErrorKind,
+    path::{Path, PathBuf},
+    time::SystemTime,
+};
 use time::OffsetDateTime;
 use url::Url;
 use walker_common::{

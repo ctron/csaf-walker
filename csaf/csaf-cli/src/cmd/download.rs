@@ -55,9 +55,8 @@ impl Download {
             DiscoverConfig::from(self.discover).with_since(since.since),
             self.filter,
             self.runner,
-            move |source| async move {
-                let base = base.clone();
-                let visitor = { RetrievingVisitor::new(source.clone(), store) };
+            async |source| {
+                let visitor = RetrievingVisitor::new(source.clone(), store);
 
                 Ok(SkipExistingVisitor {
                     visitor,
