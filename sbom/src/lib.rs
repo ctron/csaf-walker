@@ -1,4 +1,5 @@
 #![deny(clippy::unwrap_used)]
+#![forbid(unsafe_code)]
 
 pub mod discover;
 pub mod model;

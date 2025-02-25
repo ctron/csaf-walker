@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 mod cmd;
 mod common;
 mod inspect;
