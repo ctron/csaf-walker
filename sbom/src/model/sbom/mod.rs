@@ -1,5 +1,8 @@
 //! SBOM Model
 
+#[cfg(feature = "serde-cyclonedx")]
+pub mod serde_cyclonedx;
+
 mod json;
 
 pub use json::JsonPayload;
@@ -15,28 +18,18 @@ pub enum Parser {
 
 /// A tool to work with multiple SBOM formats and versions
 #[allow(clippy::large_enum_variant)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Sbom {
     #[cfg(feature = "spdx-rs")]
     Spdx(spdx_rs::models::SPDX),
     #[cfg(feature = "cyclonedx-bom")]
+    #[deprecated(
+        since = "0.12.0",
+        note = "Replaced with serde_cyclondex and the SerdeCycloneDx variant"
+    )]
     CycloneDx(cyclonedx_bom::prelude::Bom),
-}
-
-impl Debug for Sbom {
-    fn fmt(&self, #[allow(unused)] f: &mut Formatter<'_>) -> std::fmt::Result {
-        #[cfg(any(feature = "spdx-rs", feature = "cyclonedx-bom"))]
-        match self {
-            #[cfg(feature = "spdx-rs")]
-            Self::Spdx(doc) => f.debug_tuple("Spdx").field(doc).finish()?,
-            #[cfg(feature = "cyclonedx-bom")]
-            Self::CycloneDx(_doc) => f
-                .debug_tuple("CycloneDx")
-                .field(&"unable to display")
-                .finish()?,
-        }
-
-        Ok(())
-    }
+    #[cfg(feature = "serde-cyclonedx")]
+    SerdeCycloneDx(serde_cyclonedx::Sbom),
 }
 
 #[derive(Default, Debug)]
@@ -128,6 +121,26 @@ impl Sbom {
     pub fn try_parse_any_json(json: Value) -> Result<Self, ParseAnyError> {
         let err = ParseAnyError::new();
 
+        #[cfg(feature = "serde-cyclonedx")]
+        let err = match Self::is_cyclondx_json(&json) {
+            Ok("1.4" | "1.5" | "1.6") => {
+                return Self::try_serde_cyclonedx_json(JsonPayload::Value(json)).map_err(|e| {
+                    // drop any previous error, as we know what format and version it is
+                    ParseAnyError::from((ParserKind::Cyclone13DxJson, e.into()))
+                });
+            }
+            Ok(version) => {
+                // We can stop here, and drop any previous error, as we know what the format is.
+                // But we disagree with the version.
+                return Err(ParseAnyError::from((
+                    ParserKind::Cyclone13DxJson,
+                    anyhow!("Unsupported CycloneDX version: {version}"),
+                )));
+            }
+            // failed to detect as CycloneDX, record error and move on
+            Err(e) => err.add(ParserKind::Cyclone13DxJson, e),
+        };
+
         #[cfg(feature = "cyclonedx-bom")]
         let err = match Self::is_cyclondx_json(&json) {
             Ok("1.2" | "1.3" | "1.4") => {
@@ -216,6 +229,7 @@ impl Sbom {
     }
 
     #[cfg(feature = "cyclonedx-bom")]
+    #[allow(deprecated)]
     pub fn try_cyclonedx_json<'a>(
         data: impl Into<JsonPayload<'a>>,
     ) -> Result<Self, cyclonedx_bom::errors::JsonReadError> {
@@ -228,9 +242,20 @@ impl Sbom {
     }
 
     #[cfg(feature = "cyclonedx-bom")]
+    #[allow(deprecated)]
     pub fn try_cyclonedx_xml(data: &[u8]) -> Result<Self, cyclonedx_bom::errors::XmlReadError> {
         Ok(Self::CycloneDx(
             cyclonedx_bom::prelude::Bom::parse_from_xml_v1_3(data)?,
         ))
+    }
+
+    #[cfg(feature = "serde-cyclonedx")]
+    pub fn try_serde_cyclonedx_json<'a>(
+        data: impl Into<JsonPayload<'a>>,
+    ) -> Result<Self, serde_json::Error> {
+        match data.into() {
+            JsonPayload::Value(json) => Ok(Self::SerdeCycloneDx(serde_json::from_value(json)?)),
+            JsonPayload::Bytes(data) => Ok(Self::SerdeCycloneDx(serde_json::from_slice(data)?)),
+        }
     }
 }

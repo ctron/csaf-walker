@@ -85,7 +85,7 @@ fn process_sbom(sbom: Sbom) {
             );
         }
 
-        Sbom::CycloneDx(_sbom) => {
+        Sbom::SerdeCycloneDx(_sbom) => {
             println!("  CycloneDX");
         }
     }
