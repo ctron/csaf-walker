@@ -29,7 +29,7 @@ pub enum Sbom {
     )]
     CycloneDx(cyclonedx_bom::prelude::Bom),
     #[cfg(feature = "serde-cyclonedx")]
-    SerdeCycloneDx(serde_cyclonedx::Sbom),
+    SerdeCycloneDx(serde_cyclonedx::Sbom<'static>),
 }
 
 #[derive(Default, Debug)]

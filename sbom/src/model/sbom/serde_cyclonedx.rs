@@ -1,14 +1,15 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::borrow::Cow;
 
 #[derive(Clone, Debug, PartialEq)]
 #[allow(clippy::large_enum_variant)]
-pub enum Sbom {
-    V1_4(serde_cyclonedx::cyclonedx::v_1_4::CycloneDx),
-    V1_5(serde_cyclonedx::cyclonedx::v_1_5::CycloneDx),
-    V1_6(serde_cyclonedx::cyclonedx::v_1_6::CycloneDx),
+pub enum Sbom<'a> {
+    V1_4(Cow<'a, serde_cyclonedx::cyclonedx::v_1_4::CycloneDx>),
+    V1_5(Cow<'a, serde_cyclonedx::cyclonedx::v_1_5::CycloneDx>),
+    V1_6(Cow<'a, serde_cyclonedx::cyclonedx::v_1_6::CycloneDx>),
 }
 
-impl Serialize for Sbom {
+impl Serialize for Sbom<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -21,13 +22,14 @@ impl Serialize for Sbom {
     }
 }
 
-impl<'de> Deserialize<'de> for Sbom {
+impl<'de> Deserialize<'de> for Sbom<'static> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         // TODO: peek into the version, and select the correct version
-        serde_cyclonedx::cyclonedx::v_1_6::CycloneDx::deserialize(deserializer).map(Self::V1_6)
+        serde_cyclonedx::cyclonedx::v_1_6::CycloneDx::deserialize(deserializer)
+            .map(|s| Self::V1_6(Cow::Owned(s)))
     }
 }
 
@@ -65,7 +67,7 @@ macro_rules! from {
     };
 }
 
-impl Sbom {
+impl Sbom<'_> {
     attribute!(components => |sbom -> Option<Vec<Component>> | sbom
                 .components
                 .as_ref()
@@ -77,7 +79,41 @@ impl Sbom {
                 .map(|c| c.iter().map(Into::into).collect()));
 }
 
-from!(CycloneDx, Sbom);
+impl From<serde_cyclonedx::cyclonedx::v_1_4::CycloneDx> for Sbom<'static> {
+    fn from(value: serde_cyclonedx::cyclonedx::v_1_4::CycloneDx) -> Self {
+        Self::V1_4(Cow::Owned(value))
+    }
+}
+
+impl From<serde_cyclonedx::cyclonedx::v_1_5::CycloneDx> for Sbom<'static> {
+    fn from(value: serde_cyclonedx::cyclonedx::v_1_5::CycloneDx) -> Self {
+        Self::V1_5(Cow::Owned(value))
+    }
+}
+
+impl From<serde_cyclonedx::cyclonedx::v_1_6::CycloneDx> for Sbom<'static> {
+    fn from(value: serde_cyclonedx::cyclonedx::v_1_6::CycloneDx) -> Self {
+        Self::V1_6(Cow::Owned(value))
+    }
+}
+
+impl<'a> From<&'a serde_cyclonedx::cyclonedx::v_1_4::CycloneDx> for Sbom<'a> {
+    fn from(value: &'a serde_cyclonedx::cyclonedx::v_1_4::CycloneDx) -> Self {
+        Self::V1_4(Cow::Borrowed(value))
+    }
+}
+
+impl<'a> From<&'a serde_cyclonedx::cyclonedx::v_1_5::CycloneDx> for Sbom<'a> {
+    fn from(value: &'a serde_cyclonedx::cyclonedx::v_1_5::CycloneDx) -> Self {
+        Self::V1_5(Cow::Borrowed(value))
+    }
+}
+
+impl<'a> From<&'a serde_cyclonedx::cyclonedx::v_1_6::CycloneDx> for Sbom<'a> {
+    fn from(value: &'a serde_cyclonedx::cyclonedx::v_1_6::CycloneDx) -> Self {
+        Self::V1_6(Cow::Borrowed(value))
+    }
+}
 
 // component
 

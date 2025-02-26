@@ -8,7 +8,7 @@ pub fn all(report: &dyn ReportSink, sbom: &Sbom) {
 
 struct CycloneDxChecks<'c> {
     report: &'c dyn ReportSink,
-    sbom: &'c Sbom,
+    sbom: &'c Sbom<'c>,
 }
 
 impl CycloneDxChecks<'_> {
