@@ -1,3 +1,4 @@
+use backon::{ExponentialBuilder, Retryable};
 use bytes::Bytes;
 use reqwest::{Body, Method, StatusCode, Url, header};
 use std::time::Duration;
@@ -45,8 +46,11 @@ pub struct SendVisitor {
     /// The number of retries in case of a server or transmission failure
     pub retries: usize,
 
-    /// The delay between retries
-    pub retry_delay: Option<Duration>,
+    /// The minimum delay between retries
+    pub min_delay: Option<Duration>,
+
+    /// The maximum delay between retries
+    pub max_delay: Option<Duration>,
 }
 
 impl SendVisitor {
@@ -55,7 +59,8 @@ impl SendVisitor {
             url: url.into(),
             sender,
             retries: 0,
-            retry_delay: None,
+            min_delay: None,
+            max_delay: None,
         }
     }
 
@@ -64,18 +69,32 @@ impl SendVisitor {
         self
     }
 
-    pub fn retry_delay(mut self, retry_delay: impl Into<Duration>) -> Self {
-        self.retry_delay = Some(retry_delay.into());
+    pub fn min_delay(mut self, retry_delay: impl Into<Duration>) -> Self {
+        self.min_delay = Some(retry_delay.into());
+        self
+    }
+
+    pub fn max_delay(mut self, retry_delay: impl Into<Duration>) -> Self {
+        self.max_delay = Some(retry_delay.into());
         self
     }
 }
 
-/// The default amount of time to wait before trying
-const DEFAULT_RETRY_DELAY: Duration = Duration::from_secs(5);
-
+#[derive(Debug, thiserror::Error)]
 pub enum SendOnceError {
+    #[error(transparent)]
     Temporary(SendError),
+    #[error(transparent)]
     Permanent(SendError),
+}
+
+impl From<SendOnceError> for SendError {
+    fn from(value: SendOnceError) -> Self {
+        match value {
+            SendOnceError::Temporary(e) => e,
+            SendOnceError::Permanent(e) => e,
+        }
+    }
 }
 
 impl SendVisitor {
@@ -124,22 +143,26 @@ impl SendVisitor {
     where
         F: Fn(reqwest::RequestBuilder) -> reqwest::RequestBuilder,
     {
-        let mut retries = self.retries;
-        loop {
-            match self.send_once(name, data.clone(), &customizer).await {
-                Ok(()) => break Ok(()),
-                Err(SendOnceError::Permanent(err)) => break Err(err),
-                Err(SendOnceError::Temporary(err)) if retries == 0 => break Err(err),
-                Err(SendOnceError::Temporary(_)) => {
-                    log::debug!("Failed with a temporary error, retrying ...");
-                }
-            }
-
-            // sleep, then try again
-
-            tokio::time::sleep(self.retry_delay.unwrap_or(DEFAULT_RETRY_DELAY)).await;
-            log::info!("Retrying ({retries} attempts left)");
-            retries -= 1;
+        let mut retry = ExponentialBuilder::default();
+        if self.retries > 0 {
+            retry = retry.with_max_times(self.retries);
         }
+        if let Some(min_delay) = self.min_delay {
+            retry = retry.with_min_delay(min_delay);
+        }
+        if let Some(max_delay) = self.max_delay {
+            retry = retry.with_max_delay(max_delay);
+        }
+
+        Ok(
+            (|| async { self.send_once(name, data.clone(), &customizer).await })
+                .retry(retry)
+                .sleep(tokio::time::sleep)
+                .when(|e| matches!(e, SendOnceError::Temporary(_)))
+                .notify(|err, dur| {
+                    log::info!("retrying {err} after {dur:?}");
+                })
+                .await?,
+        )
     }
 }

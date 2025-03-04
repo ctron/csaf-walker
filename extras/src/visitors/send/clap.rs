@@ -46,14 +46,23 @@ pub struct SendArguments {
     )]
     pub retries: usize,
 
-    /// Delay between retries
+    /// Minimum delay between retries
     #[arg(
-        id = "sender-retry-delay",
+        id = "sender-min-delay",
         long,
-        env = "SENDER_RETRY_DELAY",
-        default_value = "5s"
+        env = "SENDER_MIN_DELAY",
+        default_value = "1s"
     )]
-    pub retry_delay: humantime::Duration,
+    pub min_delay: humantime::Duration,
+
+    /// Maximum delay between retries
+    #[arg(
+        id = "sender-max-delay",
+        long,
+        env = "SENDER_MAX_DELAY",
+        default_value = "60s"
+    )]
+    pub max_delay: humantime::Duration,
 
     /// Custom query parameters
     #[arg(
@@ -77,7 +86,8 @@ impl SendArguments {
             additional_root_certificates,
             tls_insecure,
             retries,
-            retry_delay,
+            min_delay,
+            max_delay,
             oidc,
             query,
         } = self;
@@ -101,7 +111,8 @@ impl SendArguments {
             url: target,
             sender,
             retries,
-            retry_delay: Some(retry_delay.into()),
+            min_delay: Some(min_delay.into()),
+            max_delay: Some(max_delay.into()),
         })
     }
 }
