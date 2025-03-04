@@ -72,10 +72,10 @@ impl SendVisitor {
             ..
         } = advisory;
 
-        self.send_advisory(url.as_str(), data).await
+        self.send_json(url.as_str(), data).await
     }
 
-    pub async fn send_advisory(&self, name: &str, data: Bytes) -> Result<(), SendError> {
+    pub async fn send_json(&self, name: &str, data: Bytes) -> Result<(), SendError> {
         self.send(name, data, |request| {
             request.header(header::CONTENT_TYPE, "application/json")
         })

@@ -54,19 +54,16 @@ impl Scoop {
         let send: SendVisitor = self.send.into_visitor().await?;
 
         scooper
-            .process(progress, |path: &Path| {
-                let send = send.clone();
-                Box::pin(async move {
-                    let data = tokio::fs::read(&path).await?;
-                    let name = path
-                        .to_str()
-                        .ok_or_else(|| anyhow!("Invalid UTF-8 sequence in path"))?;
-                    let data = decompress(data.into(), name)?;
+            .process(progress, async move |path: &Path| {
+                let data = tokio::fs::read(&path).await?;
+                let name = path
+                    .to_str()
+                    .ok_or_else(|| anyhow!("Invalid UTF-8 sequence in path"))?;
+                let data = decompress(data.into(), name)?;
 
-                    send.send_advisory(&path.to_string_lossy(), data).await?;
+                send.send_json(&path.to_string_lossy(), data).await?;
 
-                    Ok(())
-                })
+                Ok(())
             })
             .await
     }

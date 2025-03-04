@@ -1,10 +1,6 @@
 use crate::progress::{Progress, ProgressBar};
 use anyhow::bail;
-use std::{
-    future::Future,
-    path::{Path, PathBuf},
-    pin::Pin,
-};
+use std::path::{Path, PathBuf};
 use tracing::instrument;
 
 /// A tool to build a [`Scooper`].
@@ -74,7 +70,7 @@ impl Scooper {
     #[instrument(skip_all, err)]
     pub async fn process<F, P>(self, progress: P, processor: F) -> anyhow::Result<()>
     where
-        F: for<'a> Fn(&'a Path) -> Pin<Box<dyn Future<Output = anyhow::Result<()>> + 'a>>,
+        for<'a> F: AsyncFn(&'a Path) -> anyhow::Result<()> + 'a,
         P: Progress,
     {
         if let Some(processed) = &self.builder.processed {

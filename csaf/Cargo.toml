@@ -50,6 +50,7 @@ walker-common = { workspace = true, features = ["openpgp"] }
 
 [dev-dependencies]
 env_logger = { workspace = true }
+walker-common = { workspace = true, features = ["openpgp", "liblzma"] }
 
 [features]
 default = ["crypto-nettle", "csaf"]
