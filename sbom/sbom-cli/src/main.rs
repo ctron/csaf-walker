@@ -1,4 +1,5 @@
 #![forbid(unsafe_code)]
+extern crate core;
 
 mod cmd;
 mod common;

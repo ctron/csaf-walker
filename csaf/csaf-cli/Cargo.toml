@@ -15,6 +15,7 @@ license.workspace = true
 [dependencies]
 # normal
 anyhow = { workspace = true }
+bytes = { workspace = true }
 clap = { workspace = true, features = ["derive", "color"] }
 colored_json = { workspace = true }
 csaf = { workspace = true }

@@ -1,10 +1,9 @@
-use anyhow::anyhow;
-use std::path::{Path, PathBuf};
+use bytes::Bytes;
 use walker_common::{
     cli::{CommandDefaults, client::ClientArguments},
     compression::decompress,
     progress::Progress,
-    scoop::ScooperBuilder,
+    scoop::{ScooperBuilder, Source},
 };
 use walker_extras::visitors::{SendArguments, SendVisitor};
 
@@ -17,11 +16,11 @@ pub struct Scoop {
 
     /// Directory to move processed files to.
     #[arg(long)]
-    processed: Option<PathBuf>,
+    processed: Option<String>,
 
     /// Directory to move processed files to.
     #[arg(long)]
-    failed: Option<PathBuf>,
+    failed: Option<String>,
 
     #[command(flatten)]
     client: ClientArguments,
@@ -40,7 +39,7 @@ impl CommandDefaults for Scoop {}
 struct SourceArguments {
     /// Files or directories to upload
     #[arg()]
-    source: Vec<PathBuf>,
+    source: Vec<String>,
 }
 
 impl Scoop {
@@ -48,25 +47,25 @@ impl Scoop {
         log::debug!("Start processing");
 
         let scooper = ScooperBuilder {
-            sources: self.source.source,
+            sources: self
+                .source
+                .source
+                .into_iter()
+                .map(|s| Source::try_from(s.as_str()))
+                .collect::<Result<_, _>>()?,
             processed: self.processed,
             failed: self.failed,
             delete: self.delete,
         }
-        .build()?;
+        .build()
+        .await?;
 
         let send: SendVisitor = self.send.into_visitor().await?;
 
         scooper
-            .process(progress, async move |path: &Path| {
-                let data = tokio::fs::read(&path).await?;
-                let name = path
-                    .to_str()
-                    .ok_or_else(|| anyhow!("Invalid UTF-8 sequence in path"))?;
-                let data = decompress(data.into(), name)?;
-
-                send.send_json(&path.to_string_lossy(), data).await?;
-
+            .process(progress, async move |name: &str, data: Bytes| {
+                let data = decompress(data, name)?;
+                send.send_json(name, data).await?;
                 Ok(())
             })
             .await

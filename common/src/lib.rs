@@ -20,3 +20,6 @@ pub mod validate;
 
 #[cfg(feature = "clap")]
 pub mod cli;
+
+/// The user agent used when making HTTP requests
+pub const USER_AGENT: &str = concat!("CSAF-Walker/", env!("CARGO_PKG_VERSION"));
