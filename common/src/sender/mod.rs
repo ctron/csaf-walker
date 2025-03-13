@@ -3,10 +3,12 @@
 pub mod provider;
 
 mod error;
-
 pub use error::*;
 
-use crate::sender::provider::{TokenInjector, TokenProvider};
+use crate::{
+    USER_AGENT,
+    sender::provider::{TokenInjector, TokenProvider},
+};
 use anyhow::Context;
 use reqwest::{IntoUrl, Method, RequestBuilder, header};
 use std::{collections::HashMap, path::PathBuf, sync::Arc, time::Duration};
@@ -103,8 +105,6 @@ impl HttpSenderOptions {
         self
     }
 }
-
-const USER_AGENT: &str = concat!("CSAF-Walker/", env!("CARGO_PKG_VERSION"));
 
 impl HttpSender {
     pub async fn new<P>(provider: P, options: HttpSenderOptions) -> Result<Self, anyhow::Error>
