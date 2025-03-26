@@ -19,7 +19,7 @@ where
     Source(SE),
     #[error("URL error: {0}")]
     Url(#[from] ParseError),
-    #[error("Visitor error: {0}")]
+    #[error("Error: {0}")]
     Visitor(VE),
 }
 
