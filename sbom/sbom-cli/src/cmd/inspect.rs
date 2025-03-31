@@ -72,6 +72,7 @@ impl Inspect {
         } else {
             log::debug!("Fetching local");
             let path = absolute(source)?;
+            log::debug!("Fetching local: {path:?}");
             let url = Url::from_file_path(&path)
                 .map_err(|()| anyhow!("Failed to convert file to URL"))?;
             (tokio::fs::read(path).await?.into(), url)
