@@ -3,10 +3,15 @@ use crate::{
     common::walk_standard,
 };
 use csaf::Csaf;
-use csaf_walker::source::DispatchSource;
-use csaf_walker::validation::{ValidatedAdvisory, ValidationError};
+use csaf_walker::{
+    source::DispatchSource,
+    validation::{ValidatedAdvisory, ValidationError},
+};
 use walker_common::{
-    cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
+    cli::{
+        CommandDefaults, client::ClientArguments, runner::RunnerArguments,
+        validation::ValidationArguments,
+    },
     progress::Progress,
 };
 
@@ -29,10 +34,12 @@ pub struct Scan {
     validation: ValidationArguments,
 }
 
+impl CommandDefaults for Scan {}
+
 impl Scan {
     pub async fn run<P: Progress>(self, progress: P) -> anyhow::Result<()> {
         walk_standard(
-            progress,
+            progress.clone(),
             self.client,
             self.runner,
             self.discover,
@@ -41,18 +48,18 @@ impl Scan {
             async |advisory: Result<ValidatedAdvisory, ValidationError<DispatchSource>>| {
                 match advisory {
                     Ok(adv) => {
-                        println!("Advisory: {}", adv.url);
+                        progress.println(format!("Advisory: {}", adv.url));
                         log::debug!("  Metadata: {:?}", adv.sha256);
                         log::debug!("    SHA256: {:?}", adv.sha256);
                         log::debug!("    SHA512: {:?}", adv.sha512);
                         match serde_json::from_slice::<Csaf>(&adv.data) {
                             Ok(csaf) => {
-                                println!(
+                                progress.println(format!(
                                     "  {} ({}): {}",
                                     csaf.document.tracking.id,
                                     csaf.document.tracking.initial_release_date,
                                     csaf.document.title
-                                );
+                                ));
                             }
                             Err(err) => {
                                 eprintln!("  Format error: {err}");

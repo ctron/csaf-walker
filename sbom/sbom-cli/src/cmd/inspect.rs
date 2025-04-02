@@ -6,7 +6,7 @@ use reqwest::Url;
 use sbom_walker::{discover::DiscoveredSbom, retrieve::RetrievedSbom, validation::ValidatedSbom};
 use std::{collections::BTreeMap, path::absolute, sync::Arc, time::SystemTime};
 use walker_common::{
-    cli::{client::ClientArguments, validation::ValidationArguments},
+    cli::{CommandDefaults, client::ClientArguments, validation::ValidationArguments},
     fetcher::Fetcher,
     progress::{Progress, ProgressBar},
 };
@@ -24,6 +24,8 @@ pub struct Inspect {
     #[command(flatten)]
     validation: ValidationArguments,
 }
+
+impl CommandDefaults for Inspect {}
 
 impl Inspect {
     pub async fn run<P: Progress>(self, progress: P) -> anyhow::Result<()> {

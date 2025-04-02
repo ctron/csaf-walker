@@ -4,10 +4,12 @@ use std::future::Future;
 
 pub mod indicatif;
 
-pub trait Progress {
+pub trait Progress: Clone {
     type Instance: ProgressBar;
 
     fn start(&self, work: usize) -> Self::Instance;
+
+    fn println(&self, message: impl AsRef<str>);
 }
 
 pub trait ProgressBar {
@@ -26,6 +28,10 @@ impl Progress for () {
     type Instance = ();
 
     fn start(&self, _work: usize) -> Self::Instance {}
+
+    fn println(&self, message: impl AsRef<str>) {
+        println!("{}", message.as_ref());
+    }
 }
 
 pub struct NoOpIter<I>(I)
@@ -56,6 +62,14 @@ impl<P: Progress> Progress for Option<P> {
 
     fn start(&self, work: usize) -> Self::Instance {
         self.as_ref().map(|progress| progress.start(work))
+    }
+
+    fn println(&self, message: impl AsRef<str>) {
+        if let Some(progress) = self {
+            progress.println(message)
+        } else {
+            println!("{}", message.as_ref());
+        }
     }
 }
 

@@ -1,7 +1,9 @@
 use anyhow::anyhow;
 use std::path::{Path, PathBuf};
 use walker_common::{
-    cli::client::ClientArguments, compression::decompress, progress::Progress,
+    cli::{CommandDefaults, client::ClientArguments},
+    compression::decompress,
+    progress::Progress,
     scoop::ScooperBuilder,
 };
 use walker_extras::visitors::{SendArguments, SendVisitor};
@@ -30,6 +32,8 @@ pub struct Scoop {
     #[command(flatten)]
     source: SourceArguments,
 }
+
+impl CommandDefaults for Scoop {}
 
 #[derive(Debug, clap::Parser)]
 #[command(next_help_heading = "Source")]

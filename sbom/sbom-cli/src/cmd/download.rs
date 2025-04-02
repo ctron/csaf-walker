@@ -7,7 +7,7 @@ use sbom_walker::{
     visitors::store::StoreVisitor,
 };
 use walker_common::{
-    cli::{client::ClientArguments, runner::RunnerArguments},
+    cli::{CommandDefaults, client::ClientArguments, runner::RunnerArguments},
     progress::Progress,
     since::Since,
 };
@@ -30,6 +30,8 @@ pub struct Download {
     #[command(flatten)]
     store: StoreArguments,
 }
+
+impl CommandDefaults for Download {}
 
 impl Download {
     pub async fn run<P: Progress>(self, progress: P) -> anyhow::Result<()> {

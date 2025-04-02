@@ -5,7 +5,10 @@ use sbom_walker::{
 };
 use tokio::task;
 use walker_common::{
-    cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
+    cli::{
+        CommandDefaults, client::ClientArguments, runner::RunnerArguments,
+        validation::ValidationArguments,
+    },
     compression::decompress,
     progress::Progress,
     validate::ValidationError,
@@ -26,6 +29,8 @@ pub struct Scan {
     #[command(flatten)]
     validation: ValidationArguments,
 }
+
+impl CommandDefaults for Scan {}
 
 impl Scan {
     pub async fn run<P: Progress>(self, progress: P) -> anyhow::Result<()> {

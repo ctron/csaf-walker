@@ -8,7 +8,9 @@ use cmd::{
     discover::Discover, download::Download, metadata::Metadata, parse::Parse, report::Report,
     scan::Scan, scoop::Scoop, send::Send, sync::Sync,
 };
+use std::ops::Deref;
 use std::process::ExitCode;
+use walker_common::cli::CommandDefaults;
 use walker_common::{cli::log::Logging, progress::Progress, utils::measure::MeasureTime};
 
 #[derive(Debug, Parser)]
@@ -35,6 +37,24 @@ enum Command {
     Scoop(Scoop),
 }
 
+impl Deref for Command {
+    type Target = dyn CommandDefaults;
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            Self::Parse(cmd) => cmd,
+            Self::Download(cmd) => cmd,
+            Self::Scan(cmd) => cmd,
+            Self::Discover(cmd) => cmd,
+            Self::Sync(cmd) => cmd,
+            Self::Report(cmd) => cmd,
+            Self::Send(cmd) => cmd,
+            Self::Metadata(cmd) => cmd,
+            Self::Scoop(cmd) => cmd,
+        }
+    }
+}
+
 impl Command {
     pub async fn run<P: Progress>(self, progress: P) -> anyhow::Result<()> {
         match self {
@@ -53,7 +73,9 @@ impl Command {
 
 impl Cli {
     pub async fn run(self) -> anyhow::Result<()> {
-        let progress = self.logging.init(&["csaf", "csaf_walker"]);
+        let progress = self
+            .logging
+            .init(&["csaf", "csaf_walker"], self.command.progress());
 
         // run
 
