@@ -9,10 +9,12 @@ use crate::cmd::{
     scoop::Scoop, send::Send, sync::Sync,
 };
 use clap::Parser;
-use std::ops::Deref;
-use std::process::ExitCode;
-use walker_common::cli::CommandDefaults;
-use walker_common::{cli::log::Logging, progress::Progress, utils::measure::MeasureTime};
+use std::{ops::Deref, process::ExitCode};
+use walker_common::{
+    cli::{CommandDefaults, log::Logging},
+    progress::Progress,
+    utils::measure::MeasureTime,
+};
 
 #[derive(Debug, Parser)]
 #[command(version, about = "SBOM Tool", author, long_about = None)]

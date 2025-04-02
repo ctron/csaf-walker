@@ -5,13 +5,13 @@ mod common;
 
 use clap::Parser;
 use cmd::{
-    discover::Discover, download::Download, metadata::Metadata, parse::Parse, report::Report,
-    scan::Scan, scoop::Scoop, send::Send, sync::Sync,
+    discover::Discover, download::Download, fetch::Fetch, metadata::Metadata, parse::Parse,
+    report::Report, scan::Scan, scoop::Scoop, send::Send, sync::Sync,
 };
-use std::ops::Deref;
-use std::process::ExitCode;
-use walker_common::cli::CommandDefaults;
-use walker_common::{cli::log::Logging, progress::Progress, utils::measure::MeasureTime};
+use std::{ops::Deref, process::ExitCode};
+use walker_common::{
+    cli::CommandDefaults, cli::log::Logging, progress::Progress, utils::measure::MeasureTime,
+};
 
 #[derive(Debug, Parser)]
 #[command(version, about = "CSAF Tool", author, long_about = None)]
@@ -28,6 +28,7 @@ struct Cli {
 enum Command {
     Parse(Parse),
     Download(Download),
+    Fetch(Fetch),
     Scan(Scan),
     Discover(Discover),
     Sync(Sync),
@@ -44,6 +45,7 @@ impl Deref for Command {
         match self {
             Self::Parse(cmd) => cmd,
             Self::Download(cmd) => cmd,
+            Self::Fetch(cmd) => cmd,
             Self::Scan(cmd) => cmd,
             Self::Discover(cmd) => cmd,
             Self::Sync(cmd) => cmd,
@@ -58,15 +60,16 @@ impl Deref for Command {
 impl Command {
     pub async fn run<P: Progress>(self, progress: P) -> anyhow::Result<()> {
         match self {
-            Command::Parse(cmd) => cmd.run(progress).await,
-            Command::Download(cmd) => cmd.run(progress).await,
-            Command::Scan(cmd) => cmd.run(progress).await,
-            Command::Discover(cmd) => cmd.run(progress).await,
-            Command::Sync(cmd) => cmd.run(progress).await,
-            Command::Report(cmd) => cmd.run(progress).await,
-            Command::Send(cmd) => cmd.run(progress).await,
-            Command::Metadata(cmd) => cmd.run().await,
-            Command::Scoop(cmd) => cmd.run(progress).await,
+            Self::Parse(cmd) => cmd.run(progress).await,
+            Self::Download(cmd) => cmd.run(progress).await,
+            Self::Fetch(cmd) => cmd.run(progress).await,
+            Self::Scan(cmd) => cmd.run(progress).await,
+            Self::Discover(cmd) => cmd.run(progress).await,
+            Self::Sync(cmd) => cmd.run(progress).await,
+            Self::Report(cmd) => cmd.run(progress).await,
+            Self::Send(cmd) => cmd.run(progress).await,
+            Self::Metadata(cmd) => cmd.run().await,
+            Self::Scoop(cmd) => cmd.run(progress).await,
         }
     }
 }
