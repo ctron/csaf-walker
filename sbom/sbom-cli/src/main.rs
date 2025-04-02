@@ -9,7 +9,9 @@ use crate::cmd::{
     scoop::Scoop, send::Send, sync::Sync,
 };
 use clap::Parser;
+use std::ops::Deref;
 use std::process::ExitCode;
+use walker_common::cli::CommandDefaults;
 use walker_common::{cli::log::Logging, progress::Progress, utils::measure::MeasureTime};
 
 #[derive(Debug, Parser)]
@@ -35,23 +37,43 @@ enum Command {
     Inspect(Inspect),
 }
 
-impl Command {
-    pub async fn run<P: Progress>(self, progress: P) -> anyhow::Result<()> {
+impl Deref for Command {
+    type Target = dyn CommandDefaults;
+
+    fn deref(&self) -> &Self::Target {
         match self {
-            Command::Discover(cmd) => cmd.run(progress).await,
-            Command::Download(cmd) => cmd.run(progress).await,
-            Command::Sync(cmd) => cmd.run(progress).await,
-            Command::Scan(cmd) => cmd.run(progress).await,
-            Command::Report(cmd) => cmd.run(progress).await,
-            Command::Send(cmd) => cmd.run(progress).await,
-            Command::Scoop(cmd) => cmd.run(progress).await,
-            Command::Inspect(cmd) => cmd.run(progress).await,
+            Self::Download(cmd) => cmd,
+            Self::Scan(cmd) => cmd,
+            Self::Discover(cmd) => cmd,
+            Self::Sync(cmd) => cmd,
+            Self::Report(cmd) => cmd,
+            Self::Send(cmd) => cmd,
+            Self::Scoop(cmd) => cmd,
+            Self::Inspect(cmd) => cmd,
         }
     }
 }
+
+impl Command {
+    pub async fn run<P: Progress>(self, progress: P) -> anyhow::Result<()> {
+        match self {
+            Self::Discover(cmd) => cmd.run(progress).await,
+            Self::Download(cmd) => cmd.run(progress).await,
+            Self::Sync(cmd) => cmd.run(progress).await,
+            Self::Scan(cmd) => cmd.run(progress).await,
+            Self::Report(cmd) => cmd.run(progress).await,
+            Self::Send(cmd) => cmd.run(progress).await,
+            Self::Scoop(cmd) => cmd.run(progress).await,
+            Self::Inspect(cmd) => cmd.run(progress).await,
+        }
+    }
+}
+
 impl Cli {
     pub async fn run(self) -> anyhow::Result<()> {
-        let progress = self.logging.init(&["sbom", "sbom_walker"]);
+        let progress = self
+            .logging
+            .init(&["sbom", "sbom_walker"], self.command.progress());
 
         // run
 

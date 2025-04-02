@@ -1,7 +1,10 @@
 use crate::cmd::DiscoverArguments;
 use sbom_walker::{discover::DiscoveredSbom, source::new_source, walker::Walker};
 use std::convert::Infallible;
-use walker_common::{cli::client::ClientArguments, progress::Progress};
+use walker_common::{
+    cli::{CommandDefaults, client::ClientArguments},
+    progress::Progress,
+};
 
 /// Discover SBOMs, just lists the URLs.
 #[derive(clap::Args, Debug)]
@@ -11,6 +14,12 @@ pub struct Discover {
 
     #[command(flatten)]
     discover: DiscoverArguments,
+}
+
+impl CommandDefaults for Discover {
+    fn progress(&self) -> bool {
+        false
+    }
 }
 
 impl Discover {

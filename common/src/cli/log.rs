@@ -19,8 +19,12 @@ pub struct Logging {
     pub log_timestamps: bool,
 
     /// Disable progress bar
-    #[arg(long, global = true)]
+    #[arg(long, global = true, conflicts_with = "progress")]
     pub no_progress: bool,
+
+    /// Enable progress bar
+    #[arg(long, global = true)]
+    pub progress: bool,
 
     /// Provide a RUST_LOG filter, conflicts with --verbose and --quiet
     #[arg(long, global = true, conflicts_with_all(["verbose", "quiet"]), env("RUST_LOG"))]
@@ -28,7 +32,11 @@ pub struct Logging {
 }
 
 impl Logging {
-    pub fn init(self, app_modules: &[&'static str]) -> Option<MultiProgress> {
+    pub fn init(
+        self,
+        app_modules: &[&'static str],
+        default_progress: bool,
+    ) -> Option<MultiProgress> {
         // init logging
 
         let mut builder = Builder::new();
@@ -85,7 +93,13 @@ impl Logging {
 
         // init the progress meter
 
-        match self.quiet | self.no_progress {
+        let no_progress = match (self.no_progress, self.progress) {
+            (true, _) => true,
+            (_, true) => false,
+            _ => !default_progress,
+        };
+
+        match self.quiet | no_progress {
             true => {
                 builder.init();
                 None

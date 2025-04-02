@@ -7,7 +7,10 @@ use sbom_walker::{
     visitors::skip::SkipFailedVisitor,
 };
 use walker_common::{
-    cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
+    cli::{
+        CommandDefaults, client::ClientArguments, runner::RunnerArguments,
+        validation::ValidationArguments,
+    },
     progress::Progress,
     since::Since,
     validate::ValidationOptions,
@@ -39,6 +42,8 @@ pub struct Send {
     #[command(flatten)]
     send: SendArguments,
 }
+
+impl CommandDefaults for Send {}
 
 impl Send {
     pub async fn run<P: Progress>(self, progress: P) -> anyhow::Result<()> {

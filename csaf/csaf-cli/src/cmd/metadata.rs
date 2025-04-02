@@ -5,9 +5,8 @@ use csaf_walker::{
     model::metadata::ProviderMetadata,
     source::{Source, new_source},
 };
-use std::fmt::Display;
-use std::io::stdout;
-use walker_common::cli::client::ClientArguments;
+use std::{fmt::Display, io::stdout};
+use walker_common::cli::{CommandDefaults, client::ClientArguments};
 
 /// Discover provider metadata.
 #[derive(clap::Args, Debug)]
@@ -21,6 +20,12 @@ pub struct Metadata {
     /// Try and show all approaches
     #[arg(short = 'A', long)]
     all: bool,
+}
+
+impl CommandDefaults for Metadata {
+    fn progress(&self) -> bool {
+        false
+    }
 }
 
 impl Metadata {

@@ -20,7 +20,10 @@ use std::{
 };
 use tokio::task;
 use walker_common::{
-    cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
+    cli::{
+        CommandDefaults, client::ClientArguments, runner::RunnerArguments,
+        validation::ValidationArguments,
+    },
     progress::Progress,
     report::{self, Statistics},
     utils::url::Urlify,
@@ -53,6 +56,8 @@ pub struct Report {
     #[command(flatten)]
     render: RenderOptions,
 }
+
+impl CommandDefaults for Report {}
 
 #[derive(clap::Args, Debug)]
 pub struct RenderOptions {

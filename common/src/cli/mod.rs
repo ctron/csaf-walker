@@ -7,3 +7,9 @@ pub mod validation;
 
 #[cfg(feature = "cli")]
 pub mod log;
+
+pub trait CommandDefaults {
+    fn progress(&self) -> bool {
+        true
+    }
+}

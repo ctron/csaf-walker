@@ -1,13 +1,14 @@
-use std::path::PathBuf;
-
 use csaf::Csaf;
-use walker_common::progress::Progress;
+use std::path::PathBuf;
+use walker_common::{cli::CommandDefaults, progress::Progress};
 
 /// Parse advisories
 #[derive(clap::Args, Debug)]
 pub struct Parse {
     file: PathBuf,
 }
+
+impl CommandDefaults for Parse {}
 
 impl Parse {
     pub async fn run<P: Progress>(self, progress: P) -> anyhow::Result<()> {

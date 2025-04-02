@@ -2,14 +2,17 @@ use crate::{
     cmd::{DiscoverArguments, SkipArguments, StoreArguments},
     common::walk_visitor,
 };
-use sbom_walker::discover::DiscoverConfig;
 use sbom_walker::{
+    discover::DiscoverConfig,
     retrieve::RetrievingVisitor,
     validation::ValidationVisitor,
     visitors::{skip::SkipExistingVisitor, store::StoreVisitor},
 };
 use walker_common::{
-    cli::{client::ClientArguments, runner::RunnerArguments, validation::ValidationArguments},
+    cli::{
+        CommandDefaults, client::ClientArguments, runner::RunnerArguments,
+        validation::ValidationArguments,
+    },
     progress::Progress,
     since::Since,
     validate::ValidationOptions,
@@ -36,6 +39,8 @@ pub struct Sync {
     #[command(flatten)]
     store: StoreArguments,
 }
+
+impl CommandDefaults for Sync {}
 
 impl Sync {
     pub async fn run<P: Progress>(self, progress: P) -> anyhow::Result<()> {
