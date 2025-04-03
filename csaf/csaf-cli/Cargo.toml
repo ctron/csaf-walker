@@ -20,6 +20,7 @@ colored_json = { workspace = true }
 csaf = { workspace = true }
 flexible-time = { workspace = true }
 humantime = { workspace = true }
+jsonpath-rust = { workspace = true }
 log = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true, features = ["derive"] }

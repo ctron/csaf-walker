@@ -3,11 +3,13 @@ use crate::{
     common::walk_visitor,
 };
 use colored_json::write_colored_json;
-use csaf::Csaf;
 use csaf_walker::{
     discover::DiscoverConfig, retrieve::RetrievingVisitor, validation::ValidatedAdvisory,
     validation::ValidationVisitor,
 };
+use jsonpath_rust::JsonPath;
+use serde_json::Value;
+use std::io::Write;
 use walker_common::{
     cli::{
         CommandDefaults, client::ClientArguments, runner::RunnerArguments,
@@ -39,8 +41,13 @@ pub struct Fetch {
     #[command(flatten)]
     skip: SkipArguments,
 
+    /// The output format
     #[arg(short, long, default_value = "json")]
     output: String,
+
+    /// Enable pretty printing for the output
+    #[arg(short, long)]
+    pretty: bool,
 }
 
 impl CommandDefaults for Fetch {
@@ -49,13 +56,29 @@ impl CommandDefaults for Fetch {
     }
 }
 
-fn show(output: &str, doc: ValidatedAdvisory) -> anyhow::Result<()> {
-    let csaf: Csaf = serde_json::from_slice(&doc.data)?;
+fn write(pretty: bool, value: &Value) -> anyhow::Result<()> {
+    let mut out = std::io::stdout().lock();
+    if pretty {
+        let _ = write_colored_json(value, &mut out);
+    } else {
+        let _ = serde_json::to_writer(&mut out, value);
+    }
+
+    writeln!(&mut out)?;
+
+    Ok(())
+}
+
+fn show(output: &str, pretty: bool, doc: ValidatedAdvisory) -> anyhow::Result<()> {
+    let doc: Value = serde_json::from_slice(&doc.data)?;
 
     if output == "json" {
-        serde_json::to_writer(std::io::stdout().lock(), &csaf)?;
-    } else if output == "json-pretty" {
-        write_colored_json(&csaf, &mut std::io::stdout().lock())?;
+        write(pretty, &doc)?;
+    } else if let Some(path) = output.strip_prefix("jsonpath=") {
+        let result = doc.query(path)?;
+        write(pretty, &serde_json::to_value(&result)?)?;
+    } else {
+        eprintln!("Unrecognized output format: {output}");
     }
 
     Ok(())
@@ -75,7 +98,7 @@ impl Fetch {
         )?;
 
         let show = async |doc| {
-            show(&self.output, doc?)?;
+            show(&self.output, self.pretty, doc?)?;
 
             Ok::<_, anyhow::Error>(())
         };
