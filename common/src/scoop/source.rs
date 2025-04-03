@@ -251,7 +251,7 @@ impl S3 {
     pub async fn client(&self) -> anyhow::Result<Client> {
         let region_provider = RegionProviderChain::first_try(Region::new(self.region.clone()));
 
-        let mut shared_config = aws_config::defaults(BehaviorVersion::v2024_03_28())
+        let mut shared_config = aws_config::defaults(BehaviorVersion::v2025_01_17())
             .region(region_provider)
             .app_name(AppName::new(USER_AGENT)?);
 
