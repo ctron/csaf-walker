@@ -34,7 +34,7 @@ impl<'s, V> Ignore<'s, V> {
         let url = url.url();
         let name = url
             .path_segments()
-            .and_then(|path| path.last())
+            .and_then(|mut path| path.next_back())
             .unwrap_or(url.path());
 
         !self.only.is_empty() && !self.only.contains(name)

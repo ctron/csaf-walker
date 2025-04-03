@@ -121,7 +121,7 @@ impl<V: DiscoveredVisitor> DiscoveredVisitor for FilteringVisitor<V> {
         let name = advisory
             .url
             .path_segments()
-            .and_then(|seg| seg.last())
+            .and_then(|mut seg| seg.next_back())
             .unwrap_or(advisory.url.path());
 
         // "ignore" prefix

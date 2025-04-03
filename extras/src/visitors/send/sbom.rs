@@ -76,7 +76,7 @@ impl SendVisitor {
 
         let name = url
             .path_segments()
-            .and_then(|p| p.last())
+            .and_then(|mut p| p.next_back())
             .unwrap_or_else(|| url.path());
 
         if !(name.ends_with(".json") || name.ends_with(".json.bz2")) {
