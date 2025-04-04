@@ -148,12 +148,15 @@ impl Source {
         })
     }
 
+    /// Delete the source
     pub async fn delete(&self) -> anyhow::Result<()> {
         match self {
             Self::Path(file) => {
+                // just delete the file
                 tokio::fs::remove_file(&file).await?;
             }
             Self::Http(url) => {
+                // issue a DELETE request
                 reqwest::Client::builder()
                     .build()?
                     .delete(url.clone())
@@ -161,6 +164,7 @@ impl Source {
                     .await?;
             }
             Self::S3(s3) => {
+                // delete the object from the bucket
                 let client = s3.client();
                 client
                     .await?
@@ -175,6 +179,9 @@ impl Source {
         Ok(())
     }
 
+    /// move the source
+    ///
+    /// NOTE: This is a no-op for HTTP sources.
     pub async fn r#move(&self, path: &str) -> anyhow::Result<()> {
         match self {
             Self::Path(file) => {
@@ -183,8 +190,9 @@ impl Source {
                 tokio::fs::copy(&file, path.join(file)).await?;
                 tokio::fs::remove_file(&file).await?;
             }
-            Self::Http(_url) => {
-                // no-op
+            Self::Http(url) => {
+                // no-op, but warn
+                log::warn!("Unable to move HTTP source ({url}), skipping!");
             }
             Self::S3(s3) => {
                 let client = s3.client();

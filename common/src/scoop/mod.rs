@@ -67,7 +67,7 @@ impl Scooper {
                 }
                 Err(err) => {
                     errors += 1;
-                    log::error!("Failed to upload file: {err}");
+                    log::error!("Failed to upload document: {err}");
                     if let Some(failed) = &self.builder.failed {
                         source.r#move(failed).await?;
                     }
