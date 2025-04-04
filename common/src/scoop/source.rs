@@ -6,8 +6,10 @@ use aws_sdk_s3::{
     config::{AppName, Credentials},
 };
 use bytes::Bytes;
-use std::path::Path;
-use std::{borrow::Cow, path::PathBuf};
+use std::{
+    borrow::Cow,
+    path::{Path, PathBuf},
+};
 use url::Url;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
