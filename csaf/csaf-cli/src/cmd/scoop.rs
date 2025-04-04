@@ -37,7 +37,7 @@ impl CommandDefaults for Scoop {}
 #[derive(Debug, clap::Parser)]
 #[command(next_help_heading = "Source")]
 struct SourceArguments {
-    /// Files or directories to upload
+    /// Files, directories, HTTP URLs, or S3 URLs to upload
     #[arg()]
     source: Vec<String>,
 }
