@@ -22,7 +22,7 @@ csv = { workspace = true }
 digest = { workspace = true }
 fluent-uri = { workspace = true }
 futures = { workspace = true }
-hickory-resolver = { workspace = true, features = ["tokio-runtime"] }
+hickory-resolver = { workspace = true, features = ["tokio"] }
 html-escape = { workspace = true }
 humantime = { workspace = true }
 log = { workspace = true }
