@@ -1,8 +1,6 @@
 use crate::model::metadata::ProviderMetadata;
 use async_trait::async_trait;
-use hickory_resolver::{
-    AsyncResolver, error::ResolveErrorKind, name_server::TokioConnectionProvider,
-};
+use hickory_resolver::Resolver;
 use sectxtlib::SecurityTxt;
 use std::fmt::Debug;
 use url::Url;
@@ -17,7 +15,7 @@ pub enum Error {
     #[error("unable to discover metadata")]
     NotFound,
     #[error("DNS request failed: {0}")]
-    Dns(#[from] hickory_resolver::error::ResolveError),
+    Dns(#[from] hickory_resolver::ResolveError),
 }
 
 #[async_trait(?Send)]
@@ -142,13 +140,12 @@ impl MetadataRetriever {
         // DNS pre-flight check
 
         #[cfg(not(any(unix, target_os = "windows")))]
-        let resolver = AsyncResolver::new(
+        let resolver = Resolver::builder_with_config(
             hickory_resolver::config::ResolverConfig::default(),
-            hickory_resolver::config::ResolverOpts::default(),
             TokioConnectionProvider::default(),
         )?;
         #[cfg(any(unix, target_os = "windows"))]
-        let resolver = AsyncResolver::from_system_conf(TokioConnectionProvider::default())?;
+        let resolver = Resolver::builder_tokio()?.build();
 
         match resolver.lookup_ip(&host).await {
             Ok(result) => {
@@ -156,7 +153,7 @@ impl MetadataRetriever {
                     return Ok(None);
                 }
             }
-            Err(err) if matches!(err.kind(), ResolveErrorKind::NoRecordsFound { .. }) => {
+            Err(err) if err.is_no_records_found() => {
                 return Ok(None);
             }
             Err(err) => {
