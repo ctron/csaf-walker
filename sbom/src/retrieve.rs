@@ -184,7 +184,7 @@ where
             for key in keys.iter().flat_map(|k| &k.certs) {
                 log::debug!("   {}", key.key_handle());
                 for id in key.userids() {
-                    log::debug!("     {}", String::from_utf8_lossy(id.value()));
+                    log::debug!("     {}", id.userid());
                 }
             }
         }
