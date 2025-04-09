@@ -23,7 +23,7 @@ impl CommandDefaults for Discover {
 }
 
 impl Discover {
-    pub async fn run<P: Progress>(self, progress: P) -> anyhow::Result<()> {
+    pub async fn run<P: Progress + Clone>(self, progress: P) -> anyhow::Result<()> {
         Walker::new(new_source(self.discover, self.client).await?)
             .with_progress(progress.clone())
             .walk(async |discovered: DiscoveredSbom| {

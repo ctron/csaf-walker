@@ -37,7 +37,7 @@ pub struct Scan {
 impl CommandDefaults for Scan {}
 
 impl Scan {
-    pub async fn run<P: Progress>(self, progress: P) -> anyhow::Result<()> {
+    pub async fn run<P: Progress + Clone>(self, progress: P) -> anyhow::Result<()> {
         walk_standard(
             progress.clone(),
             self.client,

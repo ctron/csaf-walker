@@ -38,6 +38,8 @@ default = [
     "sbom-walker"
 ]
 
+_crypto-nettle = ["csaf-walker/crypto-nettle", "sbom-walker/crypto-nettle"]
+
 clap = [
     "dep:clap",
     "walker-common/clap"
