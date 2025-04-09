@@ -4,7 +4,7 @@ use std::future::Future;
 
 pub mod indicatif;
 
-pub trait Progress: Clone {
+pub trait Progress {
     type Instance: ProgressBar;
 
     fn start(&self, work: usize) -> Self::Instance;

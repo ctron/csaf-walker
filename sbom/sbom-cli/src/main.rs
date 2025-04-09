@@ -57,7 +57,7 @@ impl Deref for Command {
 }
 
 impl Command {
-    pub async fn run<P: Progress>(self, progress: P) -> anyhow::Result<()> {
+    pub async fn run<P: Progress + Clone>(self, progress: P) -> anyhow::Result<()> {
         match self {
             Self::Discover(cmd) => cmd.run(progress).await,
             Self::Download(cmd) => cmd.run(progress).await,
