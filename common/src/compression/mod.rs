@@ -81,6 +81,13 @@ fn decompress_xz_with(data: &[u8], opts: &DecompressionOptions) -> Result<Bytes,
     decompress_limit(decoder, opts.limit)
 }
 
+/// Decompress gzip using `zlib-rs` and `flate2`.
+#[cfg(feature = "flate2")]
+fn decompress_gzip_with(data: &[u8], opts: &DecompressionOptions) -> Result<Bytes, std::io::Error> {
+    let decoder = flate2::read::GzDecoder::new(data);
+    decompress_limit(decoder, opts.limit)
+}
+
 /// Decompress with an uncompressed payload limit.
 #[allow(unused)]
 fn decompress_limit(mut reader: impl std::io::Read, limit: usize) -> Result<Bytes, std::io::Error> {
