@@ -62,6 +62,9 @@ default = ["bzip2"]
 openpgp = ["sequoia-openpgp"]
 libbz2-rs-sys = ["bzip2?/libbz2-rs-sys"]
 
+# deprecated
+cli = ["clap", "env_logger"]
+
 _crypto-nettle = ["sequoia-openpgp/crypto-nettle"]
 _test = [
     "bzip2",
@@ -74,6 +77,7 @@ always_include_features = [
     "sequoia-openpgp/crypto-nettle",
 ]
 denylist = [
+    "cli",
     "_crypto-nettle",
     "_test",
 ]
