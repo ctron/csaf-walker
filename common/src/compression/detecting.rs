@@ -16,6 +16,8 @@ pub enum Compression {
     Bzip2,
     #[cfg(feature = "liblzma")]
     Xz,
+    #[cfg(feature = "flate2")]
+    Gzip,
 }
 
 #[non_exhaustive]
@@ -87,6 +89,12 @@ impl Compression {
                 #[allow(deprecated)]
                 super::decompress_xz_with(data, opts).map(Some)
             }
+            #[cfg(feature = "flate2")]
+            Compression::Gzip =>
+            {
+                #[allow(deprecated)]
+                super::decompress_gzip_with(data, opts).map(Some)
+            }
             Compression::None => Ok(None),
         }
     }
@@ -134,6 +142,10 @@ impl<'a> Detector<'a> {
             if file_name.ends_with(".xz") {
                 return Ok(Compression::Xz);
             }
+            #[cfg(feature = "flate2")]
+            if file_name.ends_with(".gz") {
+                return Ok(Compression::Gzip);
+            }
             if self.fail_unknown_file_extension {
                 if let Some((_, ext)) = file_name.rsplit_once('.') {
                     if !self.ignore_file_extensions.contains(ext) {
@@ -154,10 +166,55 @@ impl<'a> Detector<'a> {
             if data.starts_with(&[0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00]) {
                 return Ok(Compression::Xz);
             }
+            #[cfg(feature = "flate2")]
+            if data.starts_with(&[0x1F, 0x8B, 0x08]) {
+                // NOTE: Byte #3 (0x08) is the compression format, which means "deflate" and is the
+                // only one supported right now. Having additional compression formats, we'd need
+                // to extend this check, or drop the 3rd byte.
+                return Ok(Compression::Gzip);
+            }
         }
 
         // done
 
         Ok(Compression::None)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn detect(name: &str) -> Compression {
+        Detector {
+            file_name: Some(name),
+            disable_magic: true,
+            ..Default::default()
+        }
+        .detect(&[])
+        .unwrap()
+    }
+
+    #[test]
+    fn by_name_none() {
+        assert_eq!(detect("foo.bar.json"), Compression::None);
+    }
+
+    #[cfg(any(feature = "bzip2", feature = "bzip2-rs"))]
+    #[test]
+    fn by_name_bzip2() {
+        assert_eq!(detect("foo.bar.bz2"), Compression::Bzip2);
+    }
+
+    #[cfg(feature = "liblzma")]
+    #[test]
+    fn by_name_xz() {
+        assert_eq!(detect("foo.bar.xz"), Compression::Xz);
+    }
+
+    #[cfg(feature = "flate2")]
+    #[test]
+    fn by_name_gzip() {
+        assert_eq!(detect("foo.bar.gz"), Compression::Gzip);
     }
 }
