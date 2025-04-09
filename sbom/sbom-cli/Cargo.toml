@@ -31,7 +31,7 @@ tokio = { workspace = true, features = ["full"] }
 
 # internal
 sbom-walker = { workspace = true, features = ["serde-cyclonedx", "spdx-rs"] }
-walker-common = { workspace = true, features = ["openpgp", "cli"] }
+walker-common = { workspace = true, features = ["openpgp", "clap", "env_logger"] }
 walker-extras = { workspace = true }
 
 # just there for the feature

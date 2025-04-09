@@ -5,7 +5,7 @@ pub mod runner;
 #[cfg(feature = "openpgp")]
 pub mod validation;
 
-#[cfg(feature = "cli")]
+#[cfg(feature = "env_logger")]
 pub mod log;
 
 pub trait CommandDefaults {
