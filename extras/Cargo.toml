@@ -43,8 +43,6 @@ _crypto-nettle = [
     "sbom-walker/crypto-nettle"
 ]
 _test = [
-    "_crypto-nettle",
-    "walker-common/_crypto-nettle",
     "walker-common/bzip2",
     "walker-common/liblzma",
     "walker-common/flate2"
