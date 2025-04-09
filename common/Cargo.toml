@@ -64,6 +64,7 @@ cli = ["clap", "env_logger"]
 libbz2-rs-sys = ["bzip2?/libbz2-rs-sys"]
 
 _crypto-nettle = ["sequoia-openpgp/crypto-nettle"]
+_test = ["_crypto-nettle", "bzip2", "liblzma", "flate2"]
 
 [package.metadata.cargo-all-features]
 always_include_features = [
