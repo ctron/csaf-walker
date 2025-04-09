@@ -66,6 +66,10 @@ always_include_features = [
     "csaf-walker/crypto-nettle",
     "sbom-walker/crypto-nettle",
 ]
+denylist = [
+    "_crypto-nettle",
+    "_test",
+]
 
 [package.metadata.release]
 enable-features = [
