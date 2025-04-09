@@ -15,7 +15,7 @@ impl super::Progress for MultiProgress {
         self.add(bar)
     }
 
-    fn println(&self, message: impl AsRef<str>) {
+    fn println(&self, message: &str) {
         let _ = MultiProgress::println(self, message);
     }
 }

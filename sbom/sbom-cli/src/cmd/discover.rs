@@ -27,7 +27,7 @@ impl Discover {
         Walker::new(new_source(self.discover, self.client).await?)
             .with_progress(progress.clone())
             .walk(async |discovered: DiscoveredSbom| {
-                progress.println(format!(
+                progress.println(&format!(
                     "{} ({})",
                     discovered.url,
                     humantime::format_rfc3339(discovered.modified),

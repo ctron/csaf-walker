@@ -48,13 +48,13 @@ impl Scan {
             async |advisory: Result<ValidatedAdvisory, ValidationError<DispatchSource>>| {
                 match advisory {
                     Ok(adv) => {
-                        progress.println(format!("Advisory: {}", adv.url));
+                        progress.println(&format!("Advisory: {}", adv.url));
                         log::debug!("  Metadata: {:?}", adv.sha256);
                         log::debug!("    SHA256: {:?}", adv.sha256);
                         log::debug!("    SHA512: {:?}", adv.sha512);
                         match serde_json::from_slice::<Csaf>(&adv.data) {
                             Ok(csaf) => {
-                                progress.println(format!(
+                                progress.println(&format!(
                                     "  {} ({}): {}",
                                     csaf.document.tracking.id,
                                     csaf.document.tracking.initial_release_date,
