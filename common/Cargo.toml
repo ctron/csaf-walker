@@ -70,6 +70,10 @@ _test = ["_crypto-nettle", "bzip2", "liblzma", "flate2"]
 always_include_features = [
     "sequoia-openpgp/crypto-nettle",
 ]
+denylist = [
+    "_crypto-nettle",
+    "_test",
+]
 
 [package.metadata.release]
 enable-features = ["sequoia-openpgp/crypto-nettle"]
