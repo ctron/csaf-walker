@@ -73,6 +73,11 @@ impl Sbom<'_> {
                 .as_ref()
                 .map(|c| c.iter().map(Into::into).collect()));
 
+    attribute!(services => |sbom -> Option<Vec<Service>> | sbom
+                .services
+                .as_ref()
+                .map(|c| c.iter().map(Into::into).collect()));
+
     attribute!(dependencies => |sbom -> Option<Vec<Dependency>> | sbom
                 .dependencies
                 .as_ref()
@@ -127,6 +132,21 @@ pub enum Component<'a> {
 from!('a, Component,  Component<'a>);
 
 impl<'a> Component<'a> {
+    attribute!(bom_ref => |c -> Option<&'a str> | c.bom_ref.as_deref());
+}
+
+// service
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Service<'a> {
+    V1_4(&'a serde_cyclonedx::cyclonedx::v_1_4::Service),
+    V1_5(&'a serde_cyclonedx::cyclonedx::v_1_5::Service),
+    V1_6(&'a serde_cyclonedx::cyclonedx::v_1_6::Service),
+}
+
+from!('a, Service,  Service<'a>);
+
+impl<'a> Service<'a> {
     attribute!(bom_ref => |c -> Option<&'a str> | c.bom_ref.as_deref());
 }
 

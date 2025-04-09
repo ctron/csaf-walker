@@ -30,6 +30,12 @@ impl CycloneDxChecks<'_> {
             }
         }
 
+        for service in self.sbom.services.iter().flat_map(|c| &c.0) {
+            if let Some(bom_ref) = &service.bom_ref {
+                *bom_refs.entry(bom_ref.as_str()).or_default() += 1;
+            }
+        }
+
         bom_refs
     }
 

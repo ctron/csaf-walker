@@ -29,6 +29,12 @@ impl CycloneDxChecks<'_> {
             }
         }
 
+        for service in self.sbom.services().iter().flatten() {
+            if let Some(bom_ref) = service.bom_ref() {
+                *bom_refs.entry(bom_ref).or_default() += 1;
+            }
+        }
+
         bom_refs
     }
 
