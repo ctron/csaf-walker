@@ -9,7 +9,7 @@ pub trait Progress: Clone {
 
     fn start(&self, work: usize) -> Self::Instance;
 
-    fn println(&self, message: impl AsRef<str>);
+    fn println(&self, #[allow(unused_variables)] message: impl AsRef<str>) {}
 }
 
 pub trait ProgressBar {
