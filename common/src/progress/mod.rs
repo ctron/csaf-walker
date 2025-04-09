@@ -9,7 +9,7 @@ pub trait Progress {
 
     fn start(&self, work: usize) -> Self::Instance;
 
-    fn println(&self, #[allow(unused_variables)] message: impl AsRef<str>) {}
+    fn println(&self, #[allow(unused_variables)] message: &str) {}
 }
 
 pub trait ProgressBar {
@@ -29,8 +29,8 @@ impl Progress for () {
 
     fn start(&self, _work: usize) -> Self::Instance {}
 
-    fn println(&self, message: impl AsRef<str>) {
-        println!("{}", message.as_ref());
+    fn println(&self, message: &str) {
+        println!("{message}");
     }
 }
 
@@ -64,11 +64,11 @@ impl<P: Progress> Progress for Option<P> {
         self.as_ref().map(|progress| progress.start(work))
     }
 
-    fn println(&self, message: impl AsRef<str>) {
+    fn println(&self, message: &str) {
         if let Some(progress) = self {
             progress.println(message)
         } else {
-            println!("{}", message.as_ref());
+            println!("{message}");
         }
     }
 }

@@ -35,7 +35,7 @@ impl Discover {
             .walk(filter(
                 self.filter,
                 async |discovered: DiscoveredAdvisory| {
-                    progress.println(format!("{}", discovered.url));
+                    progress.println(&format!("{}", discovered.url));
 
                     Ok::<_, Infallible>(())
                 },
