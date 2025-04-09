@@ -60,7 +60,6 @@ xattr = { workspace = true }
 [features]
 default = ["bzip2"]
 openpgp = ["sequoia-openpgp"]
-cli = ["clap", "env_logger"]
 libbz2-rs-sys = ["bzip2?/libbz2-rs-sys"]
 
 _crypto-nettle = ["sequoia-openpgp/crypto-nettle"]
