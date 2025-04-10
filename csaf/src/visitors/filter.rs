@@ -201,6 +201,8 @@ mod test {
                 DiscoveredAdvisory {
                     context,
                     url,
+                    digest: None,
+                    signature: None,
                     modified,
                 },
             )

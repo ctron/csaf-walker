@@ -59,6 +59,7 @@ impl StoreVisitor {
 }
 
 #[derive(Debug, thiserror::Error)]
+#[allow(clippy::large_enum_variant)]
 pub enum StoreRetrievedError<S: Source> {
     #[error(transparent)]
     Store(#[from] StoreError),

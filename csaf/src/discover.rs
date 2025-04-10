@@ -59,6 +59,10 @@ pub struct DiscoveredAdvisory {
     pub context: Arc<DistributionContext>,
     /// The URL of the advisory
     pub url: Url,
+    /// The URL of the digest
+    pub digest: Option<Url>,
+    /// The URL of the signature
+    pub signature: Option<Url>,
     /// The "last changed" date from the change information
     pub modified: SystemTime,
 }
