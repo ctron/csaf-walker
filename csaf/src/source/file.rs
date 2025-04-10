@@ -224,6 +224,8 @@ impl Source for FileSource {
             result.push(DiscoveredAdvisory {
                 url,
                 modified,
+                digest: None,
+                signature: None,
                 context: context.clone(),
             })
         }

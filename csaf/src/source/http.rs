@@ -1,7 +1,6 @@
-use crate::metadata::MetadataSource;
 use crate::{
     discover::{DiscoveredAdvisory, DistributionContext},
-    metadata,
+    metadata::{self, MetadataSource},
     model::metadata::ProviderMetadata,
     retrieve::RetrievedAdvisory,
     rolie::{RolieSource, SourceFile},
@@ -12,8 +11,7 @@ use digest::Digest;
 use futures::try_join;
 use reqwest::Response;
 use sha2::{Sha256, Sha512};
-use std::sync::Arc;
-use std::time::SystemTime;
+use std::{sync::Arc, time::SystemTime};
 use time::{OffsetDateTime, format_description::well_known::Rfc2822};
 use url::{ParseError, Url};
 use walker_common::{
@@ -108,6 +106,8 @@ impl Source for HttpSource {
                 Ok(DiscoveredAdvisory {
                     url: _,
                     context: _,
+                    digest: _,
+                    signature: _,
                     modified,
                 }),
                 Some(since),
@@ -139,6 +139,8 @@ impl Source for HttpSource {
                             context: discover_context.clone(),
                             url,
                             modified,
+                            signature: None,
+                            digest: None,
                         })
                     })
                     .filter(since_filter)
@@ -150,16 +152,29 @@ impl Source for HttpSource {
                 Ok(source_files
                     .files
                     .into_iter()
-                    .map(|SourceFile { file, timestamp }| {
-                        let modified = timestamp.into();
-                        let url = Url::parse(&file)?;
+                    .map(
+                        |SourceFile {
+                             file,
+                             timestamp,
+                             digest,
+                             signature,
+                         }| {
+                            let modified = timestamp.into();
+                            let url = Url::parse(&file)?;
+                            let digest = digest.map(|digest| Url::parse(&digest)).transpose()?;
+                            let signature = signature
+                                .map(|signature| Url::parse(&signature))
+                                .transpose()?;
 
-                        Ok::<_, ParseError>(DiscoveredAdvisory {
-                            context: discover_context.clone(),
-                            url,
-                            modified,
-                        })
-                    })
+                            Ok::<_, ParseError>(DiscoveredAdvisory {
+                                context: discover_context.clone(),
+                                url,
+                                digest,
+                                signature,
+                                modified,
+                            })
+                        },
+                    )
                     .filter(since_filter)
                     .collect::<Result<_, _>>()?)
             }
@@ -171,12 +186,43 @@ impl Source for HttpSource {
         discovered: DiscoveredAdvisory,
     ) -> Result<RetrievedAdvisory, Self::Error> {
         let (signature, sha256, sha512) = try_join!(
-            self.fetcher
-                .fetch::<Option<String>>(format!("{url}.asc", url = discovered.url)),
-            self.fetcher
-                .fetch::<Option<String>>(format!("{url}.sha256", url = discovered.url)),
-            self.fetcher
-                .fetch::<Option<String>>(format!("{url}.sha512", url = discovered.url)),
+            async {
+                // If we have a signature source, use it. Otherwise, guess.
+                match discovered.signature.clone() {
+                    Some(signature) => self.fetcher.fetch::<Option<String>>(signature).await,
+                    None => {
+                        self.fetcher
+                            .fetch::<Option<String>>(format!("{url}.asc", url = discovered.url))
+                            .await
+                    }
+                }
+            },
+            async {
+                match discovered.digest.clone() {
+                    Some(digest) if digest.as_str().ends_with(".sha256") => {
+                        self.fetcher.fetch::<Option<String>>(digest).await
+                    }
+                    Some(_) => Ok(None),
+                    None => {
+                        self.fetcher
+                            .fetch::<Option<String>>(format!("{url}.sha256", url = discovered.url))
+                            .await
+                    }
+                }
+            },
+            async {
+                match discovered.digest.clone() {
+                    Some(digest) if digest.as_str().ends_with(".sha512") => {
+                        self.fetcher.fetch::<Option<String>>(digest).await
+                    }
+                    Some(_) => Ok(None),
+                    None => {
+                        self.fetcher
+                            .fetch::<Option<String>>(format!("{url}.sha512", url = discovered.url))
+                            .await
+                    }
+                }
+            },
         )?;
 
         let sha256 = sha256

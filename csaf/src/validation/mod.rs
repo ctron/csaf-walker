@@ -67,6 +67,7 @@ impl AsRetrieved for ValidatedAdvisory {
 }
 
 #[derive(Debug, thiserror::Error)]
+#[allow(clippy::large_enum_variant)]
 pub enum ValidationError<S: Source> {
     Retrieval(RetrievalError<DiscoveredAdvisory, S>),
     DigestMismatch {
