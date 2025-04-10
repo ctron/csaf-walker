@@ -1,7 +1,7 @@
 [package]
 name = "sbom-cli"
 description = "A CLI to work with SBOM data"
-version = "0.12.1"
+version = "0.12.4"
 authors = ["Jens Reimann <ctron@dentrassi.de>"]
 repository = "https://github.com/ctron/csaf-walker"
 categories = ["command-line-utilities", "data-structures"]
