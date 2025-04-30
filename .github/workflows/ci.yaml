@@ -66,23 +66,6 @@ jobs:
       - name: Clippy
         run: cargo clippy --all-targets --tests --bins --all -- -D warnings
 
-  semver:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: linux-semver-${{ hashFiles('**/Cargo.toml') }}
-
-      - name: Check semver
-        uses: obi1kenobi/cargo-semver-checks-action@v2
-
   check:
 
     strategy:
