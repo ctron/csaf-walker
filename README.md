@@ -2,7 +2,7 @@
 
 [![crates.io](https://img.shields.io/crates/v/csaf-walker.svg)](https://crates.io/crates/csaf-walker)
 [![docs.rs](https://docs.rs/csaf-walker/badge.svg)](https://docs.rs/csaf-walker)
-[![GitHub release (latest SemVer)](https://img.shields.io/github/v/tag/ctron/csaf-walker?sort=semver)](https://github.com/ctron/csaf-walker/releases)
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/tag/scm-rs/csaf-walker?sort=semver)](https://github.com/scm-rs/csaf-walker/releases)
 [![CI](https://github.com/ctron/csaf-walker/workflows/CI/badge.svg)](https://github.com/ctron/csaf-walker/actions?query=workflow%3A%22CI%22)
 
 "Walk" CSAF data from a remote server, allowing one to work with the data.
