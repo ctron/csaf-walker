@@ -17,6 +17,8 @@ jobs:
   common:
     uses: scm-rs/shared-workflows/.github/workflows/ci.yaml@main
     with:
+      preflight_install: |
+        sudo apt install clang llvm pkg-config nettle-dev
       matrix_include: |
         [
           {
