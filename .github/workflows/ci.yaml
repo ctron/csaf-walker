@@ -19,7 +19,7 @@ jobs:
     with:
       preflight_install: |
         sudo apt install clang llvm pkg-config nettle-dev
-      preflight_semver_exclude: csaf-cli,sbom-cli
+      preflight_semver_exclude: csaf-cli,sbom-cli,walker-extras # drop walker-extras later
       preflight_semver_feature_group: default-features
       preflight_semver_features: _semver
       matrix_include: |
