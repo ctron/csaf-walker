@@ -14,105 +14,33 @@ on:
 
 jobs:
 
-  fmt:
-    runs-on: ubuntu-22.04
+  common:
+    uses: scm-rs/shared-workflows/.github/workflows/ci.yaml@main
+    with:
+      matrix_input: |
+        [
+          {
+            "os": "ubuntu-22.04",
+            "install": "sudo apt install clang llvm pkg-config nettle-dev"
+          },
+          {
+            "os": "windows-2022",
+            "args": "--features crypto-cng --no-default-features",
+          },
+          {
+            "os": "macos-14",
+          }
+        ]
+
+  ci:
+    runs-on: ubuntu-latest
+    needs:
+      - common
+    if: always()
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: webiny/action-conventional-commits@v1.3.0
-
-      - name: Update Rust stable
-        run: |
-          rustup update stable
-
-      - name: Check formatting
-        run: |
-          cargo fmt --check
-
-  check-all:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: linux-cargo-all-${{ hashFiles('**/Cargo.toml') }}
-
-      - name: Install binstall
-        run: |
-          curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-
-      - name: Install cargo-all-features
-        run: |
-          cargo binstall -y cargo-all-features
-
-      - name: Install dependencies
-        run: |
-          sudo apt install clang llvm pkg-config nettle-dev
-
-      - name: Update Rust stable
-        run: |
-          rustup update stable
-
-      - name: Check (all features)
-        run: |
-          cargo check-all-features
-
-      - name: Clippy
-        run: cargo clippy --all-targets --tests --bins --all -- -D warnings
-
-  check:
-
-    strategy:
-      matrix:
-
-        rust:
-          - stable
-          - "1.85.0" # MSRV
-
-        os:
-          - ubuntu-latest
-          - windows-latest
-          - macos-latest
-
-        include:
-          - os: ubuntu-latest
-            install: sudo apt install clang llvm pkg-config nettle-dev
-          - os: windows-latest
-            args: --features crypto-cng --no-default-features
-            #args: --features vendored,crypto-openssl,walker-common/bzip2-rs --no-default-features
-
-    runs-on: ${{ matrix.os }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.toml') }}
-
-      - name: Install Rust ${{ matrix.rust }}
-        run: |
-          rustup install ${{ matrix.rust }}
-
-      - name: Install dependencies
-        run: ${{ matrix.install }}
-
-      - name: Tree
-        run: cargo +${{ matrix.rust }} tree --workspace ${{ matrix.args }}
-
-      - name: Check
-        run: cargo +${{ matrix.rust }} check --workspace ${{ matrix.args }}
-
-      - name: Test
-        run: cargo +${{ matrix.rust }} test --workspace ${{ matrix.args }} --features _test -- --nocapture
+      - name: Success
+        if: ${{ !(contains(needs.*.result, 'failure')) }}
+        run: exit 0
+      - name: Failure
+        if: ${{ contains(needs.*.result, 'failure') }}
+        run: exit 1
