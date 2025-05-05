@@ -86,6 +86,7 @@ denylist = [
     "cli",
     "_crypto-nettle",
     "_test",
+    "_semver",
 ]
 
 [package.metadata.release]

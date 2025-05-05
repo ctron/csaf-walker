@@ -73,6 +73,7 @@ always_include_features = [
 denylist = [
     "_crypto-nettle",
     "_test",
+    "_semver",
 ]
 
 [package.metadata.release]
