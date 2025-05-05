@@ -75,6 +75,9 @@ _test = [
     "flate2"
 ]
 
+# enable for semver checks (in addition to default)
+_semver = ["_test", "sequoia-openpgp/crypto-nettle"]
+
 [package.metadata.cargo-all-features]
 always_include_features = [
     "sequoia-openpgp/crypto-nettle",

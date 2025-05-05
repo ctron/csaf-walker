@@ -49,6 +49,9 @@ crypto-openssl = ["sequoia-openpgp/crypto-openssl"]
 crypto-botan = ["sequoia-openpgp/crypto-botan"]
 crypto-rust = ["sequoia-openpgp/crypto-rust"]
 
+# enable for semver checks (in addition to default)
+_semver = []
+
 [package.metadata.cargo-all-features]
 always_include_features = [
     "crypto-nettle",

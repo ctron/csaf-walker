@@ -64,6 +64,9 @@ csaf-validator-lib = [
     "deno_core",
 ]
 
+# enable for semver checks (in addition to default)
+_semver = ["csaf-validator-lib"]
+
 # workaround until xattr fixes its win32 compilation issues.
 [target.'cfg(any(unix, macos))'.dependencies]
 xattr = { workspace = true }

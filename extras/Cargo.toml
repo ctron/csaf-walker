@@ -48,6 +48,12 @@ _test = [
     "walker-common/flate2"
 ]
 
+# enable for semver checks (in addition to default)
+_semver = [
+    "_crypto-nettle",
+    "_test"
+]
+
 clap = [
     "dep:clap",
     "walker-common/clap"
