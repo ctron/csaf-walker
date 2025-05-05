@@ -10,6 +10,7 @@ pub enum Error<'a> {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[non_exhaustive]
 pub enum Compression {
     None,
     #[cfg(any(feature = "bzip2", feature = "bzip2-rs"))]
