@@ -14,7 +14,7 @@ RUN \
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
-LABEL org.opencontainers.image.source="https://github.com/ctron/csaf-walker"
+LABEL org.opencontainers.image.source="https://github.com/scm-rs/csaf-walker"
 
 ARG TARGETPLATFORM
 

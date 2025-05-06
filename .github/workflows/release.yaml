@@ -2,11 +2,8 @@ name: release
 
 on:
   push:
-    # Releases are tags named 'v<version>', and must have the "major.minor.micro", for example: "0.1.0".
-    # Release candidates are tagged as `v<version>-rc<num>`, for example: "0.1.0-rc1".
     tags:
       - "v*"
-
 
 permissions:
   contents: write # for creating a release
@@ -15,41 +12,12 @@ permissions:
 
 jobs:
 
-  init:
-    runs-on: ubuntu-22.04
-    outputs:
-      version: ${{steps.version.outputs.version}}
-      prerelease: ${{steps.state.outputs.prerelease}}
-    steps:
-      - name: Evaluate state
-        id: state
-        env:
-          HEAD_REF: ${{github.head_ref}}
-        run: |
-          test -z "${HEAD_REF}" && (echo 'do-publish=true' >> $GITHUB_OUTPUT)
-          if [[ "${{ github.event.ref }}" =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              echo release=true >> $GITHUB_OUTPUT
-          elif [[ "${{ github.event.ref }}" =~ ^refs/tags/v.*$ ]]; then
-              echo prerelease=true >> $GITHUB_OUTPUT
-          fi
-      - name: Set version
-        id: version
-        run: |
-          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
-          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
-          [ "$VERSION" == "main" ] && VERSION=latest
-          echo "Version: $VERSION"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-
-  # check that our CI would pass
   ci:
     uses: ./.github/workflows/ci.yaml
 
   # now do the actual (release) builds
   build:
     needs:
-      - init
       - ci
 
     strategy:
@@ -228,7 +196,7 @@ jobs:
           if-no-files-found: error
 
   containers:
-    needs: [ init, build ]
+    needs: [ ci, build ]
     runs-on: ubuntu-22.04
     permissions:
       packages: write # for publishing containers
@@ -251,7 +219,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ghcr.io/ctron/csaf-walker
+            ghcr.io/scm-rs/csaf-walker
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -276,55 +244,13 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  publish:
-    needs: [ init, containers ]
-    runs-on: ubuntu-22.04
-    steps:
-
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Install convco
-        run: |
-          curl -sLO https://github.com/convco/convco/releases/download/v0.5.1/convco-ubuntu.zip
-          unzip convco-ubuntu.zip
-          chmod a+x convco
-          sudo mv convco /usr/local/bin
-
-      - name: Generate changelog
-        run: |
-          convco changelog -s --max-majors=1 --max-minors=1 --max-patches=1 -n > /tmp/changelog.md
-
-      - uses: actions/download-artifact@v4
-        with:
-          path: ~/download
-
-      - name: Display downloaded content
-        run: ls -R ~/download
-
-      - name: Stage release
-        run: |
-          mkdir -p staging
-          cp -pv ~/download/*/csaf-* staging/
-          cp -pv ~/download/*/sbom-* staging/
-
-      - uses: actions/attest-build-provenance@v1
-        with:
-          subject-path: 'staging/*'
-
-      - name: Display staging area
-        run: ls -R staging
-
-      - name: Create Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: v${{ needs.init.outputs.version }}
-        run: |
-          OPTS=""
-          if [[ "${{ needs.init.outputs.prerelease }}" == "true" ]]; then
-            OPTS="${OPTS} -p"
-          fi
-          gh release create ${OPTS} --title "${{ needs.init.outputs.version }}" -F /tmp/changelog.md ${TAG} \
-            $(find staging -type f)
+  release:
+    needs:
+      - ci
+      - build
+      - containers
+    uses: scm-rs/shared-workflows/.github/workflows/release.yaml@main
+    with:
+      copy_staging: "~/download/*/csaf-* ~/download/*/sbom-*"
+    secrets:
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
