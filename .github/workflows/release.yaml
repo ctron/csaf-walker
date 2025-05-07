@@ -70,14 +70,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/cache@v4
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ matrix.target }}-cargo-release-${{ hashFiles('**/Cargo.toml') }}
+          key: build-${{ matrix.target }}
 
       - run: rustup update stable --no-self-update
 
