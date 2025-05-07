@@ -18,7 +18,7 @@ LABEL org.opencontainers.image.source="https://github.com/scm-rs/csaf-walker"
 
 ARG TARGETPLATFORM
 
-#RUN microdnf update -y && microdnf install -y jq
+RUN microdnf update -y && microdnf install -y jq
 
 RUN echo ${TARGETPLATFORM}
 
